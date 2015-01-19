@@ -1,2 +1,6 @@
 # db-api
-PostgreSQL database with API
+
+My PostgreSQL database.
+
+© 2015 50pop LLC | Contact: [Derek Sivers](http://sivers.org/)
+
