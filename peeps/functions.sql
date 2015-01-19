@@ -78,7 +78,7 @@ CREATE FUNCTION person_create(new_name text, new_email text) RETURNS SETOF peeps
 DECLARE
 	clean_email text;
 BEGIN
-	clean_email := lower(btrim(new_email));
+	clean_email := lower(regexp_replace(new_email, '\s', '', 'g'));
 	IF clean_email IS NULL OR clean_email = '' THEN
 		RAISE 'missing_email';
 	END IF;
@@ -117,7 +117,7 @@ CREATE FUNCTION person_email_pass(my_email text, my_pass text) RETURNS SETOF pee
 DECLARE
 	clean_email text;
 BEGIN
-	clean_email := lower(btrim(my_email));
+	clean_email := lower(regexp_replace(my_email, '\s', '', 'g'));
 	IF clean_email !~ '\A\S+@\S+\.\S+\Z' THEN
 		RAISE 'bad_email';
 	END IF;

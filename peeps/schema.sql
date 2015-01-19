@@ -508,7 +508,7 @@ CREATE FUNCTION person_create(new_name text, new_email text) RETURNS SETOF peeps
 DECLARE
 	clean_email text;
 BEGIN
-	clean_email := lower(btrim(new_email));
+	clean_email := lower(regexp_replace(new_email, '\s', '', 'g'));
 	IF clean_email IS NULL OR clean_email = '' THEN
 		RAISE 'missing_email';
 	END IF;
@@ -547,7 +547,7 @@ CREATE FUNCTION person_email_pass(my_email text, my_pass text) RETURNS SETOF pee
 DECLARE
 	clean_email text;
 BEGIN
-	clean_email := lower(btrim(my_email));
+	clean_email := lower(regexp_replace(my_email, '\s', '', 'g'));
 	IF clean_email !~ '\A\S+@\S+\.\S+\Z' THEN
 		RAISE 'bad_email';
 	END IF;
@@ -673,7 +673,7 @@ $$ LANGUAGE plpgsql;
 -- Strip spaces and lowercase email address before validating & storing
 CREATE FUNCTION clean_email() RETURNS TRIGGER AS $$
 BEGIN
-	NEW.email = lower(btrim(NEW.email));
+	NEW.email = lower(regexp_replace(NEW.email, '\s', '', 'g'));
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -694,7 +694,7 @@ CREATE TRIGGER clean_name BEFORE INSERT OR UPDATE OF name ON people FOR EACH ROW
 CREATE FUNCTION clean_userstats() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.statkey = lower(regexp_replace(NEW.statkey, '[^[:alnum:]_-]', '', 'g'));
-	NEW.statvalue = trim(E'\r\n ' FROM NEW.statvalue);
+	NEW.statvalue = btrim(NEW.statvalue, E'\r\n\t ');
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -704,7 +704,7 @@ CREATE TRIGGER clean_userstats BEFORE INSERT OR UPDATE OF statkey, statvalue ON 
 -- urls.url remove all whitespace, then add http:// if not there
 CREATE FUNCTION clean_url() RETURNS TRIGGER AS $$
 BEGIN
-	NEW.url = regexp_replace(NEW.url, '[[:space:]]', '', 'g');
+	NEW.url = regexp_replace(NEW.url, '\s', '', 'g');
 	IF NEW.url !~ '\Ahttps?://' THEN
 		NEW.url = 'http://' || NEW.url;
 	END IF;
@@ -745,7 +745,7 @@ CREATE TRIGGER null_person_fields BEFORE INSERT OR UPDATE OF country, email ON p
 CREATE FUNCTION clean_emails_fields() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.profile = regexp_replace(lower(NEW.profile), '[^[:alnum:]_@-]', '', 'g');
-	IF TG_OP = 'INSERT' AND (NEW.category IS NULL OR btrim(NEW.category) = '') THEN
+	IF TG_OP = 'INSERT' AND (NEW.category IS NULL OR trim(both ' ' from NEW.category) = '') THEN
 		NEW.category = NEW.profile;
 	ELSE
 		NEW.category = regexp_replace(lower(NEW.category), '[^[:alnum:]_@-]', '', 'g');
