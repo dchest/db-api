@@ -1,4 +1,4 @@
-# test peeps schema - no models - just SQL
+# test peeps schema
 require 'pg'
 require 'minitest/autorun'
 
