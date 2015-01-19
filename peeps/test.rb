@@ -36,7 +36,7 @@ class TestPeeps < Minitest::Test
 	# peeps.people.email must be vaguely valid ("string@string.string") or NULL.
 	# constraint name: 'valid_email'. UPDATE and INSERT trim and lowercase email first
 	def test_people_email
-		res = DB.exec("UPDATE people SET email='	BEE@cee.DEE	' WHERE id=1 RETURNING people.email");
+		res = DB.exec("UPDATE people SET email='	BEE@cee.DEE	' WHERE id=1 RETURNING email");
 		assert_equal 'bee@cee.dee', res[0]['email']
 		DB.exec("UPDATE people SET email=NULL WHERE id=1");
 		err = assert_raises PG::CheckViolation do
@@ -165,7 +165,7 @@ class TestPeeps < Minitest::Test
 			DB.exec("SELECT * FROM person_create('Valid Name', NULL)")
 		end
 		assert err.message.include? 'missing_email'
-		err = assert_raises PG::CheckViolation do
+		err = assert_raises PG::RaiseException do
 			DB.exec("SELECT * FROM person_create('Valid Name', '	')")
 		end
 		assert err.message.include? 'missing_email'
@@ -287,14 +287,14 @@ class TestPeeps < Minitest::Test
 		assert_raises PG::CheckViolation do
 			DB.exec("UPDATE emails SET category='	!\r/ |\n~ & ^ ' WHERE id=1")	# <-- cleaned to ''
 		end
-		res = DB.exec("INSERT INTO emails (person_id, profile) VALUES (3, 'we@woodegg') RETURNING emails.*")
+		res = DB.exec("INSERT INTO emails (person_id, profile) VALUES (3, 'we@woodegg') RETURNING *")
 		assert_equal 'we@woodegg', res[0]['category']
-		res = DB.exec("INSERT INTO emails (person_id, profile, category) VALUES (3, 'derek@sivers', '		') RETURNING emails.*")
+		res = DB.exec("INSERT INTO emails (person_id, profile, category) VALUES (3, 'derek@sivers', '  ') RETURNING *")
 		assert_equal 'derek@sivers', res[0]['category']
-		res = DB.exec("INSERT INTO emails (person_id, profile, category) VALUES (3, ' DEREK@sivers\r\n', ' !TH*&is-/tH_At	') RETURNING emails.*")
+		res = DB.exec("INSERT INTO emails (person_id, profile, category) VALUES (3, ' DEREK@sivers\r\n', ' !TH*&is-/tH_At	') RETURNING *")
 		assert_equal 'derek@sivers', res[0]['profile']
 		assert_equal 'this-th_at', res[0]['category']
-		res = DB.exec("UPDATE emails SET profile='!D@_s-!', category='\r\n\t%T\t\r\n ' WHERE id=8 RETURNING emails.*")
+		res = DB.exec("UPDATE emails SET profile='!D@_s-!', category='\r\n\t%T\t\r\n ' WHERE id=8 RETURNING *")
 		assert_equal 'd@_s-', res[0]['profile']
 		assert_equal 't', res[0]['category']
 	end
