@@ -670,6 +670,74 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- emails.profile this emailer is allowed to access
+-- EXAMPLE: ['derek@sivers', 'we@woodegg']
+-- PARAMS: emailer_id
+CREATE FUNCTION emailer_profiles(integer) RETURNS SETOF text AS $$
+DECLARE
+	emailer_profiles text[];
+BEGIN
+	SELECT profiles INTO emailer_profiles FROM emailers WHERE id = $1;
+	IF emailer_profiles = array['ALL'] THEN
+		RETURN QUERY SELECT DISTINCT(profile)::text FROM emails ORDER BY 1;
+	ELSE
+		RETURN QUERY SELECT UNNEST(emailer_profiles) ORDER BY 1;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- emails.category this emailer is allowed to access
+-- EXAMPLE: ['woodegg', 'not-derek']
+-- TODO: avoid use of this if ['ALL'], since expensive to calculate all
+-- PARAMS: emailer_id
+CREATE FUNCTION emailer_categories(integer) RETURNS SETOF text AS $$
+DECLARE
+	emailer_categories text[];
+BEGIN
+	SELECT categories INTO emailer_categories FROM emailers WHERE id = $1;
+	IF emailer_categories = array['ALL'] THEN
+		RETURN QUERY SELECT DISTINCT(category)::text FROM emails ORDER BY 1;
+	ELSE
+		RETURN QUERY SELECT UNNEST(emailer_categories) ORDER BY 1;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- unopened emails this emailer is allowed to access
+-- PARAMS: emailer_id
+CREATE FUNCTION emailer_unopened_emails(integer) RETURNS SETOF emails AS $$
+BEGIN
+	RETURN QUERY SELECT * FROM emails WHERE opened_at IS NULL
+		AND person_id IS NOT NULL
+		AND profile IN (SELECT * FROM emailer_profiles($1))
+		AND category IN (SELECT * FROM emailer_categories($1))
+		ORDER BY id ASC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- already-open emails this emailer is allowed to access
+-- PARAMS: emailer_id
+CREATE FUNCTION emailer_opened_emails(integer) RETURNS SETOF emails AS $$
+BEGIN
+	RETURN QUERY SELECT * FROM emails WHERE opened_at IS NOT NULL
+		AND closed_at IS NULL
+		AND profile IN (SELECT * FROM emailer_profiles($1))
+		AND category IN (SELECT * FROM emailer_categories($1))
+		ORDER BY id ASC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- unknown-person emails, if this emailer is admin or specifically allowed
+-- PARAMS: emailer_id
+CREATE FUNCTION emailer_unknown_emails(integer) RETURNS SETOF emails AS $$
+BEGIN
+	RETURN QUERY SELECT * FROM emails WHERE person_id IS NULL
+		AND profile IN (SELECT * FROM emailer_profiles($1))
+		AND category IN (SELECT * FROM emailer_categories($1))
+		ORDER BY id ASC;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Strip spaces and lowercase email address before validating & storing
 CREATE FUNCTION clean_email() RETURNS TRIGGER AS $$
 BEGIN
@@ -806,6 +874,22 @@ CREATE FUNCTION up2person() RETURNS TRIGGER AS $$
 BEGIN
 	UPDATE peeps.people SET name=NEW.name, email=NEW.email, address=NEW.address, city=NEW.city, state=NEW.state, country=NEW.country WHERE id=OLD.person_id;
 	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- API REQUIRES AUTHENTICATION. User must be in peeps.emailers
+-- peeps.emailers.id needed as first argument to many functions here
+
+CREATE FUNCTION get_profiles(integer, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT array_to_json(array(SELECT * FROM emailer_profiles($1))) INTO js;
+
+	IF js IS NULL THEN
+		mime := 'application/problem+json';
+		js := '{"type": "about:blank", "title": "Not Found", "status": 404}';
+	END IF;
+
 END;
 $$ LANGUAGE plpgsql;
 
