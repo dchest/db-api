@@ -1,3 +1,12 @@
+THOUGHTS:
+
+How to get all these email-selecting and people-selecting queries to run through the same JSON-creating view?
+
+1. Use an m4 template to do the same JSON-aggregating view inside each.
+
+2. Have the functions just generate a set of IDs, and use them to select a view:
+	SELECT * FROM emails_view WHERE id IN (SELECT * FROM opened_emails($1));
+
 TODO:
 
 Using existing peeps API, convert to functions:
