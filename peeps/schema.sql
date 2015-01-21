@@ -693,71 +693,72 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- emails.profile this emailer is allowed to access
--- EXAMPLE: ['derek@sivers', 'we@woodegg']
--- PARAMS: emailer_id
-CREATE FUNCTION emailer_profiles(integer) RETURNS SETOF text AS $$
-DECLARE
-	emailer_profiles text[];
-BEGIN
-	SELECT profiles INTO emailer_profiles FROM emailers WHERE id = $1;
-	IF emailer_profiles = array['ALL'] THEN
-		RETURN QUERY SELECT DISTINCT(profile)::text FROM emails ORDER BY 1;
-	ELSE
-		RETURN QUERY SELECT UNNEST(emailer_profiles) ORDER BY 1;
-	END IF;
-END;
-$$ LANGUAGE plpgsql;
-
--- emails.category this emailer is allowed to access
--- EXAMPLE: ['woodegg', 'not-derek']
--- TODO: avoid use of this if ['ALL'], since expensive to calculate all
--- PARAMS: emailer_id
-CREATE FUNCTION emailer_categories(integer) RETURNS SETOF text AS $$
-DECLARE
-	emailer_categories text[];
-BEGIN
-	SELECT categories INTO emailer_categories FROM emailers WHERE id = $1;
-	IF emailer_categories = array['ALL'] THEN
-		RETURN QUERY SELECT DISTINCT(category)::text FROM emails ORDER BY 1;
-	ELSE
-		RETURN QUERY SELECT UNNEST(emailer_categories) ORDER BY 1;
-	END IF;
-END;
-$$ LANGUAGE plpgsql;
-
 -- ids of unopened emails this emailer is allowed to access
 -- PARAMS: emailer_id
-CREATE FUNCTION emailer_unopened_emails(integer) RETURNS SETOF integer AS $$
+CREATE FUNCTION unopened_email_ids(integer) RETURNS SETOF integer AS $$
+DECLARE
+	pros text[];
+	cats text[];
 BEGIN
-	RETURN QUERY SELECT id FROM emails WHERE opened_at IS NULL
-		AND person_id IS NOT NULL
-		AND profile IN (SELECT * FROM emailer_profiles($1))
-		AND category IN (SELECT * FROM emailer_categories($1))
-		ORDER BY id ASC;
+	SELECT profiles, categories INTO pros, cats FROM emailers WHERE id = $1;
+	IF pros = array['ALL'] AND cats = array['ALL'] THEN
+		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NULL
+			AND person_id IS NOT NULL ORDER BY id;
+	ELSIF cats = array['ALL'] THEN
+		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NULL
+			AND person_id IS NOT NULL AND profile = ANY(pros) ORDER BY id;
+	ELSIF pros = array['ALL'] THEN
+		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NULL
+			AND person_id IS NOT NULL AND category = ANY(cats) ORDER BY id;
+	ELSE
+		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NULL
+			AND person_id IS NOT NULL
+			AND profile = ANY(pros) AND category = ANY(cats) ORDER BY id;
+	END IF;
 END;
 $$ LANGUAGE plpgsql;
+
 
 -- ids of already-open emails this emailer is allowed to access
 -- PARAMS: emailer_id
-CREATE FUNCTION emailer_opened_emails(integer) RETURNS SETOF integer AS $$
+CREATE FUNCTION opened_email_ids(integer) RETURNS SETOF integer AS $$
+DECLARE
+	pros text[];
+	cats text[];
 BEGIN
-	RETURN QUERY SELECT id FROM emails WHERE opened_at IS NOT NULL
-		AND closed_at IS NULL
-		AND profile IN (SELECT * FROM emailer_profiles($1))
-		AND category IN (SELECT * FROM emailer_categories($1))
-		ORDER BY id ASC;
+	SELECT profiles, categories INTO pros, cats FROM emailers WHERE id = $1;
+	IF pros = array['ALL'] AND cats = array['ALL'] THEN
+		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NOT NULL
+			AND closed_at IS NULL ORDER BY id;
+	ELSIF cats = array['ALL'] THEN
+		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NOT NULL
+			AND closed_at IS NULL AND profile = ANY(pros) ORDER BY id;
+	ELSIF pros = array['ALL'] THEN
+		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NOT NULL
+			AND closed_at IS NULL AND category = ANY(cats) ORDER BY id;
+	ELSE
+		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NOT NULL
+			AND closed_at IS NULL
+			AND profile = ANY(pros) AND category = ANY(cats) ORDER BY id;
+	END IF;
 END;
 $$ LANGUAGE plpgsql;
 
+
 -- ids of unknown-person emails, if this emailer is admin or allowed
+-- (unknown-person emails don't have categories, so not checking for that)
 -- PARAMS: emailer_id
-CREATE FUNCTION emailer_unknown_emails(integer) RETURNS SETOF integer AS $$
+CREATE FUNCTION unknown_email_ids(integer) RETURNS SETOF integer AS $$
+DECLARE
+	pros text[];
 BEGIN
-	RETURN QUERY SELECT * FROM emails WHERE person_id IS NULL
-		AND profile IN (SELECT * FROM emailer_profiles($1))
-		AND category IN (SELECT * FROM emailer_categories($1))
-		ORDER BY id ASC;
+	SELECT profiles INTO pros FROM emailers WHERE id = $1;
+	IF pros = array['ALL'] THEN
+		RETURN QUERY SELECT id FROM emails WHERE person_id IS NULL ORDER BY id;
+	ELSE
+		RETURN QUERY SELECT id FROM emails WHERE person_id IS NULL
+			 AND profile = ANY(pros) ORDER BY id;
+	END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -903,13 +904,22 @@ $$ LANGUAGE plpgsql;
 -- API REQUIRES AUTHENTICATION. User must be in peeps.emailers
 -- peeps.emailers.id needed as first argument to many functions here
 
+-- Grouped summary of howmany unopened emails in each profile/category
+-- JSON format: {profiles:{categories:howmany}}
+--{"derek@sivers":{"derek@sivers":43,"derek":2,"programmer":1},
+-- "we@woodegg":{"woodeggRESEARCH":1,"woodegg":1,"we@woodegg":1}}
 -- PARAMS: emailer_id
-CREATE FUNCTION get_profiles(integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION unopened_email_count(integer, OUT mime text, OUT js text) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT array_to_json(array(SELECT * FROM emailer_profiles($1))) INTO js;
+	SELECT json_object_agg(profile, cats) INTO js FROM (WITH unopened AS
+		(SELECT profile, category FROM emails WHERE id IN
+			(SELECT * FROM unopened_email_ids($1)))
+		SELECT profile, (SELECT json_object_agg(category, num) FROM
+			(SELECT category, COUNT(*) AS num FROM unopened u2
+				WHERE u2.profile=unopened.profile GROUP BY category ORDER BY num DESC) rr)
+		AS cats FROM unopened GROUP BY profile) r;  
 END;
 $$ LANGUAGE plpgsql;
-
 
 
