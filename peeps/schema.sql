@@ -428,6 +428,29 @@ INSERT INTO currencies(code, name, rate) VALUES
 COMMIT;
 
 
+CREATE VIEW emails_view AS
+	SELECT id, subject, created_at, their_name, their_email FROM emails;
+
+CREATE VIEW email_view AS
+	SELECT id, person_id, profile, category,
+		created_at, (SELECT row_to_json(cb) AS creator FROM
+			(SELECT emailers.id, people.name FROM emailers
+				JOIN people ON emailers.person_id=people.id
+				WHERE emailers.id = created_by) cb),
+		opened_at, (SELECT row_to_json(ob) AS openor FROM
+			(SELECT emailers.id, people.name FROM emailers
+				JOIN people ON emailers.person_id=people.id
+				WHERE emailers.id = opened_by) ob),
+		closed_at, (SELECT row_to_json(lb) AS closor FROM
+			(SELECT emailers.id, people.name FROM emailers
+				JOIN people ON emailers.person_id=people.id
+				WHERE emailers.id = closed_by) lb),
+		message_id, outgoing, their_email, their_name, headers, subject, body,
+		(SELECT json_agg(atch) AS attachments FROM
+			(SELECT id, filename FROM email_attachments
+				WHERE email_id=emails.id) atch)
+		FROM emails;
+
 ----------------------------
 ------ pg_catalog FUNCTIONS:
 ----------------------------
@@ -703,11 +726,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- unopened emails this emailer is allowed to access
+-- ids of unopened emails this emailer is allowed to access
 -- PARAMS: emailer_id
-CREATE FUNCTION emailer_unopened_emails(integer) RETURNS SETOF emails AS $$
+CREATE FUNCTION emailer_unopened_emails(integer) RETURNS SETOF integer AS $$
 BEGIN
-	RETURN QUERY SELECT * FROM emails WHERE opened_at IS NULL
+	RETURN QUERY SELECT id FROM emails WHERE opened_at IS NULL
 		AND person_id IS NOT NULL
 		AND profile IN (SELECT * FROM emailer_profiles($1))
 		AND category IN (SELECT * FROM emailer_categories($1))
@@ -715,11 +738,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- already-open emails this emailer is allowed to access
+-- ids of already-open emails this emailer is allowed to access
 -- PARAMS: emailer_id
-CREATE FUNCTION emailer_opened_emails(integer) RETURNS SETOF emails AS $$
+CREATE FUNCTION emailer_opened_emails(integer) RETURNS SETOF integer AS $$
 BEGIN
-	RETURN QUERY SELECT * FROM emails WHERE opened_at IS NOT NULL
+	RETURN QUERY SELECT id FROM emails WHERE opened_at IS NOT NULL
 		AND closed_at IS NULL
 		AND profile IN (SELECT * FROM emailer_profiles($1))
 		AND category IN (SELECT * FROM emailer_categories($1))
@@ -727,9 +750,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- unknown-person emails, if this emailer is admin or specifically allowed
+-- ids of unknown-person emails, if this emailer is admin or allowed
 -- PARAMS: emailer_id
-CREATE FUNCTION emailer_unknown_emails(integer) RETURNS SETOF emails AS $$
+CREATE FUNCTION emailer_unknown_emails(integer) RETURNS SETOF integer AS $$
 BEGIN
 	RETURN QUERY SELECT * FROM emails WHERE person_id IS NULL
 		AND profile IN (SELECT * FROM emailer_profiles($1))
@@ -880,17 +903,13 @@ $$ LANGUAGE plpgsql;
 -- API REQUIRES AUTHENTICATION. User must be in peeps.emailers
 -- peeps.emailers.id needed as first argument to many functions here
 
+-- PARAMS: emailer_id
 CREATE FUNCTION get_profiles(integer, OUT mime text, OUT js text) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT array_to_json(array(SELECT * FROM emailer_profiles($1))) INTO js;
-
-	IF js IS NULL THEN
-		mime := 'application/problem+json';
-		js := '{"type": "about:blank", "title": "Not Found", "status": 404}';
-	END IF;
-
 END;
 $$ LANGUAGE plpgsql;
+
 
 
