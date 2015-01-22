@@ -5,27 +5,15 @@ Using existing peeps API, convert to functions:
 get '/emails/unopened/count'
 unopened_email_count(emailer_id integer)
 
-get '/emails/open'
-opened_emails(emailer_id integer)
-
-get '/unknowns'
-unknown_emails(emailer_id integer)
-
-get '/unknowns/next'
-unknown_emails(emailer_id integer) LIMIT 1
-
-post %r{^/unknowns/([0-9]+)$} do |id|  # person_id = 0 = create
-set_unknown_email_person(emailer_id integer, unknown_id integer, person_id integer)
-
-delete %r{^/unknowns/([0-9]+)$} do |id|
-delete_unknown_email(emailer_id integer, unknown_id integer)
-
 get '/emails/unopened/:profile/:category' do |p, c|
 unopened_emails_in_profile_category(emailer_id integer, profile text, category text)
 
 post '/request/:profile/:category' do |p, c|
 unopened_emails_in_profile_category(emailer_id integer, profile text, category text) LIMIT 1
 open_email(emailer_id integer, email_id integer) 
+
+get '/emails/open'
+opened_emails(emailer_id integer)
 
 get %r{^/emails/([0-9]+)$} do |id|
 open_email(emailer_id integer, email_id integer) 
@@ -47,6 +35,18 @@ not_my_email(emailer_id integer, email_id integer)
 
 post %r{^/emails/([0-9]+)/reply$} do |id|
 reply_to_email_with(emailer_id integer, email_id integer, body text)
+
+get '/unknowns'
+unknown_emails(emailer_id integer)
+
+get '/unknowns/next'
+unknown_emails(emailer_id integer) LIMIT 1
+
+post %r{^/unknowns/([0-9]+)$} do |id|  # person_id = 0 = create
+set_unknown_email_person(emailer_id integer, unknown_id integer, person_id integer)
+
+delete %r{^/unknowns/([0-9]+)$} do |id|
+delete_unknown_email(emailer_id integer, unknown_id integer)
 
 post '/people'
 create_person(emailer_id integer, name text, email text)

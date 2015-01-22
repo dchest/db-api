@@ -51,11 +51,25 @@ BEGIN
 		WHERE id IN (SELECT * FROM unopened_email_ids($1))
 		AND profile=$2 AND category=$3 LIMIT 1;
 	IF eid IS NULL THEN
-NOTFOUND
+m4_NOTFOUND
 	ELSE
 		UPDATE emails SET opened_at=NOW(), opened_by=$1 WHERE id = eid;
 		mime := 'application/json';
 		SELECT row_to_json(r) INTO js FROM (SELECT * FROM email_view WHERE id = eid) r;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /emails/opened
+-- PARAMS: emailer_id
+CREATE FUNCTION opened_emails(integer, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM emails_view WHERE id IN
+		(SELECT * FROM opened_email_ids($1))) r;
+	IF js IS NULL THEN
+		js := '[]';
 	END IF;
 END;
 $$ LANGUAGE plpgsql;

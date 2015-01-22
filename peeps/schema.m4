@@ -1,5 +1,5 @@
 changequote(«, »)dnl
-define(«NOTFOUND», «
+define(«m4_NOTFOUND», «
 		mime := 'application/problem+json';
 		js := '{"type": "about:blank", "title": "Not Found", "status": 404}';
 »)dnl
