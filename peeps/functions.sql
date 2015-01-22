@@ -309,3 +309,32 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- If this emailer is allowed to see this email,
+-- update it to be shown as opened_by this emailer now (if not already open)
+-- Returns email.id if found and permission granted, NULL if not
+-- PARAMS: emailer_id, email_id
+CREATE FUNCTION open_email(integer, integer) RETURNS integer AS $$
+DECLARE
+	pros text[];
+	cats text[];
+	open_id integer;
+BEGIN
+	SELECT profiles, categories INTO pros, cats FROM emailers WHERE id = $1;
+	IF pros = array['ALL'] AND cats = array['ALL'] THEN
+		SELECT id INTO open_id FROM emails WHERE id = $2;
+	ELSIF cats = array['ALL'] THEN
+		SELECT id INTO open_id FROM emails WHERE id = $2 AND profile = ANY(pros);
+	ELSIF pros = array['ALL'] THEN
+		SELECT id INTO open_id FROM emails WHERE id = $2 AND category = ANY(cats);
+	ELSE
+		SELECT id INTO open_id FROM emails WHERE id = $2
+			AND profile = ANY(pros) AND category = ANY(cats);
+	END IF;
+	IF open_id IS NOT NULL THEN
+		UPDATE emails SET opened_at=NOW(), opened_by=$1
+			WHERE id=open_id AND opened_by IS NULL;
+	END IF;
+	RETURN open_id;
+END;
+$$ LANGUAGE plpgsql;
+

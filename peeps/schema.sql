@@ -765,6 +765,35 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- If this emailer is allowed to see this email,
+-- update it to be shown as opened_by this emailer now (if not already open)
+-- Returns email.id if found and permission granted, NULL if not
+-- PARAMS: emailer_id, email_id
+CREATE FUNCTION open_email(integer, integer) RETURNS integer AS $$
+DECLARE
+	pros text[];
+	cats text[];
+	open_id integer;
+BEGIN
+	SELECT profiles, categories INTO pros, cats FROM emailers WHERE id = $1;
+	IF pros = array['ALL'] AND cats = array['ALL'] THEN
+		SELECT id INTO open_id FROM emails WHERE id = $2;
+	ELSIF cats = array['ALL'] THEN
+		SELECT id INTO open_id FROM emails WHERE id = $2 AND profile = ANY(pros);
+	ELSIF pros = array['ALL'] THEN
+		SELECT id INTO open_id FROM emails WHERE id = $2 AND category = ANY(cats);
+	ELSE
+		SELECT id INTO open_id FROM emails WHERE id = $2
+			AND profile = ANY(pros) AND category = ANY(cats);
+	END IF;
+	IF open_id IS NOT NULL THEN
+		UPDATE emails SET opened_at=NOW(), opened_by=$1
+			WHERE id=open_id AND opened_by IS NULL;
+	END IF;
+	RETURN open_id;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Strip spaces and lowercase email address before validating & storing
 CREATE FUNCTION clean_email() RETURNS TRIGGER AS $$
 BEGIN
@@ -962,9 +991,10 @@ BEGIN
 		js := '{"type": "about:blank", "title": "Not Found", "status": 404}';
 
 	ELSE
-		UPDATE emails SET opened_at=NOW(), opened_by=$1 WHERE id = eid;
 		mime := 'application/json';
-		SELECT row_to_json(r) INTO js FROM (SELECT * FROM email_view WHERE id = eid) r;
+		PERFORM open_email($1, eid);
+		SELECT row_to_json(r) INTO js FROM
+			(SELECT * FROM email_view WHERE id = eid) r;
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -979,6 +1009,27 @@ BEGIN
 		(SELECT * FROM opened_email_ids($1))) r;
 	IF js IS NULL THEN
 		js := '[]';
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /emails/:id
+-- PARAMS: emailer_id, email_id
+CREATE FUNCTION get_email(integer, integer, OUT mime text, OUT js text) AS $$
+DECLARE
+	eid integer;
+BEGIN
+	eid := open_email($1, $2);
+	IF eid IS NULL THEN
+
+		mime := 'application/problem+json';
+		js := '{"type": "about:blank", "title": "Not Found", "status": 404}';
+
+	ELSE
+		mime := 'application/json';
+		SELECT row_to_json(r) INTO js FROM
+			(SELECT * FROM email_view WHERE id = eid) r;
 	END IF;
 END;
 $$ LANGUAGE plpgsql;

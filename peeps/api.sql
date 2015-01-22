@@ -53,9 +53,10 @@ BEGIN
 	IF eid IS NULL THEN
 m4_NOTFOUND
 	ELSE
-		UPDATE emails SET opened_at=NOW(), opened_by=$1 WHERE id = eid;
 		mime := 'application/json';
-		SELECT row_to_json(r) INTO js FROM (SELECT * FROM email_view WHERE id = eid) r;
+		PERFORM open_email($1, eid);
+		SELECT row_to_json(r) INTO js FROM
+			(SELECT * FROM email_view WHERE id = eid) r;
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -70,6 +71,24 @@ BEGIN
 		(SELECT * FROM opened_email_ids($1))) r;
 	IF js IS NULL THEN
 		js := '[]';
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /emails/:id
+-- PARAMS: emailer_id, email_id
+CREATE FUNCTION get_email(integer, integer, OUT mime text, OUT js text) AS $$
+DECLARE
+	eid integer;
+BEGIN
+	eid := open_email($1, $2);
+	IF eid IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		mime := 'application/json';
+		SELECT row_to_json(r) INTO js FROM
+			(SELECT * FROM email_view WHERE id = eid) r;
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
