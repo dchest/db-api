@@ -921,7 +921,8 @@ BEGIN
 			(SELECT * FROM unopened_email_ids($1)))
 		SELECT profile, (SELECT json_object_agg(category, num) FROM
 			(SELECT category, COUNT(*) AS num FROM unopened u2
-				WHERE u2.profile=unopened.profile GROUP BY category ORDER BY num DESC) rr)
+				WHERE u2.profile=unopened.profile
+				GROUP BY category ORDER BY num DESC) rr)
 		AS cats FROM unopened GROUP BY profile) r;  
 	IF js IS NULL THEN
 		js := '{}';
@@ -942,4 +943,29 @@ BEGIN
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+-- POST /emails/next/:profile/:category
+-- Opens email (updates status as opened by this emailer) then returns view
+-- PARAMS: emailer_id, profile, category
+CREATE FUNCTION open_next_email(integer, text, text, OUT mime text, OUT js text) AS $$
+DECLARE
+	eid integer;
+BEGIN
+	SELECT id INTO eid FROM emails
+		WHERE id IN (SELECT * FROM unopened_email_ids($1))
+		AND profile=$2 AND category=$3 LIMIT 1;
+	IF eid IS NULL THEN
+
+		mime := 'application/problem+json';
+		js := '{"type": "about:blank", "title": "Not Found", "status": 404}';
+
+	ELSE
+		UPDATE emails SET opened_at=NOW(), opened_by=$1 WHERE id = eid;
+		mime := 'application/json';
+		SELECT row_to_json(r) INTO js FROM (SELECT * FROM email_view WHERE id = eid) r;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
 

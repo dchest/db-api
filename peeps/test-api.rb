@@ -40,8 +40,23 @@ class TestPeepsAPI < Minitest::Test
 		assert_instance_of Array, j
 		assert_equal 1, j.size
 		assert_equal 'I refuse to wait', j[0]['subject']
+		assert_nil j[0]['body']
 		res = DB.exec("SELECT * FROM unopened_emails(3, 'we@woodegg', 'woodegg')")
 		assert_equal [], JSON.parse(res[0]['js'])
+	end
+
+	def test_open_next_email
+		res = DB.exec("SELECT * FROM open_next_email(1, 'we@woodegg', 'woodegg')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 8, j['id']
+		assert_equal 1, j['openor']['id']
+		assert_match /^\d{4}-\d{2}-\d{2}/, j['opened_at']
+		assert_equal 'I refuse to wait', j['subject']
+		assert_equal 'I refuse to wait', j['body']
+		res = DB.exec("SELECT * FROM open_next_email(1, 'we@woodegg', 'woodegg')")
+		assert_equal 'application/problem+json', res[0]['mime']
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
 	end
 end
 
