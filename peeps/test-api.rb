@@ -34,5 +34,14 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal({}, j)
 	end
 
+	def test_unopened_emails
+		res = DB.exec("SELECT * FROM unopened_emails(1, 'we@woodegg', 'woodegg')")
+		j = JSON.parse(res[0]['js'])
+		assert_instance_of Array, j
+		assert_equal 1, j.size
+		assert_equal 'I refuse to wait', j[0]['subject']
+		res = DB.exec("SELECT * FROM unopened_emails(3, 'we@woodegg', 'woodegg')")
+		assert_equal [], JSON.parse(res[0]['js'])
+	end
 end
 

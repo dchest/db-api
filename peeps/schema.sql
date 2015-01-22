@@ -907,6 +907,7 @@ $$ LANGUAGE plpgsql;
 -- API REQUIRES AUTHENTICATION. User must be in peeps.emailers
 -- peeps.emailers.id needed as first argument to many functions here
 
+-- GET /emails/unopened/count
 -- Grouped summary of howmany unopened emails in each profile/category
 -- JSON format: {profiles:{categories:howmany}}
 --{"derek@sivers":{"derek@sivers":43,"derek":2,"programmer":1},
@@ -928,4 +929,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- GET /emails/unopened/:profile/:category
+-- PARAMS: emailer_id, profile, category
+CREATE FUNCTION unopened_emails(integer, text, text, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM emails_view WHERE id IN
+		(SELECT id FROM emails WHERE id IN (SELECT * FROM unopened_email_ids($1))
+			AND profile = $2 AND category = $3)) r;
+	IF js IS NULL THEN
+		js := '[]';
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
 
