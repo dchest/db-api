@@ -4,7 +4,7 @@ DROP SCHEMA IF EXISTS peeps CASCADE;
 BEGIN;
 
 CREATE SCHEMA peeps;
-SET search_path = peeps;
+SET search_path = peeps,public;
 
 -- Country codes used mainly for foreign key constraint on people.country
 -- From http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2 - data loaded below
@@ -91,7 +91,7 @@ CREATE TABLE emails (
 	person_id integer REFERENCES people(id),
 	profile varchar(18) not null CHECK (length(profile) > 0),  -- which email address sent to/from
 	category varchar(16) not null CHECK (length(category) > 0),  -- like gmail's labels, but 1-to-1
-	created_at timestamp without time zone,
+	created_at timestamp without time zone not null DEFAULT current_timestamp,
 	created_by integer REFERENCES emailers(id),
 	opened_at timestamp without time zone,
 	opened_by integer REFERENCES emailers(id),

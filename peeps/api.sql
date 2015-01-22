@@ -94,3 +94,23 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- PUT /emails/:id
+-- PARAMS: emailer_id, email_id, JSON of new values
+CREATE FUNCTION update_email(integer, integer, json, OUT mime text, OUT js text) AS $$
+DECLARE
+	eid integer;
+BEGIN
+	eid := open_email($1, $2);
+	IF eid IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		PERFORM public.jsonupdate('peeps.emails', eid, $3,
+			public.cols2update('peeps', 'emails', ARRAY['id', 'created_at']));
+		mime := 'application/json';
+		SELECT row_to_json(r) INTO js FROM
+			(SELECT * FROM email_view WHERE id = eid) r;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+

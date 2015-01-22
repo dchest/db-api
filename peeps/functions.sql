@@ -1,9 +1,9 @@
 ----------------------------
------- pg_catalog FUNCTIONS:
+---------- public FUNCTIONS:
 ----------------------------
 
 -- used by other functions, below, for any random strings needed
-CREATE OR REPLACE FUNCTION pg_catalog.random_string(length integer) RETURNS text AS $$
+CREATE OR REPLACE FUNCTION public.random_string(length integer) RETURNS text AS $$
 DECLARE
 	chars text[] := '{0,1,2,3,4,5,6,7,8,9,A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z}';
 	result text := '';
@@ -18,19 +18,19 @@ $$ LANGUAGE plpgsql;
 
 
 -- ensure unique unused value for any table.field.
-CREATE OR REPLACE FUNCTION pg_catalog.unique_for_table_field(str_len integer, table_name text, field_name text) RETURNS text AS $$
+CREATE OR REPLACE FUNCTION public.unique_for_table_field(str_len integer, table_name text, field_name text) RETURNS text AS $$
 DECLARE
 	nu text;
 	rowcount integer;
 BEGIN
-	nu := random_string(str_len);
+	nu := public.random_string(str_len);
 	LOOP
 		EXECUTE 'SELECT 1 FROM ' || table_name || ' WHERE ' || field_name || ' = ' || quote_literal(nu);
 		GET DIAGNOSTICS rowcount = ROW_COUNT;
 		IF rowcount = 0 THEN
 			RETURN nu; 
 		END IF;
-		nu := random_string(str_len);
+		nu := public.random_string(str_len);
 	END LOOP;
 END;
 $$ LANGUAGE plpgsql;
@@ -38,7 +38,7 @@ $$ LANGUAGE plpgsql;
 
 -- For updating foreign keys, array of tables referencing this one.  USAGE: see merge function below.
 -- Returns in schema.table format like {'woodegg.researchers', 'musicthoughts.contributors'}
-CREATE OR REPLACE FUNCTION pg_catalog.tables_referencing(my_schema text, my_table text, my_column text) RETURNS text[] AS $$
+CREATE OR REPLACE FUNCTION public.tables_referencing(my_schema text, my_table text, my_column text) RETURNS text[] AS $$
 DECLARE
 	tables text[] := ARRAY[]::text[];
 BEGIN
@@ -60,6 +60,30 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- RETURNS: array of column names that ARE allowed to be updated
+-- PARAMS: schema name, table name, array of col names NOT allowed to be updated
+CREATE OR REPLACE FUNCTION public.cols2update(text, text, text[]) RETURNS text[] AS $$
+BEGIN
+	RETURN array(SELECT column_name::text FROM information_schema.columns
+		WHERE table_schema=$1 AND table_name=$2 AND column_name != ALL($3));
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- PARAMS: table name, id, json, array of cols that ARE allowed to be updated
+CREATE OR REPLACE FUNCTION public.jsonupdate(text, integer, json, text[]) RETURNS VOID AS $$
+DECLARE
+	col record;
+BEGIN
+	FOR col IN SELECT name FROM json_object_keys($3) AS name LOOP
+		CONTINUE WHEN col.name != ALL($4);
+		EXECUTE format ('UPDATE %s SET %I =
+			(SELECT %I FROM json_populate_record(null::%s, $1)) WHERE id = %L',
+			$1, col.name, col.name, $1, $2) USING $3;
+	END LOOP;
+END;
+$$ LANGUAGE plpgsql;
 
 
 ----------------------------
@@ -213,7 +237,7 @@ DECLARE
 	c_exp integer;
 BEGIN
 	c_id := md5(my_domain || md5(my_person_id::char)); -- also in get_person_from_cookie
-	c_tok := random_string(32);
+	c_tok := public.random_string(32);
 	c_exp := FLOOR(EXTRACT(epoch from (NOW() + interval '1 year')));
 	INSERT INTO peeps.logins(person_id, cookie_id, cookie_tok, cookie_exp, domain) VALUES (my_person_id, c_id, c_tok, c_exp, my_domain);
 	RETURN CONCAT(c_id, ':', c_tok);

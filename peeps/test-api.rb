@@ -83,5 +83,15 @@ class TestPeepsAPI < Minitest::Test
 		j = JSON.parse(res[0]['js'])
 		assert_equal 'Not Found', j['title']
 	end
+
+	def test_update_email
+		res = DB.exec_params("SELECT * FROM update_email(1, 8, $1)", ['{"subject":"boop", "ig":"nore"}'])
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'boop', j['subject']
+		res = DB.exec_params("SELECT * FROM update_email(3, 8, $1)", ['{"subject":"boop", "ig":"nore"}'])
+		assert_equal 'application/problem+json', res[0]['mime']
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+	end
 end
 

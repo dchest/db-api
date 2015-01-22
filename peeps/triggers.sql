@@ -46,8 +46,8 @@ CREATE TRIGGER clean_url BEFORE INSERT OR UPDATE OF url ON urls FOR EACH ROW EXE
 CREATE FUNCTION generated_person_fields() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.address = split_part(btrim(regexp_replace(NEW.name, '\s+', ' ', 'g')), ' ', 1);
-	NEW.lopass = random_string(4);
-	NEW.newpass = unique_for_table_field(8, 'peeps.people', 'newpass');
+	NEW.lopass = public.random_string(4);
+	NEW.newpass = public.unique_for_table_field(8, 'peeps.people', 'newpass');
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -120,8 +120,8 @@ CREATE TRIGGER one_main_url AFTER INSERT OR UPDATE OF main ON urls FOR EACH ROW 
 -- Generate random strings when creating new api_key
 CREATE FUNCTION generated_api_keys() RETURNS TRIGGER AS $$
 BEGIN
-	NEW.akey = unique_for_table_field(8, 'peeps.api_keys', 'akey');
-	NEW.apass = random_string(8);
+	NEW.akey = public.unique_for_table_field(8, 'peeps.api_keys', 'akey');
+	NEW.apass = public.random_string(8);
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
