@@ -16,6 +16,9 @@ BEGIN
 			(SELECT category, COUNT(*) AS num FROM unopened u2
 				WHERE u2.profile=unopened.profile GROUP BY category ORDER BY num DESC) rr)
 		AS cats FROM unopened GROUP BY profile) r;  
+	IF js IS NULL THEN
+		js := '{}';
+	END IF;
 END;
 $$ LANGUAGE plpgsql;
 

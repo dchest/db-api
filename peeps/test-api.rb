@@ -21,11 +21,17 @@ end
 
 class TestPeepsAPI < Minitest::Test
 
-	def test_emailer_profiles
-		res = DB.exec("SELECT * FROM get_profiles(1)")
-		assert_equal %w(derek@sivers we@woodegg), JSON.parse(res[0]['js'])
-		res = DB.exec("SELECT * FROM get_profiles(4)")
-		assert_equal %w(we@woodegg), JSON.parse(res[0]['js'])
+	def test_unopened_email_count
+		res = DB.exec("SELECT * FROM unopened_email_count(1)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal %w(derek@sivers we@woodegg), j.keys
+		assert_equal({'woodegg' => 1, 'not-derek' => 1}, j['we@woodegg'])
+		res = DB.exec("SELECT * FROM unopened_email_count(4)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal %w(we@woodegg), j.keys
+		res = DB.exec("SELECT * FROM unopened_email_count(3)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal({}, j)
 	end
 
 end
