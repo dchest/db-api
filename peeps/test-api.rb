@@ -81,7 +81,9 @@ class TestPeepsAPI < Minitest::Test
 		res = DB.exec("SELECT * FROM get_email(3, 6)")
 		assert_equal 'application/problem+json', res[0]['mime']
 		j = JSON.parse(res[0]['js'])
+		assert_equal 'about:blank', j['type']
 		assert_equal 'Not Found', j['title']
+		assert_equal 404, j['status']
 	end
 
 	def test_update_email
@@ -93,5 +95,51 @@ class TestPeepsAPI < Minitest::Test
 		j = JSON.parse(res[0]['js'])
 		assert_equal 'Not Found', j['title']
 	end
+
+	def test_update_email_errors
+		res = DB.exec_params("SELECT * FROM update_email(1, 8, $1)", ['{"opened_by":"boop"}'])
+		assert_equal 'application/problem+json', res[0]['mime']
+		j = JSON.parse(res[0]['js'])
+		assert j['type'].include? '22P02'
+		assert j['title'].include? 'invalid input syntax for integer'
+		assert j['detail'].include? 'jsonupdate'
+	end
+
+	def test_delete_email
+		res = DB.exec("SELECT * FROM delete_email(1, 8)")
+		assert_equal 'application/json', res[0]['mime']
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'I refuse to wait', j['subject']
+		res = DB.exec("SELECT * FROM delete_email(1, 8)")
+		assert_equal 'application/problem+json', res[0]['mime']
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+		res = DB.exec("SELECT * FROM delete_email(3, 1)")
+		assert_equal 'application/problem+json', res[0]['mime']
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+	end
+
+	def test_close_email
+		res = DB.exec("SELECT * FROM close_email(4, 6)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 4, j['closor']['id']
+	end
+
+	def test_unread_email
+		res = DB.exec("SELECT * FROM unread_email(4, 6)")
+		j = JSON.parse(res[0]['js'])
+		assert_nil j['opened_at']
+		assert_nil j['openor']
+	end
+
+	def test_not_my_email
+		res = DB.exec("SELECT * FROM not_my_email(4, 6)")
+		j = JSON.parse(res[0]['js'])
+		assert_nil j['opened_at']
+		assert_nil j['openor']
+		assert_equal 'not-gong', j['category']
+	end
+
 end
 

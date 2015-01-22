@@ -99,8 +99,9 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION update_email(integer, integer, json, OUT mime text, OUT js text) AS $$
 DECLARE
 	eid integer;
+m4_ERRVARS
 BEGIN
-	eid := open_email($1, $2);
+	eid := ok_email($1, $2);
 	IF eid IS NULL THEN
 m4_NOTFOUND
 	ELSE
@@ -110,7 +111,86 @@ m4_NOTFOUND
 		SELECT row_to_json(r) INTO js FROM
 			(SELECT * FROM email_view WHERE id = eid) r;
 	END IF;
+m4_ERRCATCH
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- DELETE /emails/:id
+-- PARAMS: emailer_id, email_id
+CREATE FUNCTION delete_email(integer, integer, OUT mime text, OUT js text) AS $$
+DECLARE
+	eid integer;
+BEGIN
+	eid := ok_email($1, $2);
+	IF eid IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		mime := 'application/json';
+		SELECT row_to_json(r) INTO js FROM
+			(SELECT * FROM email_view WHERE id = eid) r;
+		DELETE FROM emails WHERE id = eid;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- PUT /emails/:id/close
+-- PARAMS: emailer_id, email_id
+CREATE FUNCTION close_email(integer, integer, OUT mime text, OUT js text) AS $$
+DECLARE
+	eid integer;
+BEGIN
+	eid := ok_email($1, $2);
+	IF eid IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		UPDATE emails SET closed_at=NOW(), closed_by=$1 WHERE id = eid;
+		mime := 'application/json';
+		SELECT row_to_json(r) INTO js FROM
+			(SELECT * FROM email_view WHERE id = eid) r;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- PUT /emails/:id/unread
+-- PARAMS: emailer_id, email_id
+CREATE FUNCTION unread_email(integer, integer, OUT mime text, OUT js text) AS $$
+DECLARE
+	eid integer;
+BEGIN
+	eid := ok_email($1, $2);
+	IF eid IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		UPDATE emails SET opened_at=NULL, opened_by=NULL WHERE id = eid;
+		mime := 'application/json';
+		SELECT row_to_json(r) INTO js FROM
+			(SELECT * FROM email_view WHERE id = eid) r;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- PUT /emails/:id/notme
+-- PARAMS: emailer_id, email_id
+CREATE FUNCTION not_my_email(integer, integer, OUT mime text, OUT js text) AS $$
+DECLARE
+	eid integer;
+BEGIN
+	eid := ok_email($1, $2);
+	IF eid IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		UPDATE emails SET opened_at=NULL, opened_by=NULL, category=(SELECT
+			substring(concat('not-', split_part(people.email,'@',1)) from 1 for 32)
+			FROM emailers JOIN people ON emailers.person_id=people.id
+			WHERE emailers.id = $1) WHERE id = eid;
+		mime := 'application/json';
+		SELECT row_to_json(r) INTO js FROM
+			(SELECT * FROM email_view WHERE id = eid) r;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
 
