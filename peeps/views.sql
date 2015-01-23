@@ -24,3 +24,6 @@ CREATE VIEW email_view AS
 			(SELECT id, filename FROM email_attachments WHERE email_id=emails.id) a)
 		FROM emails;
 
+CREATE VIEW unknown_view AS
+	SELECT id, their_email, their_name, headers, subject, body FROM emails;
+

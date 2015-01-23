@@ -241,5 +241,62 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- GET /unknowns
+-- PARAMS: emailer_id
+CREATE FUNCTION get_unknowns(integer, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM emails_view WHERE id IN
+		(SELECT * FROM unknown_email_ids($1))) r;
+	IF js IS NULL THEN
+		js := '[]';
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /unknowns/next
+-- PARAMS: emailer_id
+CREATE FUNCTION get_next_unknown(integer, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM unknown_view WHERE id IN
+		(SELECT * FROM unknown_email_ids($1) LIMIT 1)) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- POST /unknowns/:id?person_id=123 or 0 to create new
+-- PARAMS: emailer_id, email_id, person_id
+CREATE FUNCTION set_unknown_person(integer, integer, integer, OUT mime text, OUT js text) AS $$
+DECLARE
+	this_e emails;
+	newperson people;
+BEGIN
+	SELECT * INTO this_e FROM emails WHERE id IN
+		(SELECT * FROM unknown_email_ids($1)) AND id = $2;
+	IF this_e IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		IF $3 = 0 THEN
+			SELECT * INTO newperson FROM person_create(this_e.their_name, this_e.their_email);
+		ELSE
+			SELECT * INTO newperson FROM people WHERE id = $3;
+			-- TODO: if newperson.email != this_e.their_email, set it to that
+		END IF;
+	END IF;
+	IF newperson IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		UPDATE emails SET person_id=newperson.id, category=profile WHERE id = $2;
+	END IF;
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM email_view WHERE id = $2) r;
+END;
+$$ LANGUAGE plpgsql;
+
 COMMIT;
 

@@ -164,5 +164,27 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'veruca@salt.com', j['their_email']
 	end
 
+	def test_get_unknowns
+		res = DB.exec("SELECT * FROM get_unknowns(1)")
+		j = JSON.parse(res[0]['js'])
+		assert_instance_of Array, j
+		assert_equal 2, j.size
+		assert_equal [5, 10], j.map{|x| x['id']}
+		res = DB.exec("SELECT * FROM get_unknowns(4)")
+		assert_equal [], JSON.parse(res[0]['js'])
+	end
+
+	def test_get_next_unknown
+		res = DB.exec("SELECT * FROM get_next_unknown(1)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'New Stranger', j['their_name']
+		assert j['body'].include? 'I have a question'
+		assert j['headers'].include? 'new@stranger.com'
+		res = DB.exec("SELECT * FROM get_next_unknown(4)")
+		assert_equal 'application/problem+json', res[0]['mime']
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+	end
+
 end
 
