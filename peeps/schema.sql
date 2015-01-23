@@ -961,14 +961,18 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER generated_api_keys BEFORE INSERT ON peeps.api_keys FOR EACH ROW EXECUTE PROCEDURE generated_api_keys();
 
 
--- Not used by peeps, but by other schemas that refer to peeps.people.id with their own views:  Example:
--- CREATE TRIGGER editor_up2person INSTEAD OF UPDATE ON editor_person FOR EACH FOR EXECUTE PROCEDURE peeps.up2person();
-CREATE FUNCTION up2person() RETURNS TRIGGER AS $$
+-- generate message_id for outgoing emails
+CREATE FUNCTION make_message_id() RETURNS TRIGGER AS $$
 BEGIN
-	UPDATE peeps.people SET name=NEW.name, email=NEW.email, address=NEW.address, city=NEW.city, state=NEW.state, country=NEW.country WHERE id=OLD.person_id;
+	IF NEW.message_id IS NULL AND (NEW.outgoing IS TRUE OR NEW.outgoing IS NULL) THEN
+		NEW.message_id = CONCAT(
+			to_char(current_timestamp, 'YYYYMMDDHH24MISSMS'),
+			'.', NEW.person_id, '@sivers.org');
+	END IF;
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+CREATE TRIGGER make_message_id BEFORE INSERT ON emails FOR EACH ROW EXECUTE PROCEDURE make_message_id();
 
 -- API REQUIRES AUTHENTICATION. User must be in peeps.emailers
 -- peeps.emailers.id needed as first argument to many functions here
@@ -1224,5 +1228,72 @@ BEGIN
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+
+-- POST /emails/:id/reply?body=blah
+-- PARAMS: emailer_id, email_id, body
+CREATE FUNCTION reply_to_email(integer, integer, text, OUT mime text, OUT js text) AS $$
+DECLARE
+	e emails;
+	p people;
+	greeting text;
+	new_body text;
+	new_id integer;
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	IF $3 IS NULL OR (regexp_replace($3, '\s', '', 'g') = '') THEN
+		RAISE 'body must not be empty';
+	END IF;
+	SELECT * INTO e FROM emails WHERE id = ok_email($1, $2);
+	IF e IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	ELSE
+		SELECT * INTO p FROM people WHERE id = e.person_id;
+		greeting := concat('Hi ', p.address);
+		-- TODO: email signature
+		new_body := concat(greeting, E' -\n\n', $3, E'\n\n',
+			regexp_replace(e.body, '^', '> ', 'ng'));
+		EXECUTE 'INSERT INTO emails (person_id, outgoing, their_email, their_name,'
+			|| ' created_at, created_by, opened_at, opened_by, closed_at, closed_by,'
+			|| ' profile, category, subject, body) VALUES'
+			|| ' ($1, NULL, $2, $3,'  -- outgoing = NULL = queued for sending
+			|| ' NOW(), $4, NOW(), $5, NOW(), $6,'
+			|| ' $7, $8, $9, $10) RETURNING id' INTO new_id
+			USING p.id, p.email, p.name,
+				$1, $1, $1, e.profile, e.category,
+				concat('re: ', e.subject), new_body;
+		mime := 'application/json';
+		SELECT row_to_json(r) INTO js FROM
+			(SELECT * FROM email_view WHERE id = new_id) r;
+	END IF;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+COMMIT;
 
 

@@ -141,5 +141,27 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'not-gong', j['category']
 	end
 
+	def test_reply_to_email
+		res = DB.exec("SELECT * FROM reply_to_email(4, 8, 'Groovy, baby')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 11, j['id']
+		assert_equal 3, j['person_id']
+		assert_match /\A[0-9]{17}\.3@sivers.org\Z/, j['message_id']
+		assert_equal j['message_id'][0,12], Time.now.strftime('%Y%m%d%H%M')
+		assert j['body'].include? 'Groovy, baby'
+		assert_match /\AHi Veruca -/, j['body']
+		assert_match /^> I refuse to wait$/, j['body']
+		assert_equal nil, j['outgoing']
+		assert_equal 're: I refuse to wait', j['subject']
+		assert_match %r{^20}, j['created_at']
+		assert_match %r{^20}, j['opened_at']
+		assert_match %r{^20}, j['closed_at']
+		assert_equal '巩俐', j['creator']['name']
+		assert_equal '巩俐', j['openor']['name']
+		assert_equal '巩俐', j['closor']['name']
+		assert_equal 'Veruca Salt', j['their_name']
+		assert_equal 'veruca@salt.com', j['their_email']
+	end
+
 end
 

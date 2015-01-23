@@ -128,12 +128,16 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER generated_api_keys BEFORE INSERT ON peeps.api_keys FOR EACH ROW EXECUTE PROCEDURE generated_api_keys();
 
 
--- Not used by peeps, but by other schemas that refer to peeps.people.id with their own views:  Example:
--- CREATE TRIGGER editor_up2person INSTEAD OF UPDATE ON editor_person FOR EACH FOR EXECUTE PROCEDURE peeps.up2person();
-CREATE FUNCTION up2person() RETURNS TRIGGER AS $$
+-- generate message_id for outgoing emails
+CREATE FUNCTION make_message_id() RETURNS TRIGGER AS $$
 BEGIN
-	UPDATE peeps.people SET name=NEW.name, email=NEW.email, address=NEW.address, city=NEW.city, state=NEW.state, country=NEW.country WHERE id=OLD.person_id;
+	IF NEW.message_id IS NULL AND (NEW.outgoing IS TRUE OR NEW.outgoing IS NULL) THEN
+		NEW.message_id = CONCAT(
+			to_char(current_timestamp, 'YYYYMMDDHH24MISSMS'),
+			'.', NEW.person_id, '@sivers.org');
+	END IF;
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+CREATE TRIGGER make_message_id BEFORE INSERT ON emails FOR EACH ROW EXECUTE PROCEDURE make_message_id();
 
