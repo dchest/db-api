@@ -151,6 +151,7 @@ class TestPeepsAPI < Minitest::Test
 		assert j['body'].include? 'Groovy, baby'
 		assert_match /\AHi Veruca -/, j['body']
 		assert_match /^> I refuse to wait$/, j['body']
+		assert_match %r{^Wood Egg  we@woodegg.com  http://woodegg.com\/$}, j['body']
 		assert_equal nil, j['outgoing']
 		assert_equal 're: I refuse to wait', j['subject']
 		assert_match %r{^20}, j['created_at']

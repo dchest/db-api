@@ -202,6 +202,7 @@ DECLARE
 	e emails;
 	p people;
 	greeting text;
+	signature text;
 	new_body text;
 	new_id integer;
 m4_ERRVARS
@@ -215,9 +216,13 @@ m4_NOTFOUND
 	ELSE
 		SELECT * INTO p FROM people WHERE id = e.person_id;
 		greeting := concat('Hi ', p.address);
-		-- TODO: email signature
-		new_body := concat(greeting, E' -\n\n', $3, E'\n\n',
-			regexp_replace(e.body, '^', '> ', 'ng'));
+		IF e.profile = 'we@woodegg' THEN
+			signature := 'Wood Egg  we@woodegg.com  http://woodegg.com/';
+		ELSE
+			signature := 'Derek Sivers  derek@sivers.org  http://sivers.org/';
+		END IF;
+		new_body := concat(greeting, E' -\n\n', $3, E'\n\n--\n', signature,
+			E'\n\n', regexp_replace(e.body, '^', '> ', 'ng'));
 		EXECUTE 'INSERT INTO emails (person_id, outgoing, their_email, their_name,'
 			|| ' created_at, created_by, opened_at, opened_by, closed_at, closed_by,'
 			|| ' profile, category, subject, body) VALUES'
