@@ -298,5 +298,21 @@ m4_ERRCATCH
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- DELETE /unknowns/:id
+-- PARAMS: emailer_id, email_id
+CREATE FUNCTION delete_unknown(integer, integer, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM unknown_view
+		WHERE id IN (SELECT * FROM unknown_email_ids($1)) AND id = $2) r;
+	IF js IS NULL THEN
+m4_NOTFOUND RETURN;
+	ELSE
+		DELETE FROM emails WHERE id = $2;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 COMMIT;
 

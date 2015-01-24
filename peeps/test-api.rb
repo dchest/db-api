@@ -208,5 +208,20 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'Not Found', j['title']
 	end
 
+	def test_delete_unknown
+		res = DB.exec("SELECT * FROM delete_unknown(1, 5)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'random question', j['subject']
+		res = DB.exec("SELECT * FROM delete_unknown(1, 8)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+		res = DB.exec("SELECT * FROM delete_unknown(4, 10)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+		res = DB.exec("SELECT * FROM delete_unknown(3, 10)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'remember me?', j['subject']
+	end
+
 end
 
