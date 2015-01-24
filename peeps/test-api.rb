@@ -186,5 +186,27 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'Not Found', j['title']
 	end
 
+	def test_set_unknown_person
+		res = DB.exec("SELECT * FROM set_unknown_person(1, 5, 0)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 9, j['person_id']
+		res = DB.exec("SELECT * FROM set_unknown_person(1, 10, 5)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 5, j['person_id']
+		res = DB.exec("SELECT notes FROM people WHERE id = 5")
+		assert_equal 'OLD EMAIL: oompa@loompa.mm', res[0]['notes'].strip
+	end
+
+	def test_set_unknown_person_fail
+		res = DB.exec("SELECT * FROM set_unknown_person(1, 99, 5)")
+		assert_equal 'application/problem+json', res[0]['mime']
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+		res = DB.exec("SELECT * FROM set_unknown_person(1, 5, 99)")
+		assert_equal 'application/problem+json', res[0]['mime']
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+	end
+
 end
 

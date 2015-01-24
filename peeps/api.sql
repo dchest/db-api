@@ -275,26 +275,26 @@ CREATE FUNCTION set_unknown_person(integer, integer, integer, OUT mime text, OUT
 DECLARE
 	this_e emails;
 	newperson people;
+	rowcount integer;
+m4_ERRVARS
 BEGIN
 	SELECT * INTO this_e FROM emails WHERE id IN
 		(SELECT * FROM unknown_email_ids($1)) AND id = $2;
-	IF this_e IS NULL THEN
-m4_NOTFOUND
+	GET DIAGNOSTICS rowcount = ROW_COUNT;
+	IF rowcount = 0 THEN m4_NOTFOUND RETURN; END IF;
+	IF $3 = 0 THEN
+		SELECT * INTO newperson FROM person_create(this_e.their_name, this_e.their_email);
 	ELSE
-		IF $3 = 0 THEN
-			SELECT * INTO newperson FROM person_create(this_e.their_name, this_e.their_email);
-		ELSE
-			SELECT * INTO newperson FROM people WHERE id = $3;
-			-- TODO: if newperson.email != this_e.their_email, set it to that
-		END IF;
+		SELECT * INTO newperson FROM people WHERE id = $3;
+		GET DIAGNOSTICS rowcount = ROW_COUNT;
+		IF rowcount = 0 THEN m4_NOTFOUND RETURN; END IF;
+		UPDATE people SET email=this_e.their_email,
+			notes = concat('OLD EMAIL: ', email, E'\n', notes) WHERE id = $3;
 	END IF;
-	IF newperson IS NULL THEN
-m4_NOTFOUND
-	ELSE
-		UPDATE emails SET person_id=newperson.id, category=profile WHERE id = $2;
-	END IF;
+	UPDATE emails SET person_id=newperson.id, category=profile WHERE id = $2;
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM (SELECT * FROM email_view WHERE id = $2) r;
+m4_ERRCATCH
 END;
 $$ LANGUAGE plpgsql;
 
