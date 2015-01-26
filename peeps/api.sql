@@ -391,7 +391,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST /people/:id/emails
 -- PARAMS: emailer_id, person_id, profile, subject, body
-CREATE FUNCTION add_email(integer, integer, text, text, text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION new_email(integer, integer, text, text, text, OUT mime text, OUT js text) AS $$
 DECLARE
 	new_id integer;
 m4_ERRVARS
@@ -429,6 +429,17 @@ BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = $1) r;
 m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /people/unmailed
+-- PARAMS: -none-
+CREATE FUNCTION people_unemailed(OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM people_view
+		WHERE email_count = 0 ORDER BY id DESC LIMIT 200) r;
 END;
 $$ LANGUAGE plpgsql;
 

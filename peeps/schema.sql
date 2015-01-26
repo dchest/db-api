@@ -878,9 +878,13 @@ BEGIN
 	IF rowcount = 0 THEN
 		RAISE 'person_id not found';
 	END IF;
-	IF $3 IS NULL OR (regexp_replace($3, '\s', '', 'g') = '') THEN
-		RAISE 'profile must not be empty';
-	END IF;
+	CASE $3 WHEN 'we@woodegg' THEN
+		signature := 'Wood Egg  we@woodegg.com  http://woodegg.com/';
+	WHEN 'derek@sivers' THEN
+		signature := 'Derek Sivers  derek@sivers.org  http://sivers.org/';
+	ELSE
+		RAISE 'invalid profile';
+	END CASE;
 	IF $4 IS NULL OR (regexp_replace($4, '\s', '', 'g') = '') THEN
 		RAISE 'category must not be empty';
 	END IF;
@@ -890,21 +894,13 @@ BEGIN
 	IF $6 IS NULL OR (regexp_replace($6, '\s', '', 'g') = '') THEN
 		RAISE 'body must not be empty';
 	END IF;
-	IF $7 IS NOT NULL THEN
-		SELECT
-			CONCAT('References: <', message_id, E'>\nIn-Reply-To: <', message_id, '>'),
-			CONCAT(E'\n\n', regexp_replace(body, '^', '> ', 'ng'))
-			INTO opt_headers, old_body FROM emails WHERE id = $7;
+	IF $7 IS NOT NULL THEN SELECT
+		CONCAT('References: <', message_id, E'>\nIn-Reply-To: <', message_id, '>'),
+		CONCAT(E'\n\n', regexp_replace(body, '^', '> ', 'ng'))
+		INTO opt_headers, old_body FROM emails WHERE id = $7;
 	END IF;
 	-- START CREATING EMAIL:
 	greeting := concat('Hi ', p.address);
-	CASE $3 WHEN 'we@woodegg' THEN
-		signature := 'Wood Egg  we@woodegg.com  http://woodegg.com/';
-	WHEN 'derek@sivers' THEN
-		signature := 'Derek Sivers  derek@sivers.org  http://sivers.org/';
-	ELSE
-		RAISE 'invalid profile';
-	END CASE;
 	new_body := concat(greeting, E' -\n\n', $6, E'\n\n--\n', signature, old_body);
 	EXECUTE 'INSERT INTO emails (person_id, outgoing, their_email, their_name,'
 		|| ' created_at, created_by, opened_at, opened_by, closed_at, closed_by,'
@@ -1690,7 +1686,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST /people/:id/emails
 -- PARAMS: emailer_id, person_id, profile, subject, body
-CREATE FUNCTION add_email(integer, integer, text, text, text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION new_email(integer, integer, text, text, text, OUT mime text, OUT js text) AS $$
 DECLARE
 	new_id integer;
 
@@ -1762,6 +1758,17 @@ EXCEPTION
 		'title', err_msg,
 		'detail', err_detail || err_context);
 
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /people/unmailed
+-- PARAMS: -none-
+CREATE FUNCTION people_unemailed(OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM people_view
+		WHERE email_count = 0 ORDER BY id DESC LIMIT 200) r;
 END;
 $$ LANGUAGE plpgsql;
 

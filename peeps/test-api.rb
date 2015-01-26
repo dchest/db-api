@@ -312,18 +312,18 @@ class TestPeepsAPI < Minitest::Test
 		assert j['title'].include? 'violates foreign key'
 	end
 
-	def test_add_email
-		res = DB.exec("SELECT * FROM add_email(4, 5, 'we@woodegg', 'a subject', 'a body')")
+	def test_new_email
+		res = DB.exec("SELECT * FROM new_email(4, 5, 'we@woodegg', 'a subject', 'a body')")
 		j = JSON.parse(res[0]['js'])
 		assert_equal 'a subject', j['subject']
 		assert_equal "Hi Oompa Loompa -\n\na body\n\n--\nWood Egg  we@woodegg.com  http://woodegg.com/", j['body']
-		res = DB.exec("SELECT * FROM add_email(4, 99, 'we@woodegg', 'a subject', 'a body')")
+		res = DB.exec("SELECT * FROM new_email(4, 99, 'we@woodegg', 'a subject', 'a body')")
 		j = JSON.parse(res[0]['js'])
 		assert_equal 'person_id not found', j['title']
-		res = DB.exec("SELECT * FROM add_email(4, 1, 'we@wo', 'a subject', 'a body')")
+		res = DB.exec("SELECT * FROM new_email(4, 1, 'we@wo', 'a subject', 'a body')")
 		j = JSON.parse(res[0]['js'])
 		assert_equal 'invalid profile', j['title']
-		res = DB.exec("SELECT * FROM add_email(4, 1, 'we@woodegg', 'a subject', '  ')")
+		res = DB.exec("SELECT * FROM new_email(4, 1, 'we@woodegg', 'a subject', '  ')")
 		j = JSON.parse(res[0]['js'])
 		assert_equal 'body must not be empty', j['title']
 	end
@@ -339,6 +339,16 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal false, j[3]['outgoing']
 		res = DB.exec("SELECT * FROM get_person_emails(99)")
 		assert_equal [], JSON.parse(res[0]['js'])
+	end
+
+	def test_people_unemailed
+		res = DB.exec("SELECT * FROM people_unemailed()")
+		j = JSON.parse(res[0]['js'])
+		assert_equal [8, 6, 5, 4, 1], j.map {|x| x['id']}
+		DB.exec("SELECT * FROM new_email(4, 5, 'we@woodegg', 'subject', 'body')")
+		res = DB.exec("SELECT * FROM people_unemailed()")
+		j = JSON.parse(res[0]['js'])
+		assert_equal [8, 6, 4, 1], j.map {|x| x['id']}
 	end
 end
 
