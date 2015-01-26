@@ -345,3 +345,38 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- PUT /people/:id
+-- PARAMS: person_id, JSON of new values
+CREATE FUNCTION update_person(integer, json, OUT mime text, OUT js text) AS $$
+DECLARE
+m4_ERRVARS
+BEGIN
+	PERFORM public.jsonupdate('peeps.people', $1, $2,
+		public.cols2update('peeps', 'people', ARRAY['id', 'created_at']));
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = $1) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- DELETE /people/:id
+-- PARAMS: person_id
+CREATE FUNCTION delete_person(integer, OUT mime text, OUT js text) AS $$
+DECLARE
+m4_ERRVARS
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = $1) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		DELETE FROM people WHERE id = $1;
+	END IF;
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+

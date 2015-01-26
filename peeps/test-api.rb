@@ -256,4 +256,33 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'clicked', j['stats'][1]['value']
 	end
 
+	def test_update_person
+		res = DB.exec_params("SELECT * FROM update_person(8, $1)", ['{"address":"Ms. Ono", "city": "NY", "ig":"nore"}'])
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Ms. Ono', j['address']
+		assert_equal 'NY', j['city']
+	end
+
+	def test_update_person_fail
+		res = DB.exec_params("SELECT * FROM update_person(99, $1)", ['{"country":"XXX"}'])
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+		res = DB.exec_params("SELECT * FROM update_person(1, $1)", ['{"country":"XXX"}'])
+		j = JSON.parse(res[0]['js'])
+		assert j['title'].include? 'value too long'
+	end
+
+	def test_delete_person
+		res = DB.exec("SELECT * FROM delete_person(1)")
+		j = JSON.parse(res[0]['js'])
+		assert j['title'].include? 'violates foreign key'
+		res = DB.exec("SELECT * FROM delete_person(99)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+		res = DB.exec("SELECT * FROM delete_person(5)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Oompa Loompa', j['name']
+	end
+
 end
+
