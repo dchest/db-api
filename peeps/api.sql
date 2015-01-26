@@ -419,3 +419,17 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- POST /people/:id/merge?id=old_id
+-- PARAMS: person_id to KEEP, person_id to CHANGE
+CREATE FUNCTION merge_person(integer, integer, OUT mime text, OUT js text) AS $$
+DECLARE
+m4_ERRVARS
+BEGIN
+	PERFORM person_merge_from_to($2, $1);
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = $1) r;
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+
+
