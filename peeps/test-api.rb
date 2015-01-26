@@ -327,5 +327,18 @@ class TestPeepsAPI < Minitest::Test
 		j = JSON.parse(res[0]['js'])
 		assert_equal 'body must not be empty', j['title']
 	end
+	
+	def test_get_person_emails
+		res = DB.exec("SELECT * FROM get_person_emails(3)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 4, j.size
+		assert_equal [6, 7, 8, 9], j.map {|x| x['id']}
+		assert j[0]['body']
+		assert j[1]['message_id']
+		assert j[2]['headers']
+		assert_equal false, j[3]['outgoing']
+		res = DB.exec("SELECT * FROM get_person_emails(99)")
+		assert_equal [], JSON.parse(res[0]['js'])
+	end
 end
 

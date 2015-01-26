@@ -405,3 +405,17 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- GET /people/:id/emails
+-- PARAMS: person_id
+CREATE FUNCTION get_person_emails(integer, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM
+		(SELECT * FROM emails_full_view WHERE person_id = $1 ORDER BY id) r;
+	IF js IS NULL THEN
+		js := '[]';
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+

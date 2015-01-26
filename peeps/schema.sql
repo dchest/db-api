@@ -435,6 +435,11 @@ COMMIT;
 CREATE VIEW emails_view AS
 	SELECT id, subject, created_at, their_name, their_email FROM emails;
 
+CREATE VIEW emails_full_view AS
+	SELECT id, message_id, profile, category, created_at, opened_at, closed_at,
+		their_email, their_name, subject, headers, body, outgoing, person_id
+		FROM emails;
+
 CREATE VIEW email_view AS
 	SELECT id, person_id, profile, category,
 		created_at, (SELECT row_to_json(p1) AS creator FROM
@@ -1711,6 +1716,20 @@ EXCEPTION
 		'title', err_msg,
 		'detail', err_detail || err_context);
 
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /people/:id/emails
+-- PARAMS: person_id
+CREATE FUNCTION get_person_emails(integer, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM
+		(SELECT * FROM emails_full_view WHERE person_id = $1 ORDER BY id) r;
+	IF js IS NULL THEN
+		js := '[]';
+	END IF;
 END;
 $$ LANGUAGE plpgsql;
 

@@ -5,6 +5,11 @@
 CREATE VIEW emails_view AS
 	SELECT id, subject, created_at, their_name, their_email FROM emails;
 
+CREATE VIEW emails_full_view AS
+	SELECT id, message_id, profile, category, created_at, opened_at, closed_at,
+		their_email, their_name, subject, headers, body, outgoing, person_id
+		FROM emails;
+
 CREATE VIEW email_view AS
 	SELECT id, person_id, profile, category,
 		created_at, (SELECT row_to_json(p1) AS creator FROM
