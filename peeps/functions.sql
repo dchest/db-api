@@ -153,21 +153,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Use this to find users matching query string, whether in their name, email address, or company.
--- USAGE: SELECT * FROM people_search('wonka');
--- Returns peeps.people.* rows found
-CREATE FUNCTION people_search(term text) RETURNS SETOF peeps.people AS $$
-DECLARE
-	q text := '%' || btrim(term) || '%';
-BEGIN
-	IF length(btrim(term)) < 2 THEN
-		RAISE 'short_search_term';
-	END IF;
-	RETURN QUERY SELECT * FROM peeps.people WHERE name ILIKE q OR company ILIKE q OR email ILIKE q;
-END;
-$$ LANGUAGE plpgsql;
-
-
 -- When a person has multiple entries in peeps.people, merge two into one, updating foreign keys.
 -- USAGE: SELECT person_merge_from_to(5432, 4321);
 -- Returns array of tables actually updated in schema.table format like {'muckwork.clients', 'sivers.comments'}

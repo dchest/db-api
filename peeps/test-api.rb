@@ -350,5 +350,16 @@ class TestPeepsAPI < Minitest::Test
 		j = JSON.parse(res[0]['js'])
 		assert_equal [8, 6, 4, 1], j.map {|x| x['id']}
 	end
+
+	def test_people_search
+		res = DB.exec("SELECT * FROM people_search('on')")
+		j = JSON.parse(res[0]['js'])
+		assert_instance_of Array, j
+		assert_equal [7, 2, 8], j.map {|x| x['id']}
+		res = DB.exec("SELECT * FROM people_search('x')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'search term too short', j['title']
+	end
+
 end
 

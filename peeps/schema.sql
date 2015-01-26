@@ -634,21 +634,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Use this to find users matching query string, whether in their name, email address, or company.
--- USAGE: SELECT * FROM people_search('wonka');
--- Returns peeps.people.* rows found
-CREATE FUNCTION people_search(term text) RETURNS SETOF peeps.people AS $$
-DECLARE
-	q text := '%' || btrim(term) || '%';
-BEGIN
-	IF length(btrim(term)) < 2 THEN
-		RAISE 'short_search_term';
-	END IF;
-	RETURN QUERY SELECT * FROM peeps.people WHERE name ILIKE q OR company ILIKE q OR email ILIKE q;
-END;
-$$ LANGUAGE plpgsql;
-
-
 -- When a person has multiple entries in peeps.people, merge two into one, updating foreign keys.
 -- USAGE: SELECT person_merge_from_to(5432, 4321);
 -- Returns array of tables actually updated in schema.table format like {'muckwork.clients', 'sivers.comments'}
@@ -1769,6 +1754,44 @@ BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM people_view
 		WHERE email_count = 0 ORDER BY id DESC LIMIT 200) r;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /search?q=term
+-- PARAMS: search term
+CREATE FUNCTION people_search(text, OUT mime text, OUT js text) AS $$
+DECLARE
+	q text;
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	q := concat('%', btrim($1, E'\t\r\n '), '%');
+	IF LENGTH(q) < 4 THEN
+		RAISE 'search term too short';
+	END IF;
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM
+		(SELECT * FROM people_view WHERE id IN (SELECT id FROM people
+				WHERE name ILIKE q OR company ILIKE q OR email ILIKE q)
+		ORDER BY email_count DESC, id DESC) r;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
 END;
 $$ LANGUAGE plpgsql;
 

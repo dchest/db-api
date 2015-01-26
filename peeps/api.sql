@@ -444,3 +444,24 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- GET /search?q=term
+-- PARAMS: search term
+CREATE FUNCTION people_search(text, OUT mime text, OUT js text) AS $$
+DECLARE
+	q text;
+m4_ERRVARS
+BEGIN
+	q := concat('%', btrim($1, E'\t\r\n '), '%');
+	IF LENGTH(q) < 4 THEN
+		RAISE 'search term too short';
+	END IF;
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM
+		(SELECT * FROM people_view WHERE id IN (SELECT id FROM people
+				WHERE name ILIKE q OR company ILIKE q OR email ILIKE q)
+		ORDER BY email_count DESC, id DESC) r;
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+
+
