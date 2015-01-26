@@ -284,5 +284,32 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'Oompa Loompa', j['name']
 	end
 
+	def test_add_url
+		res = DB.exec("SELECT * FROM add_url(5, 'bank.com')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'http://bank.com', j['urls'][1]['url']
+		res = DB.exec("SELECT * FROM add_url(5, 'x')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'bad url', j['title']
+		res = DB.exec("SELECT * FROM add_url(999, 'http://good.com')")
+		j = JSON.parse(res[0]['js'])
+		assert j['title'].include? 'violates foreign key'
+	end
+
+	def test_add_stat
+		res = DB.exec("SELECT * FROM add_stat(5, ' s OM e ', '  v alu e ')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'some', j['stats'][1]['name']
+		assert_equal 'v alu e', j['stats'][1]['value']
+		res = DB.exec("SELECT * FROM add_stat(5, '  ', 'val')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'stats.key must not be empty', j['title']
+		res = DB.exec("SELECT * FROM add_stat(5, 'key', ' ')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'stats.value must not be empty', j['title']
+		res = DB.exec("SELECT * FROM add_stat(99, 'a key', 'a val')")
+		j = JSON.parse(res[0]['js'])
+		assert j['title'].include? 'violates foreign key'
+	end
 end
 

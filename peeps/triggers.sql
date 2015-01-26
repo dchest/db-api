@@ -22,7 +22,13 @@ CREATE TRIGGER clean_name BEFORE INSERT OR UPDATE OF name ON people FOR EACH ROW
 CREATE FUNCTION clean_userstats() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.statkey = lower(regexp_replace(NEW.statkey, '[^[:alnum:]_-]', '', 'g'));
+	IF NEW.statkey = '' THEN
+		RAISE 'stats.key must not be empty';
+	END IF;
 	NEW.statvalue = btrim(NEW.statvalue, E'\r\n\t ');
+	IF NEW.statvalue = '' THEN
+		RAISE 'stats.value must not be empty';
+	END IF;
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -33,8 +39,11 @@ CREATE TRIGGER clean_userstats BEFORE INSERT OR UPDATE OF statkey, statvalue ON 
 CREATE FUNCTION clean_url() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.url = regexp_replace(NEW.url, '\s', '', 'g');
-	IF NEW.url !~ '\Ahttps?://' THEN
+	IF NEW.url !~ '^https?://' THEN
 		NEW.url = 'http://' || NEW.url;
+	END IF;
+	IF NEW.url !~ '^https?://[0-9a-zA-Z_-]+\.[a-zA-Z0-9]+' THEN
+		RAISE 'bad url';
 	END IF;
 	RETURN NEW;
 END;

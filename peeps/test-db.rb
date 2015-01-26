@@ -127,6 +127,15 @@ class TestPeeps < Minitest::Test
 		assert_equal 'http://twitter.com/wonka', res[0]['url']
 		res = DB.exec("INSERT INTO urls(person_id, url) VALUES (5, '	https:// mybank.com\r\n') RETURNING url")
 		assert_equal 'https://mybank.com', res[0]['url']
+		err = assert_raises PG::RaiseException do
+			DB.exec("INSERT INTO urls(person_id, url) VALUES (5, '')")
+		end
+		err = assert_raises PG::RaiseException do
+			DB.exec("INSERT INTO urls(person_id, url) VALUES (5, 'x')")
+		end
+		err = assert_raises PG::RaiseException do
+			DB.exec("INSERT INTO urls(person_id, url) VALUES (5, 'me@aol.com')")
+		end
 	end
 
 	# deleting a person deletes their urls

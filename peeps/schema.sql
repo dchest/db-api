@@ -875,7 +875,13 @@ CREATE TRIGGER clean_name BEFORE INSERT OR UPDATE OF name ON people FOR EACH ROW
 CREATE FUNCTION clean_userstats() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.statkey = lower(regexp_replace(NEW.statkey, '[^[:alnum:]_-]', '', 'g'));
+	IF NEW.statkey = '' THEN
+		RAISE 'stats.key must not be empty';
+	END IF;
 	NEW.statvalue = btrim(NEW.statvalue, E'\r\n\t ');
+	IF NEW.statvalue = '' THEN
+		RAISE 'stats.value must not be empty';
+	END IF;
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -886,8 +892,11 @@ CREATE TRIGGER clean_userstats BEFORE INSERT OR UPDATE OF statkey, statvalue ON 
 CREATE FUNCTION clean_url() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.url = regexp_replace(NEW.url, '\s', '', 'g');
-	IF NEW.url !~ '\Ahttps?://' THEN
+	IF NEW.url !~ '^https?://' THEN
 		NEW.url = 'http://' || NEW.url;
+	END IF;
+	IF NEW.url !~ '^https?://[0-9a-zA-Z_-]+\.[a-zA-Z0-9]+' THEN
+		RAISE 'bad url';
 	END IF;
 	RETURN NEW;
 END;
@@ -1567,5 +1576,101 @@ EXCEPTION
 
 END;
 $$ LANGUAGE plpgsql;
+
+-- POST /people/:id/urls
+-- PARAMS: person_id, url
+CREATE FUNCTION add_url(integer, text, OUT mime text, OUT js text) AS $$
+DECLARE
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	INSERT INTO urls(person_id, url) VALUES ($1, $2);
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = $1) r;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- POST /people/:id/stats
+-- PARAMS: person_id, stat.name, stat.value
+CREATE FUNCTION add_stat(integer, text, text, OUT mime text, OUT js text) AS $$
+DECLARE
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	INSERT INTO userstats(person_id, statkey, statvalue) VALUES ($1, $2, $3);
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = $1) r;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- POST /people/:id/emails
+-- PARAMS: person_id, profile, subject, body
+CREATE FUNCTION add_email(integer, text, text, text, OUT mime text, OUT js text) AS $$
+DECLARE
+	eid integer;
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	INSERT INTO emails(person_id, profile, category, subject, body) VALUES
+		($1, $2, $2, $3, $4) RETURNING id INTO eid;
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM email_view WHERE id = eid) r;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
+
 
 
