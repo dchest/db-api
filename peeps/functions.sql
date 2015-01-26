@@ -375,3 +375,65 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- Create a new outging email
+-- PARAMS: emailer_id, person_id, profile, category, subject, body, reference_id (NULL unless reply)
+CREATE FUNCTION outgoing_email(integer, integer, text, text, text, text, integer) RETURNS integer AS $$
+DECLARE
+	p people;
+	rowcount integer;
+	e emails;
+	greeting text;
+	signature text;
+	new_body text;
+	opt_headers text;
+	old_body text;
+	new_id integer;
+BEGIN
+	-- VERIFY INPUT:
+	SELECT * INTO p FROM people WHERE id = $2;
+	GET DIAGNOSTICS rowcount = ROW_COUNT;
+	IF rowcount = 0 THEN
+		RAISE 'person_id not found';
+	END IF;
+	IF $3 IS NULL OR (regexp_replace($3, '\s', '', 'g') = '') THEN
+		RAISE 'profile must not be empty';
+	END IF;
+	IF $4 IS NULL OR (regexp_replace($4, '\s', '', 'g') = '') THEN
+		RAISE 'category must not be empty';
+	END IF;
+	IF $5 IS NULL OR (regexp_replace($5, '\s', '', 'g') = '') THEN
+		RAISE 'subject must not be empty';
+	END IF;
+	IF $6 IS NULL OR (regexp_replace($6, '\s', '', 'g') = '') THEN
+		RAISE 'body must not be empty';
+	END IF;
+	IF $7 IS NOT NULL THEN
+		SELECT
+			CONCAT('References: <', message_id, E'>\nIn-Reply-To: <', message_id, '>'),
+			CONCAT(E'\n\n', regexp_replace(body, '^', '> ', 'ng'))
+			INTO opt_headers, old_body FROM emails WHERE id = $7;
+	END IF;
+	-- START CREATING EMAIL:
+	greeting := concat('Hi ', p.address);
+	CASE $3 WHEN 'we@woodegg' THEN
+		signature := 'Wood Egg  we@woodegg.com  http://woodegg.com/';
+	WHEN 'derek@sivers' THEN
+		signature := 'Derek Sivers  derek@sivers.org  http://sivers.org/';
+	ELSE
+		RAISE 'invalid profile';
+	END CASE;
+	new_body := concat(greeting, E' -\n\n', $6, E'\n\n--\n', signature, old_body);
+	EXECUTE 'INSERT INTO emails (person_id, outgoing, their_email, their_name,'
+		|| ' created_at, created_by, opened_at, opened_by, closed_at, closed_by,'
+		|| ' profile, category, subject, body, headers, reference_id) VALUES'
+		|| ' ($1, NULL, $2, $3,'  -- outgoing = NULL = queued for sending
+		|| ' NOW(), $4, NOW(), $5, NOW(), $6,'
+		|| ' $7, $8, $9, $10, $11, $12) RETURNING id' INTO new_id
+		USING p.id, p.email, p.name,
+			$1, $1, $1,
+			$3, $4, $5, new_body, opt_headers, $7;
+	RETURN new_id;
+END;
+$$ LANGUAGE plpgsql;
+

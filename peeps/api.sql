@@ -200,10 +200,6 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION reply_to_email(integer, integer, text, OUT mime text, OUT js text) AS $$
 DECLARE
 	e emails;
-	p people;
-	greeting text;
-	signature text;
-	new_body text;
 	new_id integer;
 m4_ERRVARS
 BEGIN
@@ -214,24 +210,9 @@ BEGIN
 	IF e IS NULL THEN
 m4_NOTFOUND
 	ELSE
-		SELECT * INTO p FROM people WHERE id = e.person_id;
-		greeting := concat('Hi ', p.address);
-		IF e.profile = 'we@woodegg' THEN
-			signature := 'Wood Egg  we@woodegg.com  http://woodegg.com/';
-		ELSE
-			signature := 'Derek Sivers  derek@sivers.org  http://sivers.org/';
-		END IF;
-		new_body := concat(greeting, E' -\n\n', $3, E'\n\n--\n', signature,
-			E'\n\n', regexp_replace(e.body, '^', '> ', 'ng'));
-		EXECUTE 'INSERT INTO emails (person_id, outgoing, their_email, their_name,'
-			|| ' created_at, created_by, opened_at, opened_by, closed_at, closed_by,'
-			|| ' profile, category, subject, body) VALUES'
-			|| ' ($1, NULL, $2, $3,'  -- outgoing = NULL = queued for sending
-			|| ' NOW(), $4, NOW(), $5, NOW(), $6,'
-			|| ' $7, $8, $9, $10) RETURNING id' INTO new_id
-			USING p.id, p.email, p.name,
-				$1, $1, $1, e.profile, e.category,
-				concat('re: ', e.subject), new_body;
+		-- PARAMS: emailer_id, person_id, profile, category, subject, body, reference_id 
+		SELECT * INTO new_id FROM outgoing_email($1, e.person_id, e.profile, e.profile,
+			concat('re: ', e.subject), $3, $2);
 		mime := 'application/json';
 		SELECT row_to_json(r) INTO js FROM
 			(SELECT * FROM email_view WHERE id = new_id) r;
@@ -409,19 +390,18 @@ $$ LANGUAGE plpgsql;
 
 
 -- POST /people/:id/emails
--- PARAMS: person_id, profile, subject, body
-CREATE FUNCTION add_email(integer, text, text, text, OUT mime text, OUT js text) AS $$
+-- PARAMS: emailer_id, person_id, profile, subject, body
+CREATE FUNCTION add_email(integer, integer, text, text, text, OUT mime text, OUT js text) AS $$
 DECLARE
-	eid integer;
+	new_id integer;
 m4_ERRVARS
 BEGIN
-	INSERT INTO emails(person_id, profile, category, subject, body) VALUES
-		($1, $2, $2, $3, $4) RETURNING id INTO eid;
+	-- PARAMS: emailer_id, person_id, profile, category, subject, body, reference_id (NULL unless reply)
+	SELECT * INTO new_id FROM outgoing_email($1, $2, $3, $3, $4, $5, NULL);
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM email_view WHERE id = eid) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM email_view WHERE id = new_id) r;
 m4_ERRCATCH
 END;
 $$ LANGUAGE plpgsql;
-
 
 

@@ -851,6 +851,68 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- Create a new outging email
+-- PARAMS: emailer_id, person_id, profile, category, subject, body, reference_id (NULL unless reply)
+CREATE FUNCTION outgoing_email(integer, integer, text, text, text, text, integer) RETURNS integer AS $$
+DECLARE
+	p people;
+	rowcount integer;
+	e emails;
+	greeting text;
+	signature text;
+	new_body text;
+	opt_headers text;
+	old_body text;
+	new_id integer;
+BEGIN
+	-- VERIFY INPUT:
+	SELECT * INTO p FROM people WHERE id = $2;
+	GET DIAGNOSTICS rowcount = ROW_COUNT;
+	IF rowcount = 0 THEN
+		RAISE 'person_id not found';
+	END IF;
+	IF $3 IS NULL OR (regexp_replace($3, '\s', '', 'g') = '') THEN
+		RAISE 'profile must not be empty';
+	END IF;
+	IF $4 IS NULL OR (regexp_replace($4, '\s', '', 'g') = '') THEN
+		RAISE 'category must not be empty';
+	END IF;
+	IF $5 IS NULL OR (regexp_replace($5, '\s', '', 'g') = '') THEN
+		RAISE 'subject must not be empty';
+	END IF;
+	IF $6 IS NULL OR (regexp_replace($6, '\s', '', 'g') = '') THEN
+		RAISE 'body must not be empty';
+	END IF;
+	IF $7 IS NOT NULL THEN
+		SELECT
+			CONCAT('References: <', message_id, E'>\nIn-Reply-To: <', message_id, '>'),
+			CONCAT(E'\n\n', regexp_replace(body, '^', '> ', 'ng'))
+			INTO opt_headers, old_body FROM emails WHERE id = $7;
+	END IF;
+	-- START CREATING EMAIL:
+	greeting := concat('Hi ', p.address);
+	CASE $3 WHEN 'we@woodegg' THEN
+		signature := 'Wood Egg  we@woodegg.com  http://woodegg.com/';
+	WHEN 'derek@sivers' THEN
+		signature := 'Derek Sivers  derek@sivers.org  http://sivers.org/';
+	ELSE
+		RAISE 'invalid profile';
+	END CASE;
+	new_body := concat(greeting, E' -\n\n', $6, E'\n\n--\n', signature, old_body);
+	EXECUTE 'INSERT INTO emails (person_id, outgoing, their_email, their_name,'
+		|| ' created_at, created_by, opened_at, opened_by, closed_at, closed_by,'
+		|| ' profile, category, subject, body, headers, reference_id) VALUES'
+		|| ' ($1, NULL, $2, $3,'  -- outgoing = NULL = queued for sending
+		|| ' NOW(), $4, NOW(), $5, NOW(), $6,'
+		|| ' $7, $8, $9, $10, $11, $12) RETURNING id' INTO new_id
+		USING p.id, p.email, p.name,
+			$1, $1, $1,
+			$3, $4, $5, new_body, opt_headers, $7;
+	RETURN new_id;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Strip spaces and lowercase email address before validating & storing
 CREATE FUNCTION clean_email() RETURNS TRIGGER AS $$
 BEGIN
@@ -1264,10 +1326,6 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION reply_to_email(integer, integer, text, OUT mime text, OUT js text) AS $$
 DECLARE
 	e emails;
-	p people;
-	greeting text;
-	signature text;
-	new_body text;
 	new_id integer;
 
 	err_code text;
@@ -1289,24 +1347,9 @@ BEGIN
 		'status', 404);
 
 	ELSE
-		SELECT * INTO p FROM people WHERE id = e.person_id;
-		greeting := concat('Hi ', p.address);
-		IF e.profile = 'we@woodegg' THEN
-			signature := 'Wood Egg  we@woodegg.com  http://woodegg.com/';
-		ELSE
-			signature := 'Derek Sivers  derek@sivers.org  http://sivers.org/';
-		END IF;
-		new_body := concat(greeting, E' -\n\n', $3, E'\n\n--\n', signature,
-			E'\n\n', regexp_replace(e.body, '^', '> ', 'ng'));
-		EXECUTE 'INSERT INTO emails (person_id, outgoing, their_email, their_name,'
-			|| ' created_at, created_by, opened_at, opened_by, closed_at, closed_by,'
-			|| ' profile, category, subject, body) VALUES'
-			|| ' ($1, NULL, $2, $3,'  -- outgoing = NULL = queued for sending
-			|| ' NOW(), $4, NOW(), $5, NOW(), $6,'
-			|| ' $7, $8, $9, $10) RETURNING id' INTO new_id
-			USING p.id, p.email, p.name,
-				$1, $1, $1, e.profile, e.category,
-				concat('re: ', e.subject), new_body;
+		-- PARAMS: emailer_id, person_id, profile, category, subject, body, reference_id 
+		SELECT * INTO new_id FROM outgoing_email($1, e.person_id, e.profile, e.profile,
+			concat('re: ', e.subject), $3, $2);
 		mime := 'application/json';
 		SELECT row_to_json(r) INTO js FROM
 			(SELECT * FROM email_view WHERE id = new_id) r;
@@ -1640,10 +1683,10 @@ $$ LANGUAGE plpgsql;
 
 
 -- POST /people/:id/emails
--- PARAMS: person_id, profile, subject, body
-CREATE FUNCTION add_email(integer, text, text, text, OUT mime text, OUT js text) AS $$
+-- PARAMS: emailer_id, person_id, profile, subject, body
+CREATE FUNCTION add_email(integer, integer, text, text, text, OUT mime text, OUT js text) AS $$
 DECLARE
-	eid integer;
+	new_id integer;
 
 	err_code text;
 	err_msg text;
@@ -1651,10 +1694,10 @@ DECLARE
 	err_context text;
 
 BEGIN
-	INSERT INTO emails(person_id, profile, category, subject, body) VALUES
-		($1, $2, $2, $3, $4) RETURNING id INTO eid;
+	-- PARAMS: emailer_id, person_id, profile, category, subject, body, reference_id (NULL unless reply)
+	SELECT * INTO new_id FROM outgoing_email($1, $2, $3, $3, $4, $5, NULL);
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM email_view WHERE id = eid) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM email_view WHERE id = new_id) r;
 
 EXCEPTION
 	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
@@ -1670,7 +1713,6 @@ EXCEPTION
 
 END;
 $$ LANGUAGE plpgsql;
-
 
 
 
