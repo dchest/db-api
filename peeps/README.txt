@@ -49,16 +49,16 @@ delete %r{^/unknowns/([0-9]+)$} do |id|
 delete_unknown_email(emailer_id integer, unknown_id integer)
 
 post '/people'
-create_person(emailer_id integer, name text, email text)
+create_person(name text, email text)
 
 get %r{^/people/([0-9]+)$} do |id|
-get_person(emailer_id integer, person_id integer)
+get_person(person_id integer)
 
 put %r{^/people/([0-9]+)$} do |id|
-update_person(emailer_id integer, person_id integer, newvalues json)
+update_person(person_id integer, newvalues json)
 
 delete %r{^/people/([0-9]+)$} do |id|
-delete_person(emailer_id integer, person_id integer)
+delete_person(person_id integer)
 
 post %r{^/people/([0-9]+)/urls$} do |id|
 add_url(person_id integer, url text)
@@ -67,10 +67,10 @@ post %r{^/people/([0-9]+)/stats$} do |id|
 add_stat(person_id integer, statkey text, statvalue text)
 
 get %r{^/people/([0-9]+)/emails$} do |id|
-get_person_emails(emailer_id integer, person_id integer)
+get_person_emails(person_id integer)
 
 post %r{^/people/([0-9]+)/emails$} do |id|
-new_email_to(emailer_id integer, person_id integer, profile text, subject text, body text)
+new_email_to(person_id integer, profile text, subject text, body text)
 
 post %r{^/people/([0-9]+)/merge$} do |id|
 merge_people(person_id integer, other_id integer)

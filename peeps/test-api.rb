@@ -223,5 +223,37 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'remember me?', j['subject']
 	end
 
-end
+	def test_create_person
+		res = DB.exec("SELECT * FROM create_person('  Bob Dobalina', 'MISTA@DOBALINA.COM')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 9, j['id']
+		assert_equal 'Bob', j['address']
+		assert_equal 'mista@dobalina.com', j['email']
+		%w(stats urls emails).each do |k|
+			assert j.keys.include? k
+			assert_equal nil, j[k]
+		end
+	end
 
+	def test_create_person_fail
+		res = DB.exec("SELECT * FROM create_person('', 'a@b.c')")
+		j = JSON.parse(res[0]['js'])
+		assert j['title'].include? 'no_name'
+		res = DB.exec("SELECT * FROM create_person('Name', 'a@b')")
+		j = JSON.parse(res[0]['js'])
+		assert j['title'].include? 'valid_email'
+	end
+
+	def test_get_person
+		res = DB.exec("SELECT * FROM get_person(99)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+		res = DB.exec("SELECT * FROM get_person(2)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'http://www.wonka.com/', j['urls'][0]['url']
+		assert_equal 'you coming by?', j['emails'][0]['subject']
+		assert_equal 'musicthoughts', j['stats'][1]['name']
+		assert_equal 'clicked', j['stats'][1]['value']
+	end
+
+end

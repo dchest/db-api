@@ -27,3 +27,20 @@ CREATE VIEW email_view AS
 CREATE VIEW unknown_view AS
 	SELECT id, their_email, their_name, headers, subject, body FROM emails;
 
+CREATE VIEW people_view AS
+	SELECT id, name, email, email_count FROM people;
+
+CREATE VIEW person_view AS
+	SELECT id, name, address, email, company, city, state, country, notes, phone, 
+		listype, categorize_as, created_at,
+		(SELECT json_agg(s) AS stats FROM
+			(SELECT id, created_at, statkey AS name, statvalue AS value
+				FROM userstats WHERE person_id=people.id ORDER BY id) s),
+		(SELECT json_agg(u) AS urls FROM
+			(SELECT id, url, main FROM urls WHERE person_id=people.id
+				ORDER BY main DESC NULLS LAST, id) u),
+		(SELECT json_agg(e) AS emails FROM
+			(SELECT id, created_at, subject, outgoing FROM emails
+				WHERE person_id=people.id ORDER BY id) e)
+		FROM people;
+

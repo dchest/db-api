@@ -457,6 +457,23 @@ CREATE VIEW email_view AS
 CREATE VIEW unknown_view AS
 	SELECT id, their_email, their_name, headers, subject, body FROM emails;
 
+CREATE VIEW people_view AS
+	SELECT id, name, email, email_count FROM people;
+
+CREATE VIEW person_view AS
+	SELECT id, name, address, email, company, city, state, country, notes, phone, 
+		listype, categorize_as, created_at,
+		(SELECT json_agg(s) AS stats FROM
+			(SELECT id, created_at, statkey AS name, statvalue AS value
+				FROM userstats WHERE person_id=people.id ORDER BY id) s),
+		(SELECT json_agg(u) AS urls FROM
+			(SELECT id, url, main FROM urls WHERE person_id=people.id
+				ORDER BY main DESC NULLS LAST, id) u),
+		(SELECT json_agg(e) AS emails FROM
+			(SELECT id, created_at, subject, outgoing FROM emails
+				WHERE person_id=people.id ORDER BY id) e)
+		FROM people;
+
 ----------------------------
 ---------- public FUNCTIONS:
 ----------------------------
@@ -1417,5 +1434,57 @@ END;
 $$ LANGUAGE plpgsql;
 
 COMMIT;
+
+
+-- POST /people
+-- PARAMS: name, text
+CREATE FUNCTION create_person(text, text, OUT mime text, OUT js text) AS $$
+DECLARE
+	pid integer;
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	SELECT id INTO pid FROM person_create($1, $2);
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = pid) r;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /people/:id
+-- PARAMS: person_id
+CREATE FUNCTION get_person(integer, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = $1) r;
+	IF js IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 
 

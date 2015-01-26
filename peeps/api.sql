@@ -316,3 +316,32 @@ $$ LANGUAGE plpgsql;
 
 COMMIT;
 
+
+-- POST /people
+-- PARAMS: name, text
+CREATE FUNCTION create_person(text, text, OUT mime text, OUT js text) AS $$
+DECLARE
+	pid integer;
+m4_ERRVARS
+BEGIN
+	SELECT id INTO pid FROM person_create($1, $2);
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = pid) r;
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /people/:id
+-- PARAMS: person_id
+CREATE FUNCTION get_person(integer, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = $1) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
