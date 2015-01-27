@@ -419,3 +419,22 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- PARAMS: people.id, formletters.id
+CREATE FUNCTION parse_formletter_body(integer, integer) RETURNS text AS $$
+DECLARE
+	new_body text;
+	thisvar text;
+	thisval text;
+BEGIN
+	SELECT body INTO new_body FROM formletters WHERE id = $2;
+	FOR thisvar IN SELECT regexp_matches(body, '{([^}]+)}', 'g') FROM formletters
+		WHERE id = $2 LOOP
+		EXECUTE format ('SELECT %s::text FROM people WHERE id=%L',
+			btrim(thisvar, '{}'), $1) INTO thisval;
+		new_body := regexp_replace(new_body, thisvar, thisval);
+	END LOOP;
+	RETURN new_body;
+END;
+$$ LANGUAGE plpgsql;
+

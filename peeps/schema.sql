@@ -907,6 +907,25 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- PARAMS: people.id, formletters.id
+CREATE FUNCTION parse_formletter_body(integer, integer) RETURNS text AS $$
+DECLARE
+	new_body text;
+	thisvar text;
+	thisval text;
+BEGIN
+	SELECT body INTO new_body FROM formletters WHERE id = $2;
+	FOR thisvar IN SELECT regexp_matches(body, '{([^}]+)}', 'g') FROM formletters
+		WHERE id = $2 LOOP
+		EXECUTE format ('SELECT %s::text FROM people WHERE id=%L',
+			btrim(thisvar, '{}'), $1) INTO thisval;
+		new_body := regexp_replace(new_body, thisvar, thisval);
+	END LOOP;
+	RETURN new_body;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Strip spaces and lowercase email address before validating & storing
 CREATE FUNCTION clean_email() RETURNS TRIGGER AS $$
 BEGIN
@@ -2017,10 +2036,10 @@ $$ LANGUAGE plpgsql;
 
 -- GET /people/:id/formletters/:id
 -- PARAMS: people.id, formletters.id
-CREATE FUNCTION parse_formletter(integer, integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION parsed_formletter(integer, integer, OUT mime text, OUT js text) AS $$
 BEGIN
 	mime := 'application/json';
-	-- COMING SOON
+	js := json_build_object('body', parse_formletter_body($1, $2));
 END;
 $$ LANGUAGE plpgsql;
 

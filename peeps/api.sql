@@ -590,12 +590,14 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- js = a simple JSON object: {"body": "The parsed text here, Derek."}
+-- If wrong IDs given, value is null
 -- GET /people/:id/formletters/:id
 -- PARAMS: people.id, formletters.id
-CREATE FUNCTION parse_formletter(integer, integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION parsed_formletter(integer, integer, OUT mime text, OUT js text) AS $$
 BEGIN
 	mime := 'application/json';
-	-- COMING SOON
+	js := json_build_object('body', parse_formletter_body($1, $2));
 END;
 $$ LANGUAGE plpgsql;
 

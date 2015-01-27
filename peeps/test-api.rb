@@ -430,5 +430,17 @@ class TestPeepsAPI < Minitest::Test
 		j = JSON.parse(res[0]['js'])
 		assert_equal 'Not Found', j['title']
 	end
+
+	def test_parsed_formletter
+		res = DB.exec("SELECT * FROM parsed_formletter(1, 1)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Your email is derek@sivers.org. Here is your URL: https://sivers.org/u/1/Dyh15IHs', j['body']
+		res = DB.exec("SELECT * FROM parsed_formletter(99, 1)")
+		j = JSON.parse(res[0]['js'])
+		assert_nil j['body']
+		res = DB.exec("SELECT * FROM parsed_formletter(1, 99)")
+		j = JSON.parse(res[0]['js'])
+		assert_nil j['body']
+	end
 end
 
