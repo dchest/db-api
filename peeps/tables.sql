@@ -4,7 +4,7 @@ DROP SCHEMA IF EXISTS peeps CASCADE;
 BEGIN;
 
 CREATE SCHEMA peeps;
-SET search_path = peeps,public;
+SET search_path = peeps;
 
 -- Country codes used mainly for foreign key constraint on people.country
 -- From http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2 - data loaded below
