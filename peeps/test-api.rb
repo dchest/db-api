@@ -442,5 +442,50 @@ class TestPeepsAPI < Minitest::Test
 		j = JSON.parse(res[0]['js'])
 		assert_nil j['body']
 	end
+
+	def test_country_count
+		res = DB.exec("SELECT * FROM country_count()")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 6, j.size
+		assert_equal({'country'=>'US', 'count'=>3}, j[0])
+		assert_equal({'country'=>'CN', 'count'=>1}, j[1])
+	end
+
+	def test_state_count
+		res = DB.exec("SELECT * FROM state_count('US')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal({'state'=>'PA', 'count'=>3}, j[0])
+		res = DB.exec("SELECT * FROM state_count('IT')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+	end
+
+	def test_city_count
+		res = DB.exec("SELECT * FROM city_count('GB')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal({'city'=>'London', 'count'=>1}, j[0])
+		res = DB.exec("SELECT * FROM city_count('US', 'PA')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal({'city'=>'Hershey', 'count'=>3}, j[0])
+		res = DB.exec("SELECT * FROM city_count('US', 'CA')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+	end
+
+	def test_people_from
+		res = DB.exec("SELECT * FROM people_from_country('SG')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Derek Sivers', j[0]['name']
+		res = DB.exec("SELECT * FROM people_from_state('GB', 'England')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Veruca Salt', j[0]['name']
+		res = DB.exec("SELECT * FROM people_from_city('CN', 'Shanghai')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'gong@li.cn', j[0]['email']
+		res = DB.exec("SELECT * FROM people_from_state_city('US', 'PA', 'Hershey')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 3, j.size
+		assert_equal [2, 4, 5], j.map {|x| x['id']}
+	end
 end
 

@@ -602,3 +602,118 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- GET /countries
+-- PARAMS: -none-
+CREATE FUNCTION country_count(OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT country, COUNT(*) FROM people
+		WHERE country IS NOT NULL GROUP BY country ORDER BY COUNT(*) DESC, country) r;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /states/:country_code
+-- PARAMS: 2-letter country code
+CREATE FUNCTION state_count(char(2), OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT state, COUNT(*) FROM people
+		WHERE country = $1 AND state IS NOT NULL AND state != ''
+		GROUP BY state ORDER BY COUNT(*) DESC, state) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /cities/:country_code/:state
+-- PARAMS: 2-letter country code, state name
+CREATE FUNCTION city_count(char(2), text, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT city, COUNT(*) FROM people
+		WHERE country=$1 AND state=$2 AND (city IS NOT NULL AND city != '')
+		GROUP BY city ORDER BY COUNT(*) DESC, city) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /cities/:country_code
+-- PARAMS: 2-letter country code
+CREATE FUNCTION city_count(char(2), OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT city, COUNT(*) FROM people
+		WHERE country=$1 AND (city IS NOT NULL AND city != '')
+		GROUP BY city ORDER BY COUNT(*) DESC, city) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /where/:country_code
+-- PARAMS: 2-letter country code
+CREATE FUNCTION people_from_country(char(2), OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM people_view WHERE id IN
+		(SELECT id FROM people WHERE country=$1)
+		ORDER BY email_count DESC, name) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /where/:country_code?state=XX
+-- PARAMS: 2-letter country code, state
+CREATE FUNCTION people_from_state(char(2), text, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM people_view WHERE id IN
+		(SELECT id FROM people WHERE country=$1 AND state=$2)
+		ORDER BY email_count DESC, name) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /where/:country_code?city=XX
+-- PARAMS: 2-letter country code, state
+CREATE FUNCTION people_from_city(char(2), text, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM people_view WHERE id IN
+		(SELECT id FROM people WHERE country=$1 AND city=$2)
+		ORDER BY email_count DESC, name) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /where/:country_code?city=XX&state=XX
+-- PARAMS: 2-letter country code, state, city
+CREATE FUNCTION people_from_state_city(char(2), text, text, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM people_view WHERE id IN
+		(SELECT id FROM people WHERE country=$1 AND state=$2 AND city=$3)
+		ORDER BY email_count DESC, name) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
