@@ -361,5 +361,35 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'search term too short', j['title']
 	end
 
+	def test_delete_stat
+		res = DB.exec("SELECT * FROM delete_stat(8)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'interview', j['value']
+		res = DB.exec("SELECT * FROM delete_stat(8)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+	end
+
+	def test_delete_url
+		res = DB.exec("SELECT * FROM delete_url(8)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'http://oompa.loompa', j['url']
+		res = DB.exec("SELECT * FROM delete_url(8)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+	end
+
+	def test_update_url
+		res = DB.exec_params("SELECT * FROM update_url(8, $1)", ['{"url":"http://oompa.com", "main": true}'])
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'http://oompa.com', j['url']
+		assert_equal true, j['main']
+		res = DB.exec_params("SELECT * FROM update_url(99, $1)", ['{"url":"http://oompa.com"}'])
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+		res = DB.exec_params("SELECT * FROM update_url(8, $1)", ['{"main":"boop"}'])
+		j = JSON.parse(res[0]['js'])
+		assert j['title'].include? 'invalid input syntax'
+	end
 end
 

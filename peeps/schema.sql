@@ -1796,4 +1796,88 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- DELETE /stats/:id
+-- PARAMS: stats.id
+CREATE FUNCTION delete_stat(integer, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT id, person_id, statkey AS name,
+		statvalue AS value, created_at FROM userstats WHERE id = $1) r;
+	IF js IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	ELSE
+		DELETE FROM userstats WHERE id = $1;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- DELETE /urls/:id
+-- PARAMS: urls.id
+CREATE FUNCTION delete_url(integer, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM urls WHERE id = $1) r;
+	IF js IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	ELSE
+		DELETE FROM urls WHERE id = $1;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- PUT /urls/:id
+-- PARAMS: urls.id, JSON with allowed: person_id::int, url::text, main::boolean
+CREATE FUNCTION update_url(integer, json, OUT mime text, OUT js text) AS $$
+DECLARE
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	PERFORM public.jsonupdate('peeps.urls', $1, $2,
+		public.cols2update('peeps', 'urls', ARRAY['id']));
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM urls WHERE id = $1) r;
+	IF js IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	END IF;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
+
 
