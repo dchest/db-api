@@ -391,5 +391,35 @@ class TestPeepsAPI < Minitest::Test
 		j = JSON.parse(res[0]['js'])
 		assert j['title'].include? 'invalid input syntax'
 	end
+
+	def test_get_formletters
+		res = DB.exec("SELECT * FROM get_formletters()")
+		j = JSON.parse(res[0]['js'])
+		assert_equal %w(five four one six three two), j.map {|x| x['title']} # alphabetized
+	end
+
+	def test_create_formletter
+		res = DB.exec("SELECT * FROM create_formletter('new title')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 7, j['id']
+		assert_equal nil, j['body']
+		assert_equal nil, j['explanation']
+		assert_equal 'new title', j['title']
+	end
+
+	def test_update_formletter
+		res = DB.exec_params("SELECT * FROM update_formletter(6, $1)", ['{"title":"nu title", "body":"a body", "explanation":"weak", "ignore":"this"}'])
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'nu title', j['title']
+		assert_equal 'a body', j['body']
+		assert_equal 'weak', j['explanation']
+		res = DB.exec_params("SELECT * FROM update_formletter(6, $1)", ['{"title":"one"}'])
+		assert_equal 'application/problem+json', res[0]['mime']
+		j = JSON.parse(res[0]['js'])
+		assert j['title'].include? 'unique constraint'
+		res = DB.exec_params("SELECT * FROM update_formletter(99, $1)", ['{"title":"one"}'])
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+	end
 end
 

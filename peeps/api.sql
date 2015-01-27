@@ -514,3 +514,89 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- GET /formletters
+-- PARAMS: -none-
+CREATE FUNCTION get_formletters(OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM
+		(SELECT * FROM formletters_view ORDER BY title) r;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- POST /formletters
+-- PARAMS: title
+CREATE FUNCTION create_formletter(text, OUT mime text, OUT js text) AS $$
+DECLARE
+	new_id integer;
+m4_ERRVARS
+BEGIN
+	INSERT INTO formletters(title) VALUES ($1) RETURNING id INTO new_id;
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM
+		(SELECT * FROM formletter_view WHERE id = new_id) r;
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /formletters/:id
+-- PARAMS: formletters.id
+CREATE FUNCTION get_formletter(integer, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM
+		(SELECT * FROM formletter_view WHERE id = $1) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- PUT /formletters/:id
+-- PARAMS: formletters.id, JSON keys: title, explanation, body
+CREATE FUNCTION update_formletter(integer, json, OUT mime text, OUT js text) AS $$
+DECLARE
+m4_ERRVARS
+BEGIN
+	PERFORM public.jsonupdate('peeps.formletters', $1, $2,
+		public.cols2update('peeps', 'formletters', ARRAY['id', 'created_at']));
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM
+		(SELECT * FROM formletter_view WHERE id = $1) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- DELETE /formletters/:id
+-- PARAMS: formletters.id
+CREATE FUNCTION delete_formletter(integer, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM
+		(SELECT * FROM formletter_view WHERE id = $1) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		DELETE FROM formletters WHERE id = $1;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /people/:id/formletters/:id
+-- PARAMS: people.id, formletters.id
+CREATE FUNCTION parse_formletter(integer, integer, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	-- COMING SOON
+END;
+$$ LANGUAGE plpgsql;
+
+

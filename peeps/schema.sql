@@ -479,6 +479,13 @@ CREATE VIEW person_view AS
 				WHERE person_id=people.id ORDER BY id) e)
 		FROM people;
 
+CREATE VIEW formletters_view AS
+	SELECT id, title, explanation, created_at FROM formletters;
+
+CREATE VIEW formletter_view AS
+	SELECT id, title, explanation, body, created_at FROM formletters;
+
+
 ----------------------------
 ---------- public FUNCTIONS:
 ----------------------------
@@ -1876,6 +1883,144 @@ EXCEPTION
 		'title', err_msg,
 		'detail', err_detail || err_context);
 
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /formletters
+-- PARAMS: -none-
+CREATE FUNCTION get_formletters(OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM
+		(SELECT * FROM formletters_view ORDER BY title) r;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- POST /formletters
+-- PARAMS: title
+CREATE FUNCTION create_formletter(text, OUT mime text, OUT js text) AS $$
+DECLARE
+	new_id integer;
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	INSERT INTO formletters(title) VALUES ($1) RETURNING id INTO new_id;
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM
+		(SELECT * FROM formletter_view WHERE id = new_id) r;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /formletters/:id
+-- PARAMS: formletters.id
+CREATE FUNCTION get_formletter(integer, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM
+		(SELECT * FROM formletter_view WHERE id = $1) r;
+	IF js IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- PUT /formletters/:id
+-- PARAMS: formletters.id, JSON keys: title, explanation, body
+CREATE FUNCTION update_formletter(integer, json, OUT mime text, OUT js text) AS $$
+DECLARE
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	PERFORM public.jsonupdate('peeps.formletters', $1, $2,
+		public.cols2update('peeps', 'formletters', ARRAY['id', 'created_at']));
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM
+		(SELECT * FROM formletter_view WHERE id = $1) r;
+	IF js IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	END IF;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- DELETE /formletters/:id
+-- PARAMS: formletters.id
+CREATE FUNCTION delete_formletter(integer, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM
+		(SELECT * FROM formletter_view WHERE id = $1) r;
+	IF js IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	ELSE
+		DELETE FROM formletters WHERE id = $1;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /people/:id/formletters/:id
+-- PARAMS: people.id, formletters.id
+CREATE FUNCTION parse_formletter(integer, integer, OUT mime text, OUT js text) AS $$
+BEGIN
+	mime := 'application/json';
+	-- COMING SOON
 END;
 $$ LANGUAGE plpgsql;
 

@@ -49,3 +49,10 @@ CREATE VIEW person_view AS
 				WHERE person_id=people.id ORDER BY id) e)
 		FROM people;
 
+CREATE VIEW formletters_view AS
+	SELECT id, title, explanation, created_at FROM formletters;
+
+CREATE VIEW formletter_view AS
+	SELECT id, title, explanation, body, created_at FROM formletters;
+
+
