@@ -56,8 +56,8 @@ CREATE TABLE emailers (
 CREATE TABLE userstats (
 	id serial primary key,
 	person_id integer not null REFERENCES people(id) ON DELETE CASCADE,
-	statkey varchar(32) not null,
-	statvalue text,
+	statkey varchar(32) not null CONSTRAINT statkey_format CHECK (statkey ~ '\A[a-z0-9._-]+\Z'),
+	statvalue text not null CONSTRAINT statval_not_empty CHECK (length(statvalue) > 0),
 	created_at date not null default CURRENT_DATE
 );
 CREATE INDEX userstats_person ON userstats(person_id);
@@ -67,7 +67,7 @@ CREATE INDEX userstats_statkey ON userstats(statkey);
 CREATE TABLE urls (
 	id serial primary key,
 	person_id integer not null REFERENCES people(id) ON DELETE CASCADE,
-	url varchar(255),
+	url varchar(255) CONSTRAINT url_format CHECK (url ~ '^https?://[0-9a-zA-Z_-]+\.[a-zA-Z0-9]+'),
 	main boolean  -- means it's their main/home site
 );
 CREATE INDEX urls_person ON urls(person_id);
@@ -99,8 +99,8 @@ CREATE TABLE emails (
 	closed_by integer REFERENCES emailers(id),
 	reference_id integer REFERENCES emails(id) DEFERRABLE, -- email this is replying to
 	answer_id integer REFERENCES emails(id) DEFERRABLE, -- email replying to this one
-	their_email varchar(127) CONSTRAINT valid_email CHECK (their_email ~ '\A\S+@\S+\.\S+\Z'),  -- their email address (whether incoming or outgoing)
-	their_name varchar(127),
+	their_email varchar(127) NOT NULL CONSTRAINT valid_email CHECK (their_email ~ '\A\S+@\S+\.\S+\Z'),  -- their email address (whether incoming or outgoing)
+	their_name varchar(127) NOT NULL,
 	subject varchar(127),
 	headers text,
 	body text,

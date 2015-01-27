@@ -21,7 +21,7 @@ CREATE TRIGGER clean_name BEFORE INSERT OR UPDATE OF name ON people FOR EACH ROW
 -- Statkey has no whitespace at all. Statvalue trimmed but keeps inner whitespace.
 CREATE FUNCTION clean_userstats() RETURNS TRIGGER AS $$
 BEGIN
-	NEW.statkey = lower(regexp_replace(NEW.statkey, '[^[:alnum:]_-]', '', 'g'));
+	NEW.statkey = lower(regexp_replace(NEW.statkey, '[^[:alnum:]._-]', '', 'g'));
 	IF NEW.statkey = '' THEN
 		RAISE 'stats.key must not be empty';
 	END IF;
