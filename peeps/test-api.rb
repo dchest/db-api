@@ -421,5 +421,14 @@ class TestPeepsAPI < Minitest::Test
 		j = JSON.parse(res[0]['js'])
 		assert_equal 'Not Found', j['title']
 	end
+
+	def test_delete_formletter
+		res = DB.exec("SELECT * FROM delete_formletter(6)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'meh', j['body']
+		res = DB.exec("SELECT * FROM delete_formletter(6)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+	end
 end
 
