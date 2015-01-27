@@ -55,4 +55,10 @@ CREATE VIEW formletters_view AS
 CREATE VIEW formletter_view AS
 	SELECT id, title, explanation, body, created_at FROM formletters;
 
+CREATE VIEW stats_view AS
+	SELECT userstats.id, userstats.created_at, statkey AS name, statvalue AS value,
+		(SELECT row_to_json(p) FROM
+			(SELECT people.id, people.name, people.email) p) AS person
+		FROM userstats LEFT JOIN people ON userstats.person_id=people.id
+		ORDER BY userstats.id DESC;
 

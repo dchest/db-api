@@ -485,6 +485,12 @@ CREATE VIEW formletters_view AS
 CREATE VIEW formletter_view AS
 	SELECT id, title, explanation, body, created_at FROM formletters;
 
+CREATE VIEW stats_view AS
+	SELECT userstats.id, userstats.created_at, statkey AS name, statvalue AS value,
+		(SELECT row_to_json(p) FROM
+			(SELECT people.id, people.name, people.email) p) AS person
+		FROM userstats LEFT JOIN people ON userstats.person_id=people.id
+		ORDER BY userstats.id DESC;
 
 ----------------------------
 ---------- public FUNCTIONS:
@@ -2202,5 +2208,63 @@ BEGIN
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
+-- GET /stats/:key/:value
+-- PARAMS: stats.name, stats.value
+CREATE FUNCTION get_stats(text, text, OUT mime text, OUT js text) AS $$
+DECLARE
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM stats_view
+		WHERE name = $1 AND value = $2) r;
+	IF js IS NULL THEN
+		js := '[]';
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /stats/:key
+-- PARAMS: stats.name
+CREATE FUNCTION get_stats(text, OUT mime text, OUT js text) AS $$
+DECLARE
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM stats_view WHERE name = $1) r;
+	IF js IS NULL THEN
+		js := '[]';
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /statcount/:key
+-- PARAMS: stats.name
+CREATE FUNCTION get_stat_value_count(text, OUT mime text, OUT js text) AS $$
+DECLARE
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT statvalue AS value, COUNT(*) AS count
+		FROM userstats WHERE statkey=$1 GROUP BY statvalue ORDER BY statvalue) r;
+	IF js IS NULL THEN
+		js := '[]';
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /statcount
+-- PARAMS: -none-
+CREATE FUNCTION get_stat_name_count(OUT mime text, OUT js text) AS $$
+DECLARE
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT statkey AS name, COUNT(*) AS count
+		FROM userstats GROUP BY statkey ORDER BY statkey) r;
+END;
+$$ LANGUAGE plpgsql;
+
 
 

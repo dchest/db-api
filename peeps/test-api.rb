@@ -487,5 +487,27 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 3, j.size
 		assert_equal [2, 4, 5], j.map {|x| x['id']}
 	end
+
+	def test_get_stats
+		res = DB.exec("SELECT * FROM get_stats('listype')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'some', j[0]['value']
+		assert_equal 'Willy Wonka', j[0]['person']['name']
+		res = DB.exec("SELECT * FROM get_stats('listype', 'all')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'all', j[0]['value']
+		assert_equal 'Derek Sivers', j[0]['person']['name']
+		res = DB.exec("SELECT * FROM get_stats('nothing')")
+		assert_equal [], JSON.parse(res[0]['js'])
+	end
+
+	def test_get_stat_count
+		res = DB.exec("SELECT * FROM get_stat_value_count('listype')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal %w(all some), j.map {|x| x['value']}
+		res = DB.exec("SELECT * FROM get_stat_name_count()")
+		j = JSON.parse(res[0]['js'])
+		assert_equal({'name' => 'listype', 'count' => 2}, j[1])
+	end
 end
 
