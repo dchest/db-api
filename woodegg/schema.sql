@@ -83,6 +83,7 @@ CREATE TABLE books (
 	asin char(10),
 	leanpub varchar(30),
 	apple integer,
+	intro text,
 	salescopy text,
 	credits text,
 	available boolean
