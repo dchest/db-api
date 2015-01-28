@@ -171,6 +171,7 @@ CREATE TABLE uploads (
 	mime_type varchar(32),
 	bytes integer,
 	uploaded char(1) NOT NULL DEFAULT 'n',
+	duration varchar(7),
 	status varchar(4) default 'new',
 	notes text,
 	transcription text
