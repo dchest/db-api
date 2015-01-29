@@ -33,6 +33,14 @@ class TestMusicthoughtsClient < Minitest::Test
 		assert_equal %w(en es fr de it pt ja zh ar ru), j
 	end
 
+	def test_categories
+		res = DB.exec("SELECT * FROM all_categories()")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 12, j.size
+		assert_equal 2, j[1]['id']
+		assert_equal 2, j[1]['howmany']
+	end
+
 	def test_category
 		res = DB.exec("SELECT * FROM category(5)")
 		j = JSON.parse(res[0]['js'])
@@ -44,12 +52,16 @@ class TestMusicthoughtsClient < Minitest::Test
 	end
 
 	def test_top_authors
-		res = DB.exec("SELECT * FROM top_authors()")
+		res = DB.exec("SELECT * FROM top_authors(2)")
 		j = JSON.parse(res[0]['js'])
+		assert_equal 2, j.size
 		assert_equal 'Miles Davis', j[0]['name']
 		assert_equal 2, j[0]['howmany']
 		assert_equal 'Maya Angelou', j[1]['name']
 		assert_equal 1, j[1]['howmany']
+		res = DB.exec("SELECT * FROM top_authors(NULL)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 3, j.size
 	end
 
 	def test_get_author
@@ -63,4 +75,63 @@ class TestMusicthoughtsClient < Minitest::Test
 		j = JSON.parse(res[0]['js'])
 		assert_equal 'Not Found', j['title']
 	end
+
+	def test_top_contributors
+		res = DB.exec("SELECT * FROM top_contributors(1)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 1, j.size
+		assert_equal 'Derek Sivers', j[0]['name']
+		assert_equal 3, j[0]['howmany']
+		res = DB.exec("SELECT * FROM top_contributors(NULL)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 2, j.size
+	end
+
+	def test_get_contributor
+		res = DB.exec("SELECT * FROM get_contributor(1)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Derek Sivers', j['name']
+		assert_instance_of Array, j['thoughts']
+		assert_equal [4, 3, 1], j['thoughts'].map {|x| x['id']}
+		res = DB.exec("SELECT * FROM get_contributor(2)")
+		j = JSON.parse(res[0]['js'])
+		assert_nil j['thoughts']
+		res = DB.exec("SELECT * FROM get_contributor(55)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+	end
+
+	def test_random_thought
+		res = DB.exec("SELECT * FROM random_thought()")
+		j = JSON.parse(res[0]['js'])
+		assert [1, 4].include? j['id']
+		res = DB.exec("SELECT * FROM random_thought()")
+		j = JSON.parse(res[0]['js'])
+		assert [1, 4].include? j['id']
+	end
+
+	def test_get_thought
+		res = DB.exec("SELECT * FROM get_thought(1)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'http://www.milesdavis.com/', j['source_url']
+		assert_equal '知らないものを弾け。', j['ja']
+		assert_equal 'Miles Davis', j['author']['name']
+		assert_equal 'Derek Sivers', j['contributor']['name']
+		assert_equal %w(experiments performing practicing), j['categories'].map {|x| x['en']}.sort
+		res = DB.exec("SELECT * FROM get_thought(99)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'Not Found', j['title']
+	end
+
+	def test_new_thoughts
+		res = DB.exec("SELECT * FROM new_thoughts(1)")
+		j = JSON.parse(res[0]['js'])
+		assert_instance_of Array, j
+		assert_equal 1, j.size
+		assert_equal 5, j[0]['id']
+		res = DB.exec("SELECT * FROM new_thoughts(NULL)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal [5, 4, 3, 1], j.map {|x| x['id']}
+	end
+
 end
