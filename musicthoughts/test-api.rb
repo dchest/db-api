@@ -134,4 +134,35 @@ class TestMusicthoughtsClient < Minitest::Test
 		assert_equal [5, 4, 3, 1], j.map {|x| x['id']}
 	end
 
+	def test_search
+		res = DB.exec("SELECT * FROM search('中')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 'search term too short', j['title']
+		res = DB.exec("SELECT * FROM search('出中')")
+		j = JSON.parse(res[0]['js'])
+		assert_equal %w(authors categories contributors thoughts), j.keys.sort
+		assert_nil j['authors']
+		assert_nil j['contributors']
+		assert_nil j['thoughts']
+		assert_equal '演出中', j['categories'][0]['zh']
+		res = DB.exec("SELECT * FROM search('Miles')")
+		j = JSON.parse(res[0]['js'])
+		assert_nil j['contributors']
+		assert_nil j['categories']
+		assert_nil j['thoughts']
+		assert_equal 'Miles Davis', j['authors'][0]['name']
+		res = DB.exec("SELECT * FROM search('Salt')")
+		j = JSON.parse(res[0]['js'])
+		assert_nil j['authors']
+		assert_nil j['categories']
+		assert_nil j['thoughts']
+		assert_equal 'Veruca Salt', j['contributors'][0]['name']
+		res = DB.exec("SELECT * FROM search('dimenticherá')")
+		j = JSON.parse(res[0]['js'])
+		assert_nil j['authors']
+		assert_nil j['categories']
+		assert_nil j['contributors']
+		assert_equal 5, j['thoughts'][0]['id']
+	end
+
 end
