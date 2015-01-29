@@ -1,9 +1,5 @@
--- API TODO:
--- post '/authors'
--- post '/contributors'
--- post '/thoughts'
-
 -- NOTE: all queries only show where thoughts.approved IS TRUE
+-- When building manager API, I will add unapproved thoughts function
 
 -- get '/languages'
 -- PARAMS: -none-
@@ -157,6 +153,54 @@ BEGIN
 		'contributors', cont,
 		'categories', cats,
 		'thoughts', thts);
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- post '/thoughts'
+-- PARAMS:
+-- $1 = lang code
+-- $2 = thought
+-- $3 = contributor name
+-- $4 = contributor email
+-- $5 = contributor url
+-- $6 = contributor place
+-- $7 = author name
+-- $8 = source url
+-- $9 = array of category ids
+-- Having ordered params is a drag, so is accepting then unnesting JSON with specific key names.
+-- Returns simple hash of ids, since thought is unapproved and untranslated, no view yet.
+CREATE FUNCTION add_thought(char(2), text, text, text, text, text, text, text, integer[], OUT mime text, OUT js text) AS $$
+DECLARE
+	pers_id integer;
+	cont_id integer;
+	auth_id integer;
+	newt_id integer;
+	cat_id integer;
+m4_ERRVARS
+BEGIN
+	SELECT id INTO pers_id FROM peeps.person_create($3, $4);
+	SELECT id INTO cont_id FROM contributors WHERE person_id = pers_id;
+	IF cont_id IS NULL THEN
+		INSERT INTO contributors (person_id, url, place) VALUES (pers_id, $5, $6)
+			RETURNING id INTO cont_id;
+	END IF;
+	SELECT id INTO auth_id FROM authors WHERE name ILIKE btrim($7, E'\r\n\t ');
+	IF auth_id IS NULL THEN
+		INSERT INTO authors (name) VALUES ($7) RETURNING id INTO auth_id;
+	END IF;
+	EXECUTE format ('INSERT INTO thoughts (author_id, contributor_id, source_url, %I)'
+		|| ' VALUES (%L, %L, %L, %L) RETURNING id', $1, auth_id, cont_id, $8, $2)
+		INTO newt_id;
+	FOREACH cat_id IN ARRAY $9 LOOP
+		INSERT INTO categories_thoughts VALUES (newt_id, cat_id);
+	END LOOP;
+	mime := 'application/json';
+	js := json_build_object(
+		'thought', newt_id,
+		'contributor', cont_id,
+		'author', auth_id);
 m4_ERRCATCH
 END;
 $$ LANGUAGE plpgsql;

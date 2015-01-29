@@ -165,4 +165,10 @@ class TestMusicthoughtsClient < Minitest::Test
 		assert_equal 5, j['thoughts'][0]['id']
 	end
 
+	def test_add
+		res = DB.exec("SELECT * FROM add_thought('de', 'wow', 'me', 'me@me.nz', 'http://me.nz/', 'NZ', 'god', 'http://god.com/', ARRAY[1, 3, 5])")
+		j = JSON.parse(res[0]['js'])
+		assert_equal({'thought'=>7,'contributor'=>4,'author'=>5}, j)
+	end
 end
+
