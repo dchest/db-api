@@ -1,4 +1,6 @@
 require 'pg'
+require 'sinatra/base'
+
 DB = PG::Connection.new(dbname: 'd50b', user: 'd50b')
 
 class MusicThoughtsPublic < Sinatra::Base
@@ -99,3 +101,26 @@ class MusicThoughtsPublic < Sinatra::Base
 	end
 
 end
+
+
+DB_TEST = PG::Connection.new(dbname: 'd50b_test', user: 'd50b')
+P_SCHEMA = File.read('../peeps/schema.sql')
+P_FIXTURES = File.read('../peeps/fixtures.sql')
+SCHEMA = File.read('schema.sql')
+FIXTURES = File.read('fixtures.sql')
+
+class MusicThoughtsPublicTest < MusicThoughtsPublic
+
+	def qry(sql, params=[])
+		@res = DB_TEST.exec_params('select mime, js from musicthoughts.' + sql, params)
+	end
+
+	delete '/reset' do
+		DB.exec(P_SCHEMA)
+		DB.exec(SCHEMA)
+		DB.exec(P_FIXTURES)
+		DB.exec(FIXTURES)
+	end
+
+end
+
