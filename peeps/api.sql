@@ -7,7 +7,7 @@
 --{"derek@sivers":{"derek@sivers":43,"derek":2,"programmer":1},
 -- "we@woodegg":{"woodeggRESEARCH":1,"woodegg":1,"we@woodegg":1}}
 -- PARAMS: emailer_id
-CREATE FUNCTION unopened_email_count(integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION unopened_email_count(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_object_agg(profile, cats) INTO js FROM (WITH unopened AS
@@ -27,7 +27,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /emails/unopened/:profile/:category
 -- PARAMS: emailer_id, profile, category
-CREATE FUNCTION unopened_emails(integer, text, text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION unopened_emails(integer, text, text, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM emails_view WHERE id IN
@@ -43,7 +43,7 @@ $$ LANGUAGE plpgsql;
 -- POST /emails/next/:profile/:category
 -- Opens email (updates status as opened by this emailer) then returns view
 -- PARAMS: emailer_id, profile, category
-CREATE FUNCTION open_next_email(integer, text, text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION open_next_email(integer, text, text, OUT mime text, OUT js json) AS $$
 DECLARE
 	eid integer;
 BEGIN
@@ -64,7 +64,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /emails/opened
 -- PARAMS: emailer_id
-CREATE FUNCTION opened_emails(integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION opened_emails(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM emails_view WHERE id IN
@@ -78,7 +78,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /emails/:id
 -- PARAMS: emailer_id, email_id
-CREATE FUNCTION get_email(integer, integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION get_email(integer, integer, OUT mime text, OUT js json) AS $$
 DECLARE
 	eid integer;
 BEGIN
@@ -96,7 +96,7 @@ $$ LANGUAGE plpgsql;
 
 -- PUT /emails/:id
 -- PARAMS: emailer_id, email_id, JSON of new values
-CREATE FUNCTION update_email(integer, integer, json, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION update_email(integer, integer, json, OUT mime text, OUT js json) AS $$
 DECLARE
 	eid integer;
 m4_ERRVARS
@@ -118,7 +118,7 @@ $$ LANGUAGE plpgsql;
 
 -- DELETE /emails/:id
 -- PARAMS: emailer_id, email_id
-CREATE FUNCTION delete_email(integer, integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION delete_email(integer, integer, OUT mime text, OUT js json) AS $$
 DECLARE
 	eid integer;
 BEGIN
@@ -137,7 +137,7 @@ $$ LANGUAGE plpgsql;
 
 -- PUT /emails/:id/close
 -- PARAMS: emailer_id, email_id
-CREATE FUNCTION close_email(integer, integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION close_email(integer, integer, OUT mime text, OUT js json) AS $$
 DECLARE
 	eid integer;
 BEGIN
@@ -156,7 +156,7 @@ $$ LANGUAGE plpgsql;
 
 -- PUT /emails/:id/unread
 -- PARAMS: emailer_id, email_id
-CREATE FUNCTION unread_email(integer, integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION unread_email(integer, integer, OUT mime text, OUT js json) AS $$
 DECLARE
 	eid integer;
 BEGIN
@@ -175,7 +175,7 @@ $$ LANGUAGE plpgsql;
 
 -- PUT /emails/:id/notme
 -- PARAMS: emailer_id, email_id
-CREATE FUNCTION not_my_email(integer, integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION not_my_email(integer, integer, OUT mime text, OUT js json) AS $$
 DECLARE
 	eid integer;
 BEGIN
@@ -197,7 +197,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST /emails/:id/reply?body=blah
 -- PARAMS: emailer_id, email_id, body
-CREATE FUNCTION reply_to_email(integer, integer, text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION reply_to_email(integer, integer, text, OUT mime text, OUT js json) AS $$
 DECLARE
 	e emails;
 	new_id integer;
@@ -224,7 +224,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /unknowns
 -- PARAMS: emailer_id
-CREATE FUNCTION get_unknowns(integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION get_unknowns(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM emails_view WHERE id IN
@@ -238,7 +238,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /unknowns/next
 -- PARAMS: emailer_id
-CREATE FUNCTION get_next_unknown(integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION get_next_unknown(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM (SELECT * FROM unknown_view WHERE id IN
@@ -252,7 +252,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST /unknowns/:id?person_id=123 or 0 to create new
 -- PARAMS: emailer_id, email_id, person_id
-CREATE FUNCTION set_unknown_person(integer, integer, integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION set_unknown_person(integer, integer, integer, OUT mime text, OUT js json) AS $$
 DECLARE
 	this_e emails;
 	newperson people;
@@ -282,7 +282,7 @@ $$ LANGUAGE plpgsql;
 
 -- DELETE /unknowns/:id
 -- PARAMS: emailer_id, email_id
-CREATE FUNCTION delete_unknown(integer, integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION delete_unknown(integer, integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM (SELECT * FROM unknown_view
@@ -300,7 +300,7 @@ COMMIT;
 
 -- POST /people
 -- PARAMS: name, text
-CREATE FUNCTION create_person(text, text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION create_person(text, text, OUT mime text, OUT js json) AS $$
 DECLARE
 	pid integer;
 m4_ERRVARS
@@ -315,7 +315,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /people/:id
 -- PARAMS: person_id
-CREATE FUNCTION get_person(integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION get_person(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = $1) r;
@@ -328,7 +328,7 @@ $$ LANGUAGE plpgsql;
 
 -- PUT /people/:id
 -- PARAMS: person_id, JSON of new values
-CREATE FUNCTION update_person(integer, json, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION update_person(integer, json, OUT mime text, OUT js json) AS $$
 DECLARE
 m4_ERRVARS
 BEGIN
@@ -346,7 +346,7 @@ $$ LANGUAGE plpgsql;
 
 -- DELETE /people/:id
 -- PARAMS: person_id
-CREATE FUNCTION delete_person(integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION delete_person(integer, OUT mime text, OUT js json) AS $$
 DECLARE
 m4_ERRVARS
 BEGIN
@@ -363,7 +363,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST /people/:id/urls
 -- PARAMS: person_id, url
-CREATE FUNCTION add_url(integer, text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION add_url(integer, text, OUT mime text, OUT js json) AS $$
 DECLARE
 m4_ERRVARS
 BEGIN
@@ -377,7 +377,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST /people/:id/stats
 -- PARAMS: person_id, stat.name, stat.value
-CREATE FUNCTION add_stat(integer, text, text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION add_stat(integer, text, text, OUT mime text, OUT js json) AS $$
 DECLARE
 m4_ERRVARS
 BEGIN
@@ -391,7 +391,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST /people/:id/emails
 -- PARAMS: emailer_id, person_id, profile, subject, body
-CREATE FUNCTION new_email(integer, integer, text, text, text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION new_email(integer, integer, text, text, text, OUT mime text, OUT js json) AS $$
 DECLARE
 	new_id integer;
 m4_ERRVARS
@@ -407,7 +407,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /people/:id/emails
 -- PARAMS: person_id
-CREATE FUNCTION get_person_emails(integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION get_person_emails(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM
@@ -421,7 +421,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST /people/:id/merge?id=old_id
 -- PARAMS: person_id to KEEP, person_id to CHANGE
-CREATE FUNCTION merge_person(integer, integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION merge_person(integer, integer, OUT mime text, OUT js json) AS $$
 DECLARE
 m4_ERRVARS
 BEGIN
@@ -435,7 +435,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /people/unmailed
 -- PARAMS: -none-
-CREATE FUNCTION people_unemailed(OUT mime text, OUT js text) AS $$
+CREATE FUNCTION people_unemailed(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM people_view
@@ -446,7 +446,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /search?q=term
 -- PARAMS: search term
-CREATE FUNCTION people_search(text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION people_search(text, OUT mime text, OUT js json) AS $$
 DECLARE
 	q text;
 m4_ERRVARS
@@ -467,7 +467,7 @@ $$ LANGUAGE plpgsql;
 
 -- DELETE /stats/:id
 -- PARAMS: stats.id
-CREATE FUNCTION delete_stat(integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION delete_stat(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM (SELECT id, person_id, statkey AS name,
@@ -483,7 +483,7 @@ $$ LANGUAGE plpgsql;
 
 -- DELETE /urls/:id
 -- PARAMS: urls.id
-CREATE FUNCTION delete_url(integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION delete_url(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM (SELECT * FROM urls WHERE id = $1) r;
@@ -498,7 +498,7 @@ $$ LANGUAGE plpgsql;
 
 -- PUT /urls/:id
 -- PARAMS: urls.id, JSON with allowed: person_id::int, url::text, main::boolean
-CREATE FUNCTION update_url(integer, json, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION update_url(integer, json, OUT mime text, OUT js json) AS $$
 DECLARE
 m4_ERRVARS
 BEGIN
@@ -516,7 +516,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /formletters
 -- PARAMS: -none-
-CREATE FUNCTION get_formletters(OUT mime text, OUT js text) AS $$
+CREATE FUNCTION get_formletters(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM
@@ -527,7 +527,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST /formletters
 -- PARAMS: title
-CREATE FUNCTION create_formletter(text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION create_formletter(text, OUT mime text, OUT js json) AS $$
 DECLARE
 	new_id integer;
 m4_ERRVARS
@@ -543,7 +543,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /formletters/:id
 -- PARAMS: formletters.id
-CREATE FUNCTION get_formletter(integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION get_formletter(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM
@@ -557,7 +557,7 @@ $$ LANGUAGE plpgsql;
 
 -- PUT /formletters/:id
 -- PARAMS: formletters.id, JSON keys: title, explanation, body
-CREATE FUNCTION update_formletter(integer, json, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION update_formletter(integer, json, OUT mime text, OUT js json) AS $$
 DECLARE
 m4_ERRVARS
 BEGIN
@@ -576,7 +576,7 @@ $$ LANGUAGE plpgsql;
 
 -- DELETE /formletters/:id
 -- PARAMS: formletters.id
-CREATE FUNCTION delete_formletter(integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION delete_formletter(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM
@@ -594,7 +594,7 @@ $$ LANGUAGE plpgsql;
 -- If wrong IDs given, value is null
 -- GET /people/:id/formletters/:id
 -- PARAMS: people.id, formletters.id
-CREATE FUNCTION parsed_formletter(integer, integer, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION parsed_formletter(integer, integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := json_build_object('body', parse_formletter_body($1, $2));
@@ -604,7 +604,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /countries
 -- PARAMS: -none-
-CREATE FUNCTION country_count(OUT mime text, OUT js text) AS $$
+CREATE FUNCTION country_count(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT country, COUNT(*) FROM people
@@ -615,7 +615,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /states/:country_code
 -- PARAMS: 2-letter country code
-CREATE FUNCTION state_count(char(2), OUT mime text, OUT js text) AS $$
+CREATE FUNCTION state_count(char(2), OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT state, COUNT(*) FROM people
@@ -630,7 +630,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /cities/:country_code/:state
 -- PARAMS: 2-letter country code, state name
-CREATE FUNCTION city_count(char(2), text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION city_count(char(2), text, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT city, COUNT(*) FROM people
@@ -645,7 +645,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /cities/:country_code
 -- PARAMS: 2-letter country code
-CREATE FUNCTION city_count(char(2), OUT mime text, OUT js text) AS $$
+CREATE FUNCTION city_count(char(2), OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT city, COUNT(*) FROM people
@@ -660,7 +660,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /where/:country_code
 -- PARAMS: 2-letter country code
-CREATE FUNCTION people_from_country(char(2), OUT mime text, OUT js text) AS $$
+CREATE FUNCTION people_from_country(char(2), OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM people_view WHERE id IN
@@ -675,7 +675,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /where/:country_code?state=XX
 -- PARAMS: 2-letter country code, state
-CREATE FUNCTION people_from_state(char(2), text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION people_from_state(char(2), text, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM people_view WHERE id IN
@@ -690,7 +690,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /where/:country_code?city=XX
 -- PARAMS: 2-letter country code, state
-CREATE FUNCTION people_from_city(char(2), text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION people_from_city(char(2), text, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM people_view WHERE id IN
@@ -705,7 +705,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /where/:country_code?city=XX&state=XX
 -- PARAMS: 2-letter country code, state, city
-CREATE FUNCTION people_from_state_city(char(2), text, text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION people_from_state_city(char(2), text, text, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM people_view WHERE id IN
@@ -721,7 +721,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /stats/:key/:value
 -- PARAMS: stats.name, stats.value
-CREATE FUNCTION get_stats(text, text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION get_stats(text, text, OUT mime text, OUT js json) AS $$
 DECLARE
 BEGIN
 	mime := 'application/json';
@@ -736,7 +736,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /stats/:key
 -- PARAMS: stats.name
-CREATE FUNCTION get_stats(text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION get_stats(text, OUT mime text, OUT js json) AS $$
 DECLARE
 BEGIN
 	mime := 'application/json';
@@ -750,7 +750,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /statcount/:key
 -- PARAMS: stats.name
-CREATE FUNCTION get_stat_value_count(text, OUT mime text, OUT js text) AS $$
+CREATE FUNCTION get_stat_value_count(text, OUT mime text, OUT js json) AS $$
 DECLARE
 BEGIN
 	mime := 'application/json';
@@ -765,7 +765,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /statcount
 -- PARAMS: -none-
-CREATE FUNCTION get_stat_name_count(OUT mime text, OUT js text) AS $$
+CREATE FUNCTION get_stat_name_count(OUT mime text, OUT js json) AS $$
 DECLARE
 BEGIN
 	mime := 'application/json';

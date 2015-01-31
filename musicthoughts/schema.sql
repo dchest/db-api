@@ -333,7 +333,7 @@ $$ LANGUAGE plpgsql;
 -- $9 = array of category ids
 -- Having ordered params is a drag, so is accepting then unnesting JSON with specific key names.
 -- Returns simple hash of ids, since thought is unapproved and untranslated, no view yet.
-CREATE FUNCTION add_thought(char(2), text, text, text, text, text, text, text, integer[], OUT mime text, OUT js text) AS $$
+CREATE FUNCTION add_thought(char(2), text, text, text, text, text, text, text, integer[], OUT mime text, OUT js json) AS $$
 DECLARE
 	pers_id integer;
 	cont_id integer;
