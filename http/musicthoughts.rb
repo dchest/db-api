@@ -73,7 +73,7 @@ class MusicThoughtsPublic < Sinatra::Base
 		qry('new_thoughts($1)', [20])
 	end
 
-	get '/search/:q' do
+	get '/search' do
 		qry('search($1)', [params[:q]])
 	end
 

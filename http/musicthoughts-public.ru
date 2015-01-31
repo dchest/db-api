@@ -1,3 +1,3 @@
-#\ -s thin -E production -p 10010 -P routes-main.pid 
-require_relative 'routes.rb'
+#\ -s thin -E production -p 10010 -P musicthoughts-public.pid 
+require_relative 'musicthoughts.rb'
 run MusicThoughtsPublic
