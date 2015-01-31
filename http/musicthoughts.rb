@@ -106,8 +106,8 @@ end
 DB_TEST = PG::Connection.new(dbname: 'd50b_test', user: 'd50b')
 P_SCHEMA = File.read('../peeps/schema.sql')
 P_FIXTURES = File.read('../peeps/fixtures.sql')
-SCHEMA = File.read('schema.sql')
-FIXTURES = File.read('fixtures.sql')
+SCHEMA = File.read('../musicthoughts/schema.sql')
+FIXTURES = File.read('../musicthoughts/fixtures.sql')
 
 class MusicThoughtsPublicTest < MusicThoughtsPublic
 
