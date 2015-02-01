@@ -135,7 +135,8 @@ class TestMusicthoughtsPublic < Minitest::Test
 			contributor_url: 'http://me.nz/',
 			contributor_place: 'NZ',
 			author_name: 'god',
-			source_url: 'http://god.com/'})
+			source_url: 'http://god.com/',
+			category_ids: '{1,3,4}'})  # that's the array format needed
 		assert_equal({'thought'=>7,'contributor'=>4,'author'=>5}, @j)
 	end
 end

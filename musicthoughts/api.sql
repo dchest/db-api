@@ -193,9 +193,11 @@ BEGIN
 	EXECUTE format ('INSERT INTO thoughts (author_id, contributor_id, source_url, %I)'
 		|| ' VALUES (%L, %L, %L, %L) RETURNING id', $1, auth_id, cont_id, $8, $2)
 		INTO newt_id;
-	FOREACH cat_id IN ARRAY $9 LOOP
-		INSERT INTO categories_thoughts VALUES (newt_id, cat_id);
-	END LOOP;
+	IF $9 IS NOT NULL THEN
+		FOREACH cat_id IN ARRAY $9 LOOP
+			INSERT INTO categories_thoughts VALUES (newt_id, cat_id);
+		END LOOP;
+	END IF;
 	mime := 'application/json';
 	js := json_build_object(
 		'thought', newt_id,
