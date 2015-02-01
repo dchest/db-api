@@ -10,6 +10,7 @@ class MusicThoughtsPublic < Sinatra::Base
 	end
 
 	after do
+		halt 200 unless @res # for testing delete '/reset', below
 		content_type @res[0]['mime']
 		body @res[0]['js']
 		if @res[0]['mime'].include? 'problem'
@@ -116,10 +117,11 @@ class MusicThoughtsPublicTest < MusicThoughtsPublic
 	end
 
 	delete '/reset' do
-		DB.exec(P_SCHEMA)
-		DB.exec(SCHEMA)
-		DB.exec(P_FIXTURES)
-		DB.exec(FIXTURES)
+		DB_TEST.exec(P_SCHEMA)
+		DB_TEST.exec(SCHEMA)
+		DB_TEST.exec(P_FIXTURES)
+		DB_TEST.exec(FIXTURES)
+		status 200
 	end
 
 end
