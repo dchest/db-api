@@ -120,7 +120,7 @@ class TestMusicthoughtsPublic < Minitest::Test
 		assert_nil @j['categories']
 		assert_nil @j['thoughts']
 		assert_equal 'Veruca Salt', @j['contributors'][0]['name']
-		get '/search?q=dimenticherá'
+		get '/search?q=dimenticher%C3%A1' # á
 		assert_nil @j['authors']
 		assert_nil @j['categories']
 		assert_nil @j['contributors']

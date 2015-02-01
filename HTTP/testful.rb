@@ -1,3 +1,18 @@
+require 'nestful'
+# This patch prevents Nestful from raising errors due to response code
+module Nestful
+	class Connection
+		def handle_response(response)
+			case response.code.to_i
+				when 301,302
+					raise Redirection.new(response)
+				else
+					response
+			end
+		end
+	end
+end
+
 # This module does 4 things:
 # 1. Create get post put delete methods which...
 # 2. Add Testful::BASE url to calls
@@ -16,23 +31,22 @@
 #     assert_equal 'some', @j['thing']
 #   end
 
-require 'nestful'
 module Testful
-	def prox(meth, url, args)
+	def prox(meth, url, args={})
 		@res = Nestful.send(meth, BASE + url, args)
-		@j = @res.decoded
+		@j = (String(@res.body) == '') ? nil : JSON.parse(@res.body)
 	end
-	def get(url, *args)
-		prox(:get, url, args)
+	def get(url)
+		prox(:get, url)
 	end
-	def put(url, *args)
+	def put(url, args)
 		prox(:put, url, args)
 	end
-	def post(url, *args)
+	def post(url, args)
 		prox(:post, url, args)
 	end
-	def delete(url, *args)
-		prox(:delete, url, args)
+	def delete(url)
+		prox(:delete, url)
 	end
 end
 
