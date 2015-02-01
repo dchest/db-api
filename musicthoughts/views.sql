@@ -4,9 +4,11 @@
 
 CREATE VIEW category_view AS
 	SELECT categories.*, (SELECT json_agg(t) FROM
-		(SELECT id, en, es, fr, de, it, pt, ja, zh, ar, ru FROM thoughts,
-			categories_thoughts WHERE category_id=categories.id
-			AND thought_id=thoughts.id AND approved IS TRUE
+		(SELECT id, en, es, fr, de, it, pt, ja, zh, ar, ru,
+			(SELECT row_to_json(a) FROM
+				(SELECT id, name FROM authors WHERE thoughts.author_id=authors.id) a) AS author
+			FROM thoughts, categories_thoughts
+			WHERE category_id=categories.id AND thought_id=thoughts.id AND approved IS TRUE
 			ORDER BY id DESC) t) AS thoughts
 		FROM categories;
 
