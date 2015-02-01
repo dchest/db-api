@@ -46,6 +46,9 @@ class TestMusicthoughtsClient < Minitest::Test
 		j = JSON.parse(res[0]['js'])
 		assert_equal 'Schreiberblock', j['de']
 		assert_equal 'колонка авторов', j['ru']
+		res = DB.exec("SELECT * FROM category(7)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal [3, 1], j['thoughts'].map {|x| x['id']}
 		res = DB.exec("SELECT * FROM category(55)")
 		j = JSON.parse(res[0]['js'])
 		assert_equal 'Not Found', j['title']

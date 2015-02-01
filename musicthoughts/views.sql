@@ -2,6 +2,14 @@
 --------------- VIEWS FOR JSON RESPONSES:
 ----------------------------------------
 
+CREATE VIEW category_view AS
+	SELECT categories.*, (SELECT json_agg(t) FROM
+		(SELECT id, en, es, fr, de, it, pt, ja, zh, ar, ru FROM thoughts,
+			categories_thoughts WHERE category_id=categories.id
+			AND thought_id=thoughts.id AND approved IS TRUE
+			ORDER BY id DESC) t) AS thoughts
+		FROM categories;
+
 CREATE VIEW authors_view AS
 	SELECT id, name,
 		(SELECT COUNT(*) FROM thoughts
