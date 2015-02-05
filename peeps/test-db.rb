@@ -197,7 +197,7 @@ class TestPeeps < Minitest::Test
 		DB.exec("UPDATE emails SET person_id=NULL WHERE id IN (5, 10)")
 		res = DB.exec("SELECT email_count FROM people WHERE id=3")
 		assert_equal '3', res[0]['email_count']
-		DB.exec("INSERT INTO emails(person_id, profile) VALUES (3, 'derek@sivers')")
+		DB.exec("INSERT INTO emails(person_id, profile, their_email, their_name) VALUES (3, 'derek@sivers', 'x@x.x', 'x')")
 		res = DB.exec("SELECT email_count FROM people WHERE id=3")
 		assert_equal '4', res[0]['email_count']
 	end
@@ -296,11 +296,11 @@ class TestPeeps < Minitest::Test
 		assert_raises PG::CheckViolation do
 			DB.exec("UPDATE emails SET category='	!\r/ |\n~ & ^ ' WHERE id=1")	# <-- cleaned to ''
 		end
-		res = DB.exec("INSERT INTO emails (person_id, profile) VALUES (3, 'we@woodegg') RETURNING *")
+		res = DB.exec("INSERT INTO emails (person_id, profile, their_email, their_name) VALUES (3, 'we@woodegg','x@x.x', 'x') RETURNING *")
 		assert_equal 'we@woodegg', res[0]['category']
-		res = DB.exec("INSERT INTO emails (person_id, profile, category) VALUES (3, 'derek@sivers', '  ') RETURNING *")
+		res = DB.exec("INSERT INTO emails (person_id, profile, category, their_email, their_name) VALUES (3, 'derek@sivers', '  ', 'x@x.x', 'x') RETURNING *")
 		assert_equal 'derek@sivers', res[0]['category']
-		res = DB.exec("INSERT INTO emails (person_id, profile, category) VALUES (3, ' DEREK@sivers\r\n', ' !TH*&is-/tH_At	') RETURNING *")
+		res = DB.exec("INSERT INTO emails (person_id, profile, category, their_email, their_name) VALUES (3, ' DEREK@sivers\r\n', ' !TH*&is-/tH_At	', 'x@x.x', 'x') RETURNING *")
 		assert_equal 'derek@sivers', res[0]['profile']
 		assert_equal 'this-th_at', res[0]['category']
 		res = DB.exec("UPDATE emails SET profile='!D@_s-!', category='\r\n\t%T\t\r\n ' WHERE id=8 RETURNING *")
@@ -357,16 +357,6 @@ class TestPeeps < Minitest::Test
 			DB.exec_params("SELECT * FROM person_email_pass($1, $2)", ['willy@wonka.com', 'x1x'])
 		end
 		assert err.message.include?	'short_password'
-	end
-
-	# search term at least 2 chars
-	def test_people_search
-		res = DB.exec_params("SELECT * FROM people_search($1)", ['nk'])
-		assert_equal 'Willy Wonka', res[0]['name']
-		err = assert_raises PG::RaiseException do
-			DB.exec("SELECT * FROM people_search('x')")
-		end
-		assert err.message.include? 'short_search_term'
 	end
 
 end
