@@ -4,6 +4,8 @@ module Nestful
 	class Connection
 		def handle_response(response)
 			case response.code.to_i
+				when 401
+					raise UnauthorizedAccess.new(response)
 				when 301,302
 					raise Redirection.new(response)
 				else
@@ -33,7 +35,14 @@ end
 
 module Testful
 	def prox(meth, url, args={})
-		@res = Nestful.send(meth, BASE + url, args)
+		opts = {method: meth}
+		if @auth
+			opts.merge!(auth_type: :basic, user: @auth[0], password: @auth[1])
+		end
+		if args.size > 0
+			opts.merge!(params: args)
+		end
+		@res = Nestful::Request.new(BASE + url, opts).execute
 		@j = (String(@res.body) == '') ? nil : JSON.parse(@res.body)
 	end
 	def get(url)

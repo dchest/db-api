@@ -1,13 +1,39 @@
 require 'pg'
 require 'sinatra/base'
 
-DB = PG::Connection.new(dbname: 'd50b', user: 'd50b')
-
 class Peep < Sinatra::Base
-	attr_accessor :authed_person
+	@db = PG::Connection.new(dbname: 'd50b', user: 'd50b')
+	class << self
+		attr_accessor :db
+	end
+
+	helpers do
+		def authorized?
+			@eid = nil
+			@auth ||= Rack::Auth::Basic::Request.new(request.env)
+			if @auth.provided? && @auth.basic? && @auth.credentials
+				akey, apass = @auth.credentials
+				sql = "SELECT emailers.id FROM api_keys, emailers" +
+				" WHERE akey=$1 AND apass=$2 AND $3=ANY(apis)" +
+				" AND api_keys.person_id=emailers.person_id"
+				res = self.class.db.exec_params(sql, [akey, apass, 'Peep'])
+				if res.ntuples == 1
+					@eid = res[0]['id']
+				end
+			end
+			@eid
+		end
+	end
+
+	before do
+		unless authorized?
+			headers['WWW-Authenticate'] = 'Basic realm="Peeps API keys"'
+			halt 401, "Not authorized\n"
+		end
+	end
 
 	def qry(sql, params=[])
-		@res = DB.exec_params('select mime, js from musicthoughts.' + sql, params)
+		@res = self.class.db.exec_params('select mime, js from peeps.' + sql, params)
 	end
 
 	after do
@@ -21,15 +47,6 @@ class Peep < Sinatra::Base
 				status 400
 			end
 		end
-	end
-
-	# TODO: save the value from Rack::Auth::Basic instead of looking up again
-	use Rack::Auth::Basic, "#{self} API keys" do |akey, apass|
-		# ApiKey.ok?(akey, apass, self.to_s)
-	end
-
-	before do
-		@eid = # ApiKey.find(akey: request.env['REMOTE_USER']).person.emailer.id
 	end
 
 	get '/emails/unopened' do
@@ -237,6 +254,21 @@ class Peep < Sinatra::Base
 
 	get '/statcount' do
 		qry('get_stat_name_count()')
+	end
+
+end
+
+
+P_SCHEMA = File.read('../peeps/schema.sql')
+P_FIXTURES = File.read('../peeps/fixtures.sql')
+
+class PeepTest < Peep
+	@db = PG::Connection.new(dbname: 'd50b_test', user: 'd50b')
+
+	delete '/reset' do
+		self.class.db.exec(P_SCHEMA)
+		self.class.db.exec(P_FIXTURES)
+		status 200
 	end
 
 end
