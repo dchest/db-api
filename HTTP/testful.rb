@@ -48,10 +48,10 @@ module Testful
 	def get(url)
 		prox(:get, url)
 	end
-	def put(url, args)
+	def put(url, args={})
 		prox(:put, url, args)
 	end
-	def post(url, args)
+	def post(url, args={})
 		prox(:post, url, args)
 	end
 	def delete(url)
