@@ -117,6 +117,7 @@ class Peep < Sinatra::Base
 		qry('reply_to_email($1, $2, $3)', [@eid, id, params[:body]])
 	end
 
+	# PARAMS: name, email
 	post '/people' do
 		qry('create_person($1, $2)', [params[:name], params[:email]])
 	end
