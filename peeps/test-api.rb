@@ -164,6 +164,15 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'veruca@salt.com', j['their_email']
 	end
 
+	def test_count_unknowns
+		res = DB.exec("SELECT * FROM count_unknowns(1)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal({'count' => 2}, j)
+		res = DB.exec("SELECT * FROM count_unknowns(4)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal({'count' => 0}, j)
+	end
+
 	def test_get_unknowns
 		res = DB.exec("SELECT * FROM get_unknowns(1)")
 		j = JSON.parse(res[0]['js'])

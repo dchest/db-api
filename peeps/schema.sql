@@ -1108,6 +1108,16 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- GET /unknowns/count
+-- PARAMS: emailer_id
+CREATE FUNCTION count_unknowns(integer, OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	js := json_build_object('count', (SELECT COUNT(*) FROM unknown_email_ids($1)));
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- GET /unknowns
 -- PARAMS: emailer_id
 CREATE FUNCTION get_unknowns(integer, OUT mime text, OUT js json) AS $$
