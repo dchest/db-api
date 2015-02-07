@@ -71,6 +71,12 @@ class TestPeepsAPI < Minitest::Test
 	end
 
 	def test_get_email
+		res = DB.exec("SELECT * FROM get_email(1, 2)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 4, j['answer_id']
+		res = DB.exec("SELECT * FROM get_email(1, 4)")
+		j = JSON.parse(res[0]['js'])
+		assert_equal 2, j['reference_id']
 		res = DB.exec("SELECT * FROM get_email(1, 8)")
 		j = JSON.parse(res[0]['js'])
 		assert_equal 'I refuse to wait', j['subject']

@@ -68,6 +68,10 @@ class TestPeepsAPI < Minitest::Test
 	end
 
 	def test_get_email
+		get '/emails/2'
+		assert_equal 4, @j['answer_id']
+		get '/emails/4'
+		assert_equal 2, @j['reference_id']
 		get '/emails/8'
 		assert_equal 'I refuse to wait', @j['subject']
 		assert_equal 'Derek Sivers', @j['openor']['name']

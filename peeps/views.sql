@@ -24,7 +24,8 @@ CREATE VIEW email_view AS
 			(SELECT emailers.id, people.name FROM emailers
 				JOIN people ON emailers.person_id=people.id
 				WHERE emailers.id = closed_by) p3),
-		message_id, outgoing, their_email, their_name, headers, subject, body,
+		message_id, outgoing, reference_id, answer_id,
+		their_email, their_name, headers, subject, body,
 		(SELECT json_agg(a) AS attachments FROM
 			(SELECT id, filename FROM email_attachments WHERE email_id=emails.id) a)
 		FROM emails;
