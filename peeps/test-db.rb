@@ -1,22 +1,4 @@
-# test peeps schema
-require 'pg'
-require 'minitest/autorun'
-
-DB = PG::Connection.new(dbname: 'd50b_test', user: 'd50b')
-SCHEMA = File.read('schema.sql')
-FIXTURES = File.read('fixtures.sql')
-
-class Minitest::Test
-	def setup
-		DB.exec(SCHEMA)
-		DB.exec(FIXTURES)
-	end
-end
-
-Minitest.after_run do
-	DB.exec(SCHEMA)
-	DB.exec(FIXTURES)
-end
+require '../test_tools.rb'
 
 class TestPeeps < Minitest::Test
 
