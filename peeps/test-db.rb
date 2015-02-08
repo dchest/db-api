@@ -341,5 +341,16 @@ class TestPeeps < Minitest::Test
 		assert err.message.include?	'short_password'
 	end
 
+	def test_person_merge_from_to
+		res = DB.exec("INSERT INTO people(name, email, state, notes) VALUES ('New Derek', 'derek@new.com', 'confusion', 'Soon to be.') RETURNING id")
+		new_id = res[0]['id'].to_i
+		res = DB.exec_params("SELECT * FROM person_merge_from_to($1, $2)", [1, new_id])
+		assert_equal '{peeps.emailers,peeps.userstats,peeps.urls,peeps.logins,peeps.api_keys}', res[0]['person_merge_from_to']
+		res = DB.exec("SELECT * FROM people WHERE id = #{new_id}")
+		assert_equal '50POP LLC', res[0]['company']
+		assert_equal 'Singapore', res[0]['city']
+		assert_equal 'confusion', res[0]['state']
+		assert_equal "This is me.\nSoon to be.", res[0]['notes']
+	end
 end
 

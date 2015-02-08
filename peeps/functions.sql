@@ -162,16 +162,48 @@ DECLARE
 	done_tables text[] := ARRAY[]::text[];
 	a_table text;
 	rowcount integer;
+	old_p people;
+	new_p people;
 BEGIN
+	-- update ids to point to new one
 	FOREACH a_table IN ARRAY tables_referencing('peeps', 'people', 'id') LOOP
-		EXECUTE 'UPDATE ' || a_table || ' SET person_id=' || new_id
-			|| ' WHERE person_id=' || old_id || ' RETURNING person_id';
+		EXECUTE format ('UPDATE %s SET person_id=%s WHERE person_id=%s',
+			a_table, new_id, old_id);
 		GET DIAGNOSTICS rowcount = ROW_COUNT;
 		IF rowcount > 0 THEN
 			done_tables := done_tables || a_table;
 		END IF;
 	END LOOP;
-	DELETE FROM peeps.people WHERE id = old_id;
+	-- copy better(longer) data from old to new
+	-- company, city, state, postalcode, country, phone, categorize_as
+	SELECT * INTO old_p FROM people WHERE id = old_id;
+	SELECT * INTO new_p FROM people WHERE id = new_id;
+	IF COALESCE(LENGTH(old_p.company), 0) > COALESCE(LENGTH(new_p.company), 0) THEN
+		UPDATE people SET company = old_p.company WHERE id = new_id;
+	END IF;
+	IF COALESCE(LENGTH(old_p.city), 0) > COALESCE(LENGTH(new_p.city), 0) THEN
+		UPDATE people SET city = old_p.city WHERE id = new_id;
+	END IF;
+	IF COALESCE(LENGTH(old_p.state), 0) > COALESCE(LENGTH(new_p.state), 0) THEN
+		UPDATE people SET state = old_p.state WHERE id = new_id;
+	END IF;
+	IF COALESCE(LENGTH(old_p.postalcode), 0) > COALESCE(LENGTH(new_p.postalcode), 0) THEN
+		UPDATE people SET postalcode = old_p.postalcode WHERE id = new_id;
+	END IF;
+	IF COALESCE(LENGTH(old_p.country), 0) > COALESCE(LENGTH(new_p.country), 0) THEN
+		UPDATE people SET country = old_p.country WHERE id = new_id;
+	END IF;
+	IF COALESCE(LENGTH(old_p.phone), 0) > COALESCE(LENGTH(new_p.phone), 0) THEN
+		UPDATE people SET phone = old_p.phone WHERE id = new_id;
+	END IF;
+	IF COALESCE(LENGTH(old_p.categorize_as), 0) > COALESCE(LENGTH(new_p.categorize_as), 0) THEN
+		UPDATE people SET categorize_as = old_p.categorize_as WHERE id = new_id;
+	END IF;
+	IF LENGTH(old_p.notes) > 0 THEN  -- combine notes
+		UPDATE people SET notes = CONCAT(old_p.notes, E'\n', notes) WHERE id = new_id;
+	END IF;
+	-- Done! delete old one
+	DELETE FROM people WHERE id = old_id;
 	RETURN done_tables;
 END;
 $$ LANGUAGE plpgsql;
