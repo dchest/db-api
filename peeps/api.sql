@@ -476,17 +476,61 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- GET /stats/:id
+-- PARAMS: stats.id
+CREATE FUNCTION get_stat(integer, OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM stats_view WHERE id=$1) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+-- PUT /stat/:id
+-- PARAMS: stats.id, json
+CREATE FUNCTION update_stat(integer, json, OUT mime text, OUT js json) AS $$
+DECLARE
+m4_ERRVARS
+BEGIN
+	PERFORM public.jsonupdate('peeps.userstats', $1, $2,
+		public.cols2update('peeps', 'userstats', ARRAY['id', 'created_at']));
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM stats_view WHERE id=$1) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- DELETE /stats/:id
 -- PARAMS: stats.id
 CREATE FUNCTION delete_stat(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT id, person_id, statkey AS name,
-		statvalue AS value, created_at FROM userstats WHERE id = $1) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM stats_view WHERE id=$1) r;
 	IF js IS NULL THEN
 m4_NOTFOUND
 	ELSE
 		DELETE FROM userstats WHERE id = $1;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /urls/:id
+-- PARAMS: urls.id
+CREATE FUNCTION get_url(integer, OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM urls WHERE id=$1) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
 	END IF;
 END;
 $$ LANGUAGE plpgsql;

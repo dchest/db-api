@@ -296,11 +296,38 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'search term too short', @j['title']
 	end
 
+	def test_get_stat
+		qry("get_stat(8)")
+		assert_equal 'media', @j['name']
+		assert_equal 'interview', @j['value']
+		assert_equal 5, @j['person']['id']
+		assert_equal 'oompa@loompa.mm', @j['person']['email']
+		assert_equal 'Oompa Loompa', @j['person']['name']
+	end
+
 	def test_delete_stat
 		qry("delete_stat(8)")
 		assert_equal 'interview', @j['value']
-		qry("delete_stat(8)")
+		qry("get_stat(8)")
 		assert_equal 'Not Found', @j['title']
+	end
+
+	# note for now it's statkey & statvalue, not name & value
+	def test_update_stat
+		qry("update_stat(8, $1)", ['{"statkey":"m", "statvalue": "i"}'])
+		assert_equal 'm', @j['name']
+		assert_equal 'i', @j['value']
+		qry("update_stat(99, $1)", ['{"statkey":"x"}'])
+		assert_equal 'Not Found', @j['title']
+		qry("update_stat(8, $1)", ['{"person_id":"boop"}'])
+		assert @j['title'].include? 'invalid input syntax'
+	end
+
+	def test_get_url
+		qry("get_url(2)")
+		assert_equal 1, @j['person_id']
+		assert_equal 'http://sivers.org/', @j['url']
+		assert_equal true, @j['main']
 	end
 
 	def test_delete_url

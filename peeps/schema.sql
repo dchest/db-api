@@ -1590,13 +1590,73 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- GET /stats/:id
+-- PARAMS: stats.id
+CREATE FUNCTION get_stat(integer, OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM stats_view WHERE id=$1) r;
+	IF js IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+-- PUT /stat/:id
+-- PARAMS: stats.id, json
+CREATE FUNCTION update_stat(integer, json, OUT mime text, OUT js json) AS $$
+DECLARE
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	PERFORM public.jsonupdate('peeps.userstats', $1, $2,
+		public.cols2update('peeps', 'userstats', ARRAY['id', 'created_at']));
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM stats_view WHERE id=$1) r;
+	IF js IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	END IF;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- DELETE /stats/:id
 -- PARAMS: stats.id
 CREATE FUNCTION delete_stat(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT id, person_id, statkey AS name,
-		statvalue AS value, created_at FROM userstats WHERE id = $1) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM stats_view WHERE id=$1) r;
 	IF js IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -1607,6 +1667,25 @@ BEGIN
 
 	ELSE
 		DELETE FROM userstats WHERE id = $1;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /urls/:id
+-- PARAMS: urls.id
+CREATE FUNCTION get_url(integer, OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM urls WHERE id=$1) r;
+	IF js IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
