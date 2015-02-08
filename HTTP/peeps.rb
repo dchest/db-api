@@ -91,7 +91,6 @@ class Peep < Sinatra::Base
 	end
 
 	# PARAMS: json : key=>val of new values
-	# TODO: or just use params.to_json?
 	put %r{^/emails/([0-9]+)$} do |id|
 		qry('update_email($1, $2, $3)', [@eid, id, params[:json]])
 	end
@@ -127,7 +126,6 @@ class Peep < Sinatra::Base
 	end
 
 	# PARAMS: json : key=>val of new values
-	# TODO: or just use params.to_json?
 	put %r{^/people/([0-9]+)$} do |id|
 		qry('update_person($1, $2)', [id, params[:json]])
 	end
@@ -170,8 +168,21 @@ class Peep < Sinatra::Base
 		qry('people_search($1)', [params[:q]])
 	end
 
+	get %r{^/stats/([0-9]+)$} do |id|
+		qry('get_stat($1)', [id])
+	end
+
 	delete %r{^/stats/([0-9]+)$} do |id|
 		qry('delete_stat($1)', [id])
+	end
+
+	# PARAMS: json with person_id, statkey, statvalue
+	put %r{^/stats/([0-9]+)$} do |id|
+		qry('update_stat($1, $2)', [id, params[:json]])
+	end
+
+	get %r{^/urls/([0-9]+)$} do |id|
+		qry('get_url($1)', [id])
 	end
 
 	delete %r{^/urls/([0-9]+)$} do |id|
@@ -179,7 +190,6 @@ class Peep < Sinatra::Base
 	end
 
 	# PARAMS: json with person_id, url, main(boolean)
-	# TODO: or just use params.to_json?
 	put %r{^/urls/([0-9]+)$} do |id|
 		qry('update_url($1, $2)', [id, params[:json]])
 	end
@@ -198,7 +208,6 @@ class Peep < Sinatra::Base
 	end
 
 	# PARAMS: json with title, explanation, body
-	# TODO: or just use params.to_json?
 	put %r{^/formletters/([0-9]+)$} do |id|
 		qry('update_formletter($1, $2)', [id, params[:json]])
 	end
