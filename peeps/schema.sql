@@ -683,6 +683,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- PARAMS: email, password, API_name
+CREATE FUNCTION auth_api(text, text, text) RETURNS SETOF api_keys AS $$
+BEGIN
+	RETURN QUERY SELECT * FROM api_keys WHERE
+		person_id=(SELECT id FROM person_email_pass($1, $2)) AND $3=ANY(apis);
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- Strip spaces and lowercase email address before validating & storing
 CREATE FUNCTION clean_email() RETURNS TRIGGER AS $$
 BEGIN

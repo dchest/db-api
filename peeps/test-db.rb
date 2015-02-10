@@ -352,5 +352,24 @@ class TestPeeps < Minitest::Test
 		assert_equal 'confusion', res[0]['state']
 		assert_equal "This is me.\nSoon to be.", res[0]['notes']
 	end
+
+	def test_auth_api
+		res = DB.exec("SELECT * FROM auth_api('derek@sivers.org', 'derek', 'Peep')")
+		assert_equal '1', res[0]['person_id']
+		assert_equal 'aaaaaaaa', res[0]['akey']
+		assert_equal 'bbbbbbbb', res[0]['apass']
+		assert_equal '{Peep,SiversComments,MuckworkManager}', res[0]['apis']
+		res = DB.exec("SELECT * FROM auth_api('derek@sivers.org', 'derek', 'POP')")
+		assert_equal 0, res.ntuples
+		res = DB.exec("SELECT * FROM auth_api('derek@sivers.org', 'doggy', 'Peep')")
+		assert_equal 0, res.ntuples
+		err = assert_raises PG::RaiseException do
+			DB.exec("SELECT * FROM auth_api('derek@sivers.org', 'x', 'Peep')")
+		end
+		err = assert_raises PG::RaiseException do
+			DB.exec("SELECT * FROM auth_api('derek@sivers', 'derek', 'Peep')")
+		end
+	end
+
 end
 
