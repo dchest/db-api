@@ -227,6 +227,10 @@ class Peep < Sinatra::Base
 		qry('parsed_formletter($1, $2)', [p_id, f_id])
 	end
 
+	get '/locations' do
+		qry('all_countries()')
+	end
+
 	get '/countries' do
 		qry('country_count()')
 	end
