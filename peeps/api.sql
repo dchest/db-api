@@ -1,6 +1,24 @@
 -- API REQUIRES AUTHENTICATION. User must be in peeps.emailers
 -- peeps.emailers.id needed as first argument to many functions here
 
+-- PARAMS: email, password, API_name
+CREATE FUNCTION auth_api(text, text, text, OUT mime text, OUT js json) AS $$
+DECLARE
+m4_ERRVARS
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM
+		(SELECT * FROM api_keys WHERE
+			person_id=(SELECT id FROM person_email_pass($1, $2))
+			AND $3=ANY(apis)) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- GET /emails/unopened/count
 -- Grouped summary of howmany unopened emails in each profile/category
 -- JSON format: {profiles:{categories:howmany}}

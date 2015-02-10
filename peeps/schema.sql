@@ -683,16 +683,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
--- PARAMS: email, password, API_name
-CREATE FUNCTION auth_api(text, text, text) RETURNS SETOF api_keys AS $$
-BEGIN
-	RETURN QUERY SELECT * FROM api_keys WHERE
-		person_id=(SELECT id FROM person_email_pass($1, $2)) AND $3=ANY(apis);
-END;
-$$ LANGUAGE plpgsql;
-
-
 -- Strip spaces and lowercase email address before validating & storing
 CREATE FUNCTION clean_email() RETURNS TRIGGER AS $$
 BEGIN
@@ -847,6 +837,47 @@ CREATE TRIGGER make_message_id BEFORE INSERT ON emails FOR EACH ROW EXECUTE PROC
 
 -- API REQUIRES AUTHENTICATION. User must be in peeps.emailers
 -- peeps.emailers.id needed as first argument to many functions here
+
+-- PARAMS: email, password, API_name
+CREATE FUNCTION auth_api(text, text, text, OUT mime text, OUT js json) AS $$
+DECLARE
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM
+		(SELECT * FROM api_keys WHERE
+			person_id=(SELECT id FROM person_email_pass($1, $2))
+			AND $3=ANY(apis)) r;
+	IF js IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	END IF;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
 
 -- GET /emails/unopened/count
 -- Grouped summary of howmany unopened emails in each profile/category

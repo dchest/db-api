@@ -440,5 +440,22 @@ class TestPeepsAPI < Minitest::Test
 		qry("get_stat_name_count()")
 		assert_equal({'name' => 'listype', 'count' => 2}, @j[1])
 	end
+
+	def test_auth_api
+		qry("auth_api('derek@sivers.org', 'derek', 'Peep')")
+		assert_equal 1, @j['person_id']
+		assert_equal 'aaaaaaaa', @j['akey']
+		assert_equal 'bbbbbbbb', @j['apass']
+		assert_equal %w(Peep SiversComments MuckworkManager), @j['apis']
+		qry("auth_api('derek@sivers.org', 'derek', 'POP')")
+		assert_equal 'application/problem+json', @res[0]['mime']
+		qry("auth_api('derek@sivers.org', 'doggy', 'Peep')")
+		assert_equal 'application/problem+json', @res[0]['mime']
+		qry("auth_api('derek@sivers.org', 'x', 'Peep')")
+		assert_equal 'application/problem+json', @res[0]['mime']
+		qry("auth_api('derek@sivers', 'derek', 'Peep')")
+		assert_equal 'application/problem+json', @res[0]['mime']
+	end
+
 end
 
