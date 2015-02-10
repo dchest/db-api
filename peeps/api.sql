@@ -675,6 +675,16 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- GET /locations
+-- PARAMS: -none-
+CREATE FUNCTION all_countries(OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM countries ORDER BY name) r;
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- GET /countries
 -- PARAMS: -none-
 CREATE FUNCTION country_count(OUT mime text, OUT js json) AS $$

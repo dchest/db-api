@@ -388,6 +388,13 @@ class TestPeepsAPI < Minitest::Test
 		assert_nil @j['body']
 	end
 
+	def test_all_countries
+		qry("all_countries()")
+		assert_equal 242, @j.size
+		assert_equal({'code' => 'AF','name' => 'Afghanistan'}, @j[0])
+		assert_equal({'code' => 'ZW','name' => 'Zimbabwe'}, @j[241])
+	end
+
 	def test_country_count
 		qry("country_count()")
 		assert_equal 6, @j.size
