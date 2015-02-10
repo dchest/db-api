@@ -26,6 +26,7 @@ class Peep < Sinatra::Base
 	end
 
 	before do
+		pass if request.path_info == '/auth'
 		unless authorized?
 			headers['WWW-Authenticate'] = 'Basic realm="Peeps API keys"'
 			halt 401, "Not authorized\n"
@@ -47,6 +48,11 @@ class Peep < Sinatra::Base
 				status 400
 			end
 		end
+	end
+
+	# PARAMS: email, password, api
+	post '/auth' do
+		qry('auth_api($1, $2, $3)', [params[:email], params[:password], params[:api]])
 	end
 
 	get '/emails/unopened' do

@@ -21,6 +21,23 @@ class TestPeepsAPI < Minitest::Test
 		delete '/reset'
 	end
 
+	def test_auth
+		@auth = ['x', 'x']
+		post '/auth', {email: 'derek@sivers.org', password: 'derek', api: 'Peep'}
+		assert_equal 1, @j['person_id']
+		assert_equal 'aaaaaaaa', @j['akey']
+		assert_equal 'bbbbbbbb', @j['apass']
+		assert_equal %w(Peep SiversComments MuckworkManager), @j['apis']
+		post '/auth', {email: 'derek@sivers.org', password: 'derek', api: 'POP'}
+		assert_equal 'application/problem+json', @res.headers['content-type']
+		post '/auth', {email: 'derek@sivers.org', password: 'doggy', api: 'Peep'}
+		assert_equal 'application/problem+json', @res.headers['content-type']
+		post '/auth', {email: 'derek@sivers.org', password: 'x', api: 'Peep'}
+		assert_equal 'application/problem+json', @res.headers['content-type']
+		post '/auth', {email: 'derek@sivers', password: 'derek', api: 'Peep'}
+		assert_equal 'application/problem+json', @res.headers['content-type']
+	end
+
 	def test_unopened_email_count
 		get '/emails/unopened'
 		assert_equal %w(derek@sivers we@woodegg), @j.keys
@@ -477,4 +494,3 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal({'name' => 'listype', 'count' => 2}, @j[1])
 	end
 end
-
