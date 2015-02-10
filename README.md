@@ -30,10 +30,9 @@ Just a reminder to my future self, what's with this new PostgreSQL db-api way of
 
 ### What's mostly the same:
 
-**a50c** is still a “client library” Ruby gem to access the HTTP API with Ruby.  Only now instead of Struct with method calls, it's Hash with symbol keys.
+**a50c** is still a “client library” Ruby gem to access the HTTP API with Ruby.  Only now instead of Struct with method calls, it's Hash with symbol keys.  I'll probably have to make other “client libraries” some day: JavaScript for JS-heavy front-end sites, Java for Android, ObjC for iOS?
 
-I'll probably have to make other “client libraries” some day: JavaScript for JS-heavy front-end sites, Java for Android, ObjC for iOS?
-
+**50web** is still all the end-user websites, using Sinatra + a50c gem.  Only now instead of Struct with method calls, it's Hash with symbol keys.
 
 # TODO:
 
