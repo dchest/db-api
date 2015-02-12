@@ -299,6 +299,28 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- PARAMS: any text that needs to be stripped of HTML tags
+CREATE OR REPLACE FUNCTION public.strip_tags(text) RETURNS text AS $$
+BEGIN
+	RETURN regexp_replace($1 , '</?[^>]+?>', '', 'g');
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- PARAMS: any text that needs HTML escape
+CREATE OR REPLACE FUNCTION public.escape_html(text) RETURNS text AS $$
+DECLARE
+	nu text;
+BEGIN
+	nu := replace($1, '&', '&amp;');
+	nu := replace(nu, '''', '&#39;');
+	nu := replace(nu, '"', '&quot;');
+	nu := replace(nu, '<', '&lt;');
+	nu := replace(nu, '>', '&gt;');
+	RETURN nu;
+END;
+$$ LANGUAGE plpgsql;
+
 ----------------------------
 ----------- peeps FUNCTIONS:
 ----------------------------
@@ -696,7 +718,7 @@ CREATE TRIGGER clean_email BEFORE INSERT OR UPDATE OF email ON people FOR EACH R
 -- Strip all line breaks and spaces around name before storing
 CREATE FUNCTION clean_name() RETURNS TRIGGER AS $$
 BEGIN
-	NEW.name = btrim(regexp_replace(NEW.name, '\s+', ' ', 'g'));
+	NEW.name = public.strip_tags(btrim(regexp_replace(NEW.name, '\s+', ' ', 'g')));
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

@@ -2,6 +2,16 @@ require '../test_tools.rb'
 
 class TestPeeps < Minitest::Test
 
+	def test_strip_tags
+		res = DB.exec_params("SELECT public.strip_tags($1)", ['þ <script>alert("poop")</script> <a href="http://something.net">yuck</a>'])
+		assert_equal 'þ alert("poop") yuck', res[0]['strip_tags']
+	end
+
+	def test_escape_html
+		res = DB.exec_params("SELECT public.escape_html($1)", [%q{I'd "like" <&>}])
+		assert_equal 'I&#39;d &quot;like&quot; &lt;&amp;&gt;', res[0]['escape_html']
+	end
+
 	# peeps.people.country must be 2 uppercase letters existing in peeps.countries.code, or NULL
 	def test_country
 		DB.exec("UPDATE people SET country='BE' WHERE id=1");
@@ -56,11 +66,14 @@ class TestPeeps < Minitest::Test
 
 	# peeps.people.name has linebreaks removed, spaces trimmed by INSERT and UPDATE
 	def test_people_name_clean
-		DB.exec("UPDATE people SET name='\n\r	Spaced Out \r\n' WHERE id=2");
-		res = DB.exec("SELECT name, address FROM people WHERE id=2");
+		DB.exec("UPDATE people SET name='\n\r	Spaced Out \r\n' WHERE id=2")
+		res = DB.exec("SELECT name, address FROM people WHERE id=2")
 		assert_equal 'Spaced Out', res[0]['name']
 		# updating name does not update address
 		assert_equal 'Mr. Wonka', res[0]['address']
+		DB.exec("UPDATE people SET name='<script>boo</script>' WHERE id=2")
+		res = DB.exec("SELECT name, address FROM people WHERE id=2")
+		assert_equal 'boo', res[0]['name']
 	end
 
 	# peeps.emailers.profiles is array of values in peeps.emails.profile that this person is allowed to access

@@ -11,7 +11,7 @@ CREATE TRIGGER clean_email BEFORE INSERT OR UPDATE OF email ON people FOR EACH R
 -- Strip all line breaks and spaces around name before storing
 CREATE FUNCTION clean_name() RETURNS TRIGGER AS $$
 BEGIN
-	NEW.name = btrim(regexp_replace(NEW.name, '\s+', ' ', 'g'));
+	NEW.name = public.strip_tags(btrim(regexp_replace(NEW.name, '\s+', ' ', 'g')));
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
