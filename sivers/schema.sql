@@ -19,28 +19,13 @@ CREATE INDEX compers ON comments(person_id);
 
 COMMIT;
 
-CREATE FUNCTION clean_comments_fields() RETURNS TRIGGER AS $$
-BEGIN
-	NEW.uri = regexp_replace(lower(NEW.uri), '[^a-z0-9-]', '', 'g');
-	NEW.name = btrim(regexp_replace(NEW.name, '[\r\n\t]', ' ', 'g'));
-	NEW.email = btrim(lower(NEW.email));
-	NEW.html = replace(public.escape_html(public.strip_tags(btrim(NEW.html))),
-			':-)',
-			'<img src="/images/icon_smile.gif" width="15" height="15" alt="smile">');
-	IF TG_OP = 'INSERT' AND NEW.person_id IS NULL THEN
-		SELECT id INTO NEW.person_id FROM peeps.person_create(NEW.name, NEW.email);
-	END IF;
-	RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-CREATE TRIGGER clean_comments_fields BEFORE INSERT OR UPDATE OF uri, name, email ON sivers.comments FOR EACH ROW EXECUTE PROCEDURE clean_comments_fields();
-
 -- POST %r{^/comments/([0-9]+)$}
 -- PARAMS: comment id
 CREATE FUNCTION get_comment(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM sivers.comments WHERE id=$1) r;
+	SELECT row_to_json(r) INTO js FROM
+		(SELECT * FROM sivers.comments WHERE id=$1) r;
 	IF js IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -58,13 +43,136 @@ $$ LANGUAGE plpgsql;
 -- PARAMS: uri, name, email, html
 CREATE FUNCTION add_comment(text, text, text, text, OUT mime text, OUT js json) AS $$
 DECLARE
+	new_uri text;
+	new_name text;
+	new_email text;
+	new_html text;
+	new_person_id integer;
 	new_id integer;
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
 BEGIN
-	INSERT INTO comments (uri, name, email, html)
-		VALUES ($1, $2, $3, $4) RETURNING id INTO new_id;
+	new_uri := regexp_replace(lower($1), '[^a-z0-9-]', '', 'g');
+	new_name := btrim(regexp_replace($2, '[\r\n\t]', ' ', 'g'));
+	new_email := btrim(lower($3));
+	new_html := replace(public.escape_html(public.strip_tags(btrim($4))),
+		':-)',
+		'<img src="/images/icon_smile.gif" width="15" height="15" alt="smile">');
+	SELECT id INTO new_person_id FROM peeps.person_create(new_name, new_email);
+	INSERT INTO comments (uri, name, email, html, person_id)
+		VALUES (new_uri, new_name, new_email, new_html, new_person_id)
+		RETURNING id INTO new_id;
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM
 		(SELECT * FROM sivers.comments WHERE id=new_id) r;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- POST %r{^/comments/([0-9]+)/reply$}
+-- PARAMS: comment_id, my reply
+CREATE FUNCTION reply_to_comment(integer, text, OUT mime text, OUT js json) AS $$
+BEGIN
+	UPDATE sivers.comments SET html = CONCAT(html, '<br><span class="response">',
+		replace($2, ':-)',
+		'<img src="/images/icon_smile.gif" width="15" height="15" alt="smile">'),
+		' -- Derek</span>') WHERE id = $1;
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM
+		(SELECT * FROM sivers.comments WHERE id = $1) r;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- DELETE %r{^/comments/([0-9]+)$}
+-- PARAMS: comment_id
+CREATE FUNCTION delete_comment(integer, OUT mime text, OUT js json) AS $$
+DECLARE
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM
+		(SELECT * FROM sivers.comments WHERE id = $1) r;
+	DELETE FROM sivers.comments WHERE id = $1;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- DELETE %r{^/comments/([0-9]+)/spam$}
+-- PARAMS: comment_id
+CREATE FUNCTION spam_comment(integer, OUT mime text, OUT js json) AS $$
+DECLARE
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM
+		(SELECT * FROM sivers.comments WHERE id = $1) r;
+	DELETE FROM peeps.people WHERE id=(SELECT person_id
+		FROM sivers.comments WHERE id = $1);
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET '/comments/new'
+-- PARAMS: -none-
+CREATE FUNCTION new_comments(OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	SELECT json_agg(r) INTO js FROM
+		(SELECT * FROM comments ORDER BY id DESC LIMIT 100) r;
 END;
 $$ LANGUAGE plpgsql;
 

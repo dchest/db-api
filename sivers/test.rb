@@ -32,40 +32,34 @@ class TestComment < Minitest::Test
 		assert_includes @j['html'], 'smile.gif'
 	end
 	
-	def test_comments_found
-		assert_instance_of Sivers::Comment, Sivers::Comment[1]
-		assert_equal 'Willy Wonka', Sivers::Comment[1].name
-	end
-
 	def test_comments_newest
-		assert_equal [5, 4, 3, 2, 1], Sivers::Comment.newest.map(&:id)
-	end
-
-	def test_comment_associations
-		x = Sivers::Comment[2]
-		p = x.person
-		assert_equal Person[3], p
-		cs = p.sivers_comments
-		assert_instance_of Array, cs
-		assert_equal [3, 2], cs.map(&:id)
-		assert_instance_of Sivers::Comment, cs.pop
+		qry("sivers.new_comments()")
+		assert_equal [5, 4, 3, 2, 1], @j.map {|x| x['id']}
 	end
 
 	def test_reply
-		x = Sivers::Comment[1]
-		assert_equal 'That is great.', x.html
-		x.add_reply('Thanks')
-		assert_equal 'That is great.<br><span class="response">Thanks -- Derek</span>', x.html
-		x = Sivers::Comment[2]
-		x.add_reply(':-)')
-		assert_includes x.html, 'smile'
+		qry("sivers.reply_to_comment(1, 'Thanks')")
+		assert_equal 'That is great.<br><span class="response">Thanks -- Derek</span>', @j['html']
+		qry("sivers.reply_to_comment(2, ':-)')")
+		assert_includes @j['html'], 'smile'
+	end
+
+	def test_delete
+		qry("sivers.delete_comment(5)")
+		assert_equal 'spam2', @j['html']
+		qry("sivers.new_comments()")
+		assert_equal [4, 3, 2, 1], @j.map {|x| x['id']}
+		qry("peeps.get_person(5)")
+		assert_equal 'Oompa Loompa', @j['name']
 	end
 
 	def test_spam
-		x = Sivers::Comment[5]
-		x.spam!
-		assert_equal [3, 2, 1], Sivers::Comment.newest.map(&:id)
-		assert_nil Person[5]
+		qry("sivers.spam_comment(5)")
+		assert_equal 'spam2', @j['html']
+		qry("peeps.get_person(5)")
+		assert_equal 'application/problem+json', @res[0]['mime']
+		qry("sivers.new_comments()")
+		assert_equal [3, 2, 1], @j.map {|x| x['id']}
 	end
 
 end

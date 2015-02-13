@@ -26,6 +26,5 @@ EXCEPTION
 		'detail', err_detail || err_context);
 »)dnl
 include(«tables.sql»)dnl
-include(«triggers.sql»)dnl
 include(«api.sql»)dnl
 
