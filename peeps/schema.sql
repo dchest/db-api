@@ -411,8 +411,8 @@ BEGIN
 	END LOOP;
 	-- copy better(longer) data from old to new
 	-- company, city, state, postalcode, country, phone, categorize_as
-	SELECT * INTO old_p FROM people WHERE id = old_id;
-	SELECT * INTO new_p FROM people WHERE id = new_id;
+	SELECT * INTO old_p FROM peeps.people WHERE id = old_id;
+	SELECT * INTO new_p FROM peeps.people WHERE id = new_id;
 	IF COALESCE(LENGTH(old_p.company), 0) > COALESCE(LENGTH(new_p.company), 0) THEN
 		UPDATE people SET company = old_p.company WHERE id = new_id;
 	END IF;
@@ -438,7 +438,7 @@ BEGIN
 		UPDATE people SET notes = CONCAT(old_p.notes, E'\n', notes) WHERE id = new_id;
 	END IF;
 	-- Done! delete old one
-	DELETE FROM people WHERE id = old_id;
+	DELETE FROM peeps.people WHERE id = old_id;
 	RETURN done_tables;
 END;
 $$ LANGUAGE plpgsql;
@@ -524,18 +524,18 @@ DECLARE
 	pros text[];
 	cats text[];
 BEGIN
-	SELECT profiles, categories INTO pros, cats FROM emailers WHERE id = $1;
+	SELECT profiles, categories INTO pros, cats FROM peeps.emailers WHERE id = $1;
 	IF pros = array['ALL'] AND cats = array['ALL'] THEN
-		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE opened_by IS NULL
 			AND person_id IS NOT NULL ORDER BY id;
 	ELSIF cats = array['ALL'] THEN
-		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE opened_by IS NULL
 			AND person_id IS NOT NULL AND profile = ANY(pros) ORDER BY id;
 	ELSIF pros = array['ALL'] THEN
-		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE opened_by IS NULL
 			AND person_id IS NOT NULL AND category = ANY(cats) ORDER BY id;
 	ELSE
-		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE opened_by IS NULL
 			AND person_id IS NOT NULL
 			AND profile = ANY(pros) AND category = ANY(cats) ORDER BY id;
 	END IF;
@@ -550,18 +550,18 @@ DECLARE
 	pros text[];
 	cats text[];
 BEGIN
-	SELECT profiles, categories INTO pros, cats FROM emailers WHERE id = $1;
+	SELECT profiles, categories INTO pros, cats FROM peeps.emailers WHERE id = $1;
 	IF pros = array['ALL'] AND cats = array['ALL'] THEN
-		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NOT NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE opened_by IS NOT NULL
 			AND closed_at IS NULL ORDER BY id;
 	ELSIF cats = array['ALL'] THEN
-		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NOT NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE opened_by IS NOT NULL
 			AND closed_at IS NULL AND profile = ANY(pros) ORDER BY id;
 	ELSIF pros = array['ALL'] THEN
-		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NOT NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE opened_by IS NOT NULL
 			AND closed_at IS NULL AND category = ANY(cats) ORDER BY id;
 	ELSE
-		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NOT NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE opened_by IS NOT NULL
 			AND closed_at IS NULL
 			AND profile = ANY(pros) AND category = ANY(cats) ORDER BY id;
 	END IF;
@@ -576,11 +576,11 @@ CREATE FUNCTION unknown_email_ids(integer) RETURNS SETOF integer AS $$
 DECLARE
 	pros text[];
 BEGIN
-	SELECT profiles INTO pros FROM emailers WHERE id = $1;
+	SELECT profiles INTO pros FROM peeps.emailers WHERE id = $1;
 	IF pros = array['ALL'] THEN
-		RETURN QUERY SELECT id FROM emails WHERE person_id IS NULL ORDER BY id;
+		RETURN QUERY SELECT id FROM peeps.emails WHERE person_id IS NULL ORDER BY id;
 	ELSE
-		RETURN QUERY SELECT id FROM emails WHERE person_id IS NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE person_id IS NULL
 			 AND profile = ANY(pros) ORDER BY id;
 	END IF;
 END;
@@ -596,15 +596,15 @@ DECLARE
 	cats text[];
 	eid integer;
 BEGIN
-	SELECT profiles, categories INTO pros, cats FROM emailers WHERE id = $1;
+	SELECT profiles, categories INTO pros, cats FROM peeps.emailers WHERE id = $1;
 	IF pros = array['ALL'] AND cats = array['ALL'] THEN
-		SELECT id INTO eid FROM emails WHERE id = $2;
+		SELECT id INTO eid FROM peeps.emails WHERE id = $2;
 	ELSIF cats = array['ALL'] THEN
-		SELECT id INTO eid FROM emails WHERE id = $2 AND profile = ANY(pros);
+		SELECT id INTO eid FROM peeps.emails WHERE id = $2 AND profile = ANY(pros);
 	ELSIF pros = array['ALL'] THEN
-		SELECT id INTO eid FROM emails WHERE id = $2 AND category = ANY(cats);
+		SELECT id INTO eid FROM peeps.emails WHERE id = $2 AND category = ANY(cats);
 	ELSE
-		SELECT id INTO eid FROM emails WHERE id = $2
+		SELECT id INTO eid FROM peeps.emails WHERE id = $2
 			AND profile = ANY(pros) AND category = ANY(cats);
 	END IF;
 	RETURN eid;
@@ -644,7 +644,7 @@ DECLARE
 	new_id integer;
 BEGIN
 	-- VERIFY INPUT:
-	SELECT * INTO p FROM people WHERE id = $2;
+	SELECT * INTO p FROM peeps.people WHERE id = $2;
 	GET DIAGNOSTICS rowcount = ROW_COUNT;
 	IF rowcount = 0 THEN
 		RAISE 'person_id not found';
@@ -668,7 +668,7 @@ BEGIN
 	IF $7 IS NOT NULL THEN SELECT
 		CONCAT('References: <', message_id, E'>\nIn-Reply-To: <', message_id, '>'),
 		CONCAT(E'\n\n', regexp_replace(body, '^', '> ', 'ng'))
-		INTO opt_headers, old_body FROM emails WHERE id = $7;
+		INTO opt_headers, old_body FROM peeps.emails WHERE id = $7;
 	END IF;
 	-- START CREATING EMAIL:
 	greeting := concat('Hi ', p.address);
@@ -694,10 +694,10 @@ DECLARE
 	thisvar text;
 	thisval text;
 BEGIN
-	SELECT body INTO new_body FROM formletters WHERE id = $2;
-	FOR thisvar IN SELECT regexp_matches(body, '{([^}]+)}', 'g') FROM formletters
+	SELECT body INTO new_body FROM peeps.formletters WHERE id = $2;
+	FOR thisvar IN SELECT regexp_matches(body, '{([^}]+)}', 'g') FROM peeps.formletters
 		WHERE id = $2 LOOP
-		EXECUTE format ('SELECT %s::text FROM people WHERE id=%L',
+		EXECUTE format ('SELECT %s::text FROM peeps.people WHERE id=%L',
 			btrim(thisvar, '{}'), $1) INTO thisval;
 		new_body := regexp_replace(new_body, thisvar, thisval);
 	END LOOP;
@@ -872,8 +872,8 @@ DECLARE
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM
-		(SELECT * FROM api_keys WHERE
-			person_id=(SELECT id FROM person_email_pass($1, $2))
+		(SELECT * FROM peeps.api_keys WHERE
+			person_id=(SELECT id FROM peeps.person_email_pass($1, $2))
 			AND $3=ANY(apis)) r;
 	IF js IS NULL THEN
 
@@ -911,8 +911,8 @@ CREATE FUNCTION unopened_email_count(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_object_agg(profile, cats) INTO js FROM (WITH unopened AS
-		(SELECT profile, category FROM emails WHERE id IN
-			(SELECT * FROM unopened_email_ids($1)))
+		(SELECT profile, category FROM peeps.emails WHERE id IN
+			(SELECT * FROM peeps.unopened_email_ids($1)))
 		SELECT profile, (SELECT json_object_agg(category, num) FROM
 			(SELECT category, COUNT(*) AS num FROM unopened u2
 				WHERE u2.profile=unopened.profile
@@ -930,8 +930,8 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION unopened_emails(integer, text, text, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT * FROM emails_view WHERE id IN
-		(SELECT id FROM emails WHERE id IN (SELECT * FROM unopened_email_ids($1))
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.emails_view WHERE id IN
+		(SELECT id FROM peeps.emails WHERE id IN (SELECT * FROM peeps.unopened_email_ids($1))
 			AND profile = $2 AND category = $3)) r;
 	IF js IS NULL THEN
 		js := '[]';
@@ -947,8 +947,8 @@ CREATE FUNCTION open_next_email(integer, text, text, OUT mime text, OUT js json)
 DECLARE
 	eid integer;
 BEGIN
-	SELECT id INTO eid FROM emails
-		WHERE id IN (SELECT * FROM unopened_email_ids($1))
+	SELECT id INTO eid FROM peeps.emails
+		WHERE id IN (SELECT * FROM peeps.unopened_email_ids($1))
 		AND profile=$2 AND category=$3 LIMIT 1;
 	IF eid IS NULL THEN
 
@@ -962,7 +962,7 @@ BEGIN
 		mime := 'application/json';
 		PERFORM open_email($1, eid);
 		SELECT row_to_json(r) INTO js FROM
-			(SELECT * FROM email_view WHERE id = eid) r;
+			(SELECT * FROM peeps.email_view WHERE id = eid) r;
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -973,8 +973,8 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION opened_emails(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT * FROM emails_view WHERE id IN
-		(SELECT * FROM opened_email_ids($1))) r;
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.emails_view WHERE id IN
+		(SELECT * FROM peeps.opened_email_ids($1))) r;
 	IF js IS NULL THEN
 		js := '[]';
 	END IF;
@@ -1000,7 +1000,7 @@ BEGIN
 	ELSE
 		mime := 'application/json';
 		SELECT row_to_json(r) INTO js FROM
-			(SELECT * FROM email_view WHERE id = eid) r;
+			(SELECT * FROM peeps.email_view WHERE id = eid) r;
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -1032,7 +1032,7 @@ BEGIN
 			public.cols2update('peeps', 'emails', ARRAY['id', 'created_at']));
 		mime := 'application/json';
 		SELECT row_to_json(r) INTO js FROM
-			(SELECT * FROM email_view WHERE id = eid) r;
+			(SELECT * FROM peeps.email_view WHERE id = eid) r;
 	END IF;
 
 EXCEPTION
@@ -1069,8 +1069,8 @@ BEGIN
 	ELSE
 		mime := 'application/json';
 		SELECT row_to_json(r) INTO js FROM
-			(SELECT * FROM email_view WHERE id = eid) r;
-		DELETE FROM emails WHERE id = eid;
+			(SELECT * FROM peeps.email_view WHERE id = eid) r;
+		DELETE FROM peeps.emails WHERE id = eid;
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -1092,10 +1092,10 @@ BEGIN
 		'status', 404);
 
 	ELSE
-		UPDATE emails SET closed_at=NOW(), closed_by=$1 WHERE id = eid;
+		UPDATE peeps.emails SET closed_at=NOW(), closed_by=$1 WHERE id = eid;
 		mime := 'application/json';
 		SELECT row_to_json(r) INTO js FROM
-			(SELECT * FROM email_view WHERE id = eid) r;
+			(SELECT * FROM peeps.email_view WHERE id = eid) r;
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -1117,10 +1117,10 @@ BEGIN
 		'status', 404);
 
 	ELSE
-		UPDATE emails SET opened_at=NULL, opened_by=NULL WHERE id = eid;
+		UPDATE peeps.emails SET opened_at=NULL, opened_by=NULL WHERE id = eid;
 		mime := 'application/json';
 		SELECT row_to_json(r) INTO js FROM
-			(SELECT * FROM email_view WHERE id = eid) r;
+			(SELECT * FROM peeps.email_view WHERE id = eid) r;
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -1142,13 +1142,13 @@ BEGIN
 		'status', 404);
 
 	ELSE
-		UPDATE emails SET opened_at=NULL, opened_by=NULL, category=(SELECT
+		UPDATE peeps.emails SET opened_at=NULL, opened_by=NULL, category=(SELECT
 			substring(concat('not-', split_part(people.email,'@',1)) from 1 for 32)
-			FROM emailers JOIN people ON emailers.person_id=people.id
+			FROM peeps.emailers JOIN people ON emailers.person_id=people.id
 			WHERE emailers.id = $1) WHERE id = eid;
 		mime := 'application/json';
 		SELECT row_to_json(r) INTO js FROM
-			(SELECT * FROM email_view WHERE id = eid) r;
+			(SELECT * FROM peeps.email_view WHERE id = eid) r;
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -1170,7 +1170,7 @@ BEGIN
 	IF $3 IS NULL OR (regexp_replace($3, '\s', '', 'g') = '') THEN
 		RAISE 'body must not be empty';
 	END IF;
-	SELECT * INTO e FROM emails WHERE id = ok_email($1, $2);
+	SELECT * INTO e FROM peeps.emails WHERE id = ok_email($1, $2);
 	IF e IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -1181,12 +1181,12 @@ BEGIN
 
 	ELSE
 		-- PARAMS: emailer_id, person_id, profile, category, subject, body, reference_id 
-		SELECT * INTO new_id FROM outgoing_email($1, e.person_id, e.profile, e.profile,
+		SELECT * INTO new_id FROM peeps.outgoing_email($1, e.person_id, e.profile, e.profile,
 			concat('re: ', e.subject), $3, $2);
-		UPDATE emails SET answer_id = new_id WHERE id = $2;
+		UPDATE peeps.emails SET answer_id = new_id WHERE id = $2;
 		mime := 'application/json';
 		SELECT row_to_json(r) INTO js FROM
-			(SELECT * FROM email_view WHERE id = new_id) r;
+			(SELECT * FROM peeps.email_view WHERE id = new_id) r;
 	END IF;
 
 EXCEPTION
@@ -1210,7 +1210,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION count_unknowns(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := json_build_object('count', (SELECT COUNT(*) FROM unknown_email_ids($1)));
+	js := json_build_object('count', (SELECT COUNT(*) FROM peeps.unknown_email_ids($1)));
 END;
 $$ LANGUAGE plpgsql;
 
@@ -1220,8 +1220,8 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION get_unknowns(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT * FROM emails_view WHERE id IN
-		(SELECT * FROM unknown_email_ids($1))) r;
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.emails_view WHERE id IN
+		(SELECT * FROM peeps.unknown_email_ids($1))) r;
 	IF js IS NULL THEN
 		js := '[]';
 	END IF;
@@ -1234,8 +1234,8 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION get_next_unknown(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM unknown_view WHERE id IN
-		(SELECT * FROM unknown_email_ids($1) LIMIT 1)) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.unknown_view WHERE id IN
+		(SELECT * FROM peeps.unknown_email_ids($1) LIMIT 1)) r;
 	IF js IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -1263,8 +1263,8 @@ DECLARE
 	err_context text;
 
 BEGIN
-	SELECT * INTO this_e FROM emails WHERE id IN
-		(SELECT * FROM unknown_email_ids($1)) AND id = $2;
+	SELECT * INTO this_e FROM peeps.emails WHERE id IN
+		(SELECT * FROM peeps.unknown_email_ids($1)) AND id = $2;
 	GET DIAGNOSTICS rowcount = ROW_COUNT;
 	IF rowcount = 0 THEN 
 	mime := 'application/problem+json';
@@ -1274,9 +1274,9 @@ BEGIN
 		'status', 404);
  RETURN; END IF;
 	IF $3 = 0 THEN
-		SELECT * INTO newperson FROM person_create(this_e.their_name, this_e.their_email);
+		SELECT * INTO newperson FROM peeps.person_create(this_e.their_name, this_e.their_email);
 	ELSE
-		SELECT * INTO newperson FROM people WHERE id = $3;
+		SELECT * INTO newperson FROM peeps.people WHERE id = $3;
 		GET DIAGNOSTICS rowcount = ROW_COUNT;
 		IF rowcount = 0 THEN 
 	mime := 'application/problem+json';
@@ -1285,12 +1285,12 @@ BEGIN
 		'title', 'Not Found',
 		'status', 404);
  RETURN; END IF;
-		UPDATE people SET email=this_e.their_email,
+		UPDATE peeps.people SET email=this_e.their_email,
 			notes = concat('OLD EMAIL: ', email, E'\n', notes) WHERE id = $3;
 	END IF;
-	UPDATE emails SET person_id=newperson.id, category=profile WHERE id = $2;
+	UPDATE peeps.emails SET person_id=newperson.id, category=profile WHERE id = $2;
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM email_view WHERE id = $2) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.email_view WHERE id = $2) r;
 
 EXCEPTION
 	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
@@ -1313,8 +1313,8 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION delete_unknown(integer, integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM unknown_view
-		WHERE id IN (SELECT * FROM unknown_email_ids($1)) AND id = $2) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.unknown_view
+		WHERE id IN (SELECT * FROM peeps.unknown_email_ids($1)) AND id = $2) r;
 	IF js IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -1324,7 +1324,7 @@ BEGIN
 		'status', 404);
  RETURN;
 	ELSE
-		DELETE FROM emails WHERE id = $2;
+		DELETE FROM peeps.emails WHERE id = $2;
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -1344,9 +1344,9 @@ DECLARE
 	err_context text;
 
 BEGIN
-	SELECT id INTO pid FROM person_create($1, $2);
+	SELECT id INTO pid FROM peeps.person_create($1, $2);
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = pid) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.person_view WHERE id = pid) r;
 
 EXCEPTION
 	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
@@ -1369,7 +1369,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION get_person(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = $1) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.person_view WHERE id = $1) r;
 	IF js IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -1397,7 +1397,7 @@ BEGIN
 	PERFORM public.jsonupdate('peeps.people', $1, $2,
 		public.cols2update('peeps', 'people', ARRAY['id', 'created_at']));
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = $1) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.person_view WHERE id = $1) r;
 	IF js IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -1436,7 +1436,7 @@ DECLARE
 
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = $1) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.person_view WHERE id = $1) r;
 	IF js IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -1446,7 +1446,7 @@ BEGIN
 		'status', 404);
 
 	ELSE
-		DELETE FROM people WHERE id = $1;
+		DELETE FROM peeps.people WHERE id = $1;
 	END IF;
 
 EXCEPTION
@@ -1477,7 +1477,7 @@ DECLARE
 BEGIN
 	INSERT INTO urls(person_id, url) VALUES ($1, $2);
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = $1) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.person_view WHERE id = $1) r;
 
 EXCEPTION
 	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
@@ -1508,7 +1508,7 @@ DECLARE
 BEGIN
 	INSERT INTO userstats(person_id, statkey, statvalue) VALUES ($1, $2, $3);
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = $1) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.person_view WHERE id = $1) r;
 
 EXCEPTION
 	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
@@ -1539,9 +1539,9 @@ DECLARE
 
 BEGIN
 	-- PARAMS: emailer_id, person_id, profile, category, subject, body, reference_id (NULL unless reply)
-	SELECT * INTO new_id FROM outgoing_email($1, $2, $3, $3, $4, $5, NULL);
+	SELECT * INTO new_id FROM peeps.outgoing_email($1, $2, $3, $3, $4, $5, NULL);
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM email_view WHERE id = new_id) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.email_view WHERE id = new_id) r;
 
 EXCEPTION
 	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
@@ -1565,7 +1565,7 @@ CREATE FUNCTION get_person_emails(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM
-		(SELECT * FROM emails_full_view WHERE person_id = $1 ORDER BY id) r;
+		(SELECT * FROM peeps.emails_full_view WHERE person_id = $1 ORDER BY id) r;
 	IF js IS NULL THEN
 		js := '[]';
 	END IF;
@@ -1586,7 +1586,7 @@ DECLARE
 BEGIN
 	PERFORM person_merge_from_to($2, $1);
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM person_view WHERE id = $1) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.person_view WHERE id = $1) r;
 
 EXCEPTION
 	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
@@ -1609,7 +1609,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION people_unemailed(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT * FROM people_view
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.people_view
 		WHERE email_count = 0 ORDER BY id DESC LIMIT 200) r;
 END;
 $$ LANGUAGE plpgsql;
@@ -1633,7 +1633,7 @@ BEGIN
 	END IF;
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM
-		(SELECT * FROM people_view WHERE id IN (SELECT id FROM people
+		(SELECT * FROM peeps.people_view WHERE id IN (SELECT id FROM peeps.people
 				WHERE name ILIKE q OR company ILIKE q OR email ILIKE q)
 		ORDER BY email_count DESC, id DESC) r;
 
@@ -1658,7 +1658,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION get_stat(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM stats_view WHERE id=$1) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.stats_view WHERE id=$1) r;
 	IF js IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -1687,7 +1687,7 @@ BEGIN
 	PERFORM public.jsonupdate('peeps.userstats', $1, $2,
 		public.cols2update('peeps', 'userstats', ARRAY['id', 'created_at']));
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM stats_view WHERE id=$1) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.stats_view WHERE id=$1) r;
 	IF js IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -1719,7 +1719,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION delete_stat(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM stats_view WHERE id=$1) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.stats_view WHERE id=$1) r;
 	IF js IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -1729,7 +1729,7 @@ BEGIN
 		'status', 404);
 
 	ELSE
-		DELETE FROM userstats WHERE id = $1;
+		DELETE FROM peeps.userstats WHERE id = $1;
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -1740,7 +1740,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION get_url(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM urls WHERE id=$1) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.urls WHERE id=$1) r;
 	IF js IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -1759,7 +1759,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION delete_url(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM urls WHERE id = $1) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.urls WHERE id = $1) r;
 	IF js IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -1769,7 +1769,7 @@ BEGIN
 		'status', 404);
 
 	ELSE
-		DELETE FROM urls WHERE id = $1;
+		DELETE FROM peeps.urls WHERE id = $1;
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -1789,7 +1789,7 @@ BEGIN
 	PERFORM public.jsonupdate('peeps.urls', $1, $2,
 		public.cols2update('peeps', 'urls', ARRAY['id']));
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM urls WHERE id = $1) r;
+	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.urls WHERE id = $1) r;
 	IF js IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -1822,7 +1822,7 @@ CREATE FUNCTION get_formletters(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM
-		(SELECT * FROM formletters_view ORDER BY title) r;
+		(SELECT * FROM peeps.formletters_view ORDER BY title) r;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -1842,7 +1842,7 @@ BEGIN
 	INSERT INTO formletters(title) VALUES ($1) RETURNING id INTO new_id;
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM
-		(SELECT * FROM formletter_view WHERE id = new_id) r;
+		(SELECT * FROM peeps.formletter_view WHERE id = new_id) r;
 
 EXCEPTION
 	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
@@ -1866,7 +1866,7 @@ CREATE FUNCTION get_formletter(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM
-		(SELECT * FROM formletter_view WHERE id = $1) r;
+		(SELECT * FROM peeps.formletter_view WHERE id = $1) r;
 	IF js IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -1895,7 +1895,7 @@ BEGIN
 		public.cols2update('peeps', 'formletters', ARRAY['id', 'created_at']));
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM
-		(SELECT * FROM formletter_view WHERE id = $1) r;
+		(SELECT * FROM peeps.formletter_view WHERE id = $1) r;
 	IF js IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -1928,7 +1928,7 @@ CREATE FUNCTION delete_formletter(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM
-		(SELECT * FROM formletter_view WHERE id = $1) r;
+		(SELECT * FROM peeps.formletter_view WHERE id = $1) r;
 	IF js IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -1938,7 +1938,7 @@ BEGIN
 		'status', 404);
 
 	ELSE
-		DELETE FROM formletters WHERE id = $1;
+		DELETE FROM peeps.formletters WHERE id = $1;
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -1961,7 +1961,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION all_countries(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT * FROM countries ORDER BY name) r;
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.countries ORDER BY name) r;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -1971,7 +1971,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION country_count(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT country, COUNT(*) FROM people
+	SELECT json_agg(r) INTO js FROM (SELECT country, COUNT(*) FROM peeps.people
 		WHERE country IS NOT NULL GROUP BY country ORDER BY COUNT(*) DESC, country) r;
 END;
 $$ LANGUAGE plpgsql;
@@ -1982,7 +1982,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION state_count(char(2), OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT state, COUNT(*) FROM people
+	SELECT json_agg(r) INTO js FROM (SELECT state, COUNT(*) FROM peeps.people
 		WHERE country = $1 AND state IS NOT NULL AND state != ''
 		GROUP BY state ORDER BY COUNT(*) DESC, state) r;
 	IF js IS NULL THEN
@@ -2003,7 +2003,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION city_count(char(2), text, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT city, COUNT(*) FROM people
+	SELECT json_agg(r) INTO js FROM (SELECT city, COUNT(*) FROM peeps.people
 		WHERE country=$1 AND state=$2 AND (city IS NOT NULL AND city != '')
 		GROUP BY city ORDER BY COUNT(*) DESC, city) r;
 	IF js IS NULL THEN
@@ -2024,7 +2024,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION city_count(char(2), OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT city, COUNT(*) FROM people
+	SELECT json_agg(r) INTO js FROM (SELECT city, COUNT(*) FROM peeps.people
 		WHERE country=$1 AND (city IS NOT NULL AND city != '')
 		GROUP BY city ORDER BY COUNT(*) DESC, city) r;
 	IF js IS NULL THEN
@@ -2045,8 +2045,8 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION people_from_country(char(2), OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT * FROM people_view WHERE id IN
-		(SELECT id FROM people WHERE country=$1)
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.people_view WHERE id IN
+		(SELECT id FROM peeps.people WHERE country=$1)
 		ORDER BY email_count DESC, name) r;
 	IF js IS NULL THEN
 
@@ -2066,8 +2066,8 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION people_from_state(char(2), text, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT * FROM people_view WHERE id IN
-		(SELECT id FROM people WHERE country=$1 AND state=$2)
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.people_view WHERE id IN
+		(SELECT id FROM peeps.people WHERE country=$1 AND state=$2)
 		ORDER BY email_count DESC, name) r;
 	IF js IS NULL THEN
 
@@ -2087,8 +2087,8 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION people_from_city(char(2), text, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT * FROM people_view WHERE id IN
-		(SELECT id FROM people WHERE country=$1 AND city=$2)
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.people_view WHERE id IN
+		(SELECT id FROM peeps.people WHERE country=$1 AND city=$2)
 		ORDER BY email_count DESC, name) r;
 	IF js IS NULL THEN
 
@@ -2108,8 +2108,8 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION people_from_state_city(char(2), text, text, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT * FROM people_view WHERE id IN
-		(SELECT id FROM people WHERE country=$1 AND state=$2 AND city=$3)
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.people_view WHERE id IN
+		(SELECT id FROM peeps.people WHERE country=$1 AND state=$2 AND city=$3)
 		ORDER BY email_count DESC, name) r;
 	IF js IS NULL THEN
 
@@ -2131,7 +2131,7 @@ CREATE FUNCTION get_stats(text, text, OUT mime text, OUT js json) AS $$
 DECLARE
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT * FROM stats_view
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.stats_view
 		WHERE name = $1 AND value = $2) r;
 	IF js IS NULL THEN
 		js := '[]';
@@ -2146,7 +2146,7 @@ CREATE FUNCTION get_stats(text, OUT mime text, OUT js json) AS $$
 DECLARE
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT * FROM stats_view WHERE name = $1) r;
+	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.stats_view WHERE name = $1) r;
 	IF js IS NULL THEN
 		js := '[]';
 	END IF;
@@ -2161,7 +2161,7 @@ DECLARE
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT statvalue AS value, COUNT(*) AS count
-		FROM userstats WHERE statkey=$1 GROUP BY statvalue ORDER BY statvalue) r;
+		FROM peeps.userstats WHERE statkey=$1 GROUP BY statvalue ORDER BY statvalue) r;
 	IF js IS NULL THEN
 		js := '[]';
 	END IF;
@@ -2176,7 +2176,7 @@ DECLARE
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT statkey AS name, COUNT(*) AS count
-		FROM userstats GROUP BY statkey ORDER BY statkey) r;
+		FROM peeps.userstats GROUP BY statkey ORDER BY statkey) r;
 END;
 $$ LANGUAGE plpgsql;
 

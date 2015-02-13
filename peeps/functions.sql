@@ -198,8 +198,8 @@ BEGIN
 	END LOOP;
 	-- copy better(longer) data from old to new
 	-- company, city, state, postalcode, country, phone, categorize_as
-	SELECT * INTO old_p FROM people WHERE id = old_id;
-	SELECT * INTO new_p FROM people WHERE id = new_id;
+	SELECT * INTO old_p FROM peeps.people WHERE id = old_id;
+	SELECT * INTO new_p FROM peeps.people WHERE id = new_id;
 	IF COALESCE(LENGTH(old_p.company), 0) > COALESCE(LENGTH(new_p.company), 0) THEN
 		UPDATE people SET company = old_p.company WHERE id = new_id;
 	END IF;
@@ -225,7 +225,7 @@ BEGIN
 		UPDATE people SET notes = CONCAT(old_p.notes, E'\n', notes) WHERE id = new_id;
 	END IF;
 	-- Done! delete old one
-	DELETE FROM people WHERE id = old_id;
+	DELETE FROM peeps.people WHERE id = old_id;
 	RETURN done_tables;
 END;
 $$ LANGUAGE plpgsql;
@@ -311,18 +311,18 @@ DECLARE
 	pros text[];
 	cats text[];
 BEGIN
-	SELECT profiles, categories INTO pros, cats FROM emailers WHERE id = $1;
+	SELECT profiles, categories INTO pros, cats FROM peeps.emailers WHERE id = $1;
 	IF pros = array['ALL'] AND cats = array['ALL'] THEN
-		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE opened_by IS NULL
 			AND person_id IS NOT NULL ORDER BY id;
 	ELSIF cats = array['ALL'] THEN
-		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE opened_by IS NULL
 			AND person_id IS NOT NULL AND profile = ANY(pros) ORDER BY id;
 	ELSIF pros = array['ALL'] THEN
-		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE opened_by IS NULL
 			AND person_id IS NOT NULL AND category = ANY(cats) ORDER BY id;
 	ELSE
-		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE opened_by IS NULL
 			AND person_id IS NOT NULL
 			AND profile = ANY(pros) AND category = ANY(cats) ORDER BY id;
 	END IF;
@@ -337,18 +337,18 @@ DECLARE
 	pros text[];
 	cats text[];
 BEGIN
-	SELECT profiles, categories INTO pros, cats FROM emailers WHERE id = $1;
+	SELECT profiles, categories INTO pros, cats FROM peeps.emailers WHERE id = $1;
 	IF pros = array['ALL'] AND cats = array['ALL'] THEN
-		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NOT NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE opened_by IS NOT NULL
 			AND closed_at IS NULL ORDER BY id;
 	ELSIF cats = array['ALL'] THEN
-		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NOT NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE opened_by IS NOT NULL
 			AND closed_at IS NULL AND profile = ANY(pros) ORDER BY id;
 	ELSIF pros = array['ALL'] THEN
-		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NOT NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE opened_by IS NOT NULL
 			AND closed_at IS NULL AND category = ANY(cats) ORDER BY id;
 	ELSE
-		RETURN QUERY SELECT id FROM emails WHERE opened_by IS NOT NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE opened_by IS NOT NULL
 			AND closed_at IS NULL
 			AND profile = ANY(pros) AND category = ANY(cats) ORDER BY id;
 	END IF;
@@ -363,11 +363,11 @@ CREATE FUNCTION unknown_email_ids(integer) RETURNS SETOF integer AS $$
 DECLARE
 	pros text[];
 BEGIN
-	SELECT profiles INTO pros FROM emailers WHERE id = $1;
+	SELECT profiles INTO pros FROM peeps.emailers WHERE id = $1;
 	IF pros = array['ALL'] THEN
-		RETURN QUERY SELECT id FROM emails WHERE person_id IS NULL ORDER BY id;
+		RETURN QUERY SELECT id FROM peeps.emails WHERE person_id IS NULL ORDER BY id;
 	ELSE
-		RETURN QUERY SELECT id FROM emails WHERE person_id IS NULL
+		RETURN QUERY SELECT id FROM peeps.emails WHERE person_id IS NULL
 			 AND profile = ANY(pros) ORDER BY id;
 	END IF;
 END;
@@ -383,15 +383,15 @@ DECLARE
 	cats text[];
 	eid integer;
 BEGIN
-	SELECT profiles, categories INTO pros, cats FROM emailers WHERE id = $1;
+	SELECT profiles, categories INTO pros, cats FROM peeps.emailers WHERE id = $1;
 	IF pros = array['ALL'] AND cats = array['ALL'] THEN
-		SELECT id INTO eid FROM emails WHERE id = $2;
+		SELECT id INTO eid FROM peeps.emails WHERE id = $2;
 	ELSIF cats = array['ALL'] THEN
-		SELECT id INTO eid FROM emails WHERE id = $2 AND profile = ANY(pros);
+		SELECT id INTO eid FROM peeps.emails WHERE id = $2 AND profile = ANY(pros);
 	ELSIF pros = array['ALL'] THEN
-		SELECT id INTO eid FROM emails WHERE id = $2 AND category = ANY(cats);
+		SELECT id INTO eid FROM peeps.emails WHERE id = $2 AND category = ANY(cats);
 	ELSE
-		SELECT id INTO eid FROM emails WHERE id = $2
+		SELECT id INTO eid FROM peeps.emails WHERE id = $2
 			AND profile = ANY(pros) AND category = ANY(cats);
 	END IF;
 	RETURN eid;
@@ -431,7 +431,7 @@ DECLARE
 	new_id integer;
 BEGIN
 	-- VERIFY INPUT:
-	SELECT * INTO p FROM people WHERE id = $2;
+	SELECT * INTO p FROM peeps.people WHERE id = $2;
 	GET DIAGNOSTICS rowcount = ROW_COUNT;
 	IF rowcount = 0 THEN
 		RAISE 'person_id not found';
@@ -455,7 +455,7 @@ BEGIN
 	IF $7 IS NOT NULL THEN SELECT
 		CONCAT('References: <', message_id, E'>\nIn-Reply-To: <', message_id, '>'),
 		CONCAT(E'\n\n', regexp_replace(body, '^', '> ', 'ng'))
-		INTO opt_headers, old_body FROM emails WHERE id = $7;
+		INTO opt_headers, old_body FROM peeps.emails WHERE id = $7;
 	END IF;
 	-- START CREATING EMAIL:
 	greeting := concat('Hi ', p.address);
@@ -481,10 +481,10 @@ DECLARE
 	thisvar text;
 	thisval text;
 BEGIN
-	SELECT body INTO new_body FROM formletters WHERE id = $2;
-	FOR thisvar IN SELECT regexp_matches(body, '{([^}]+)}', 'g') FROM formletters
+	SELECT body INTO new_body FROM peeps.formletters WHERE id = $2;
+	FOR thisvar IN SELECT regexp_matches(body, '{([^}]+)}', 'g') FROM peeps.formletters
 		WHERE id = $2 LOOP
-		EXECUTE format ('SELECT %s::text FROM people WHERE id=%L',
+		EXECUTE format ('SELECT %s::text FROM peeps.people WHERE id=%L',
 			btrim(thisvar, '{}'), $1) INTO thisval;
 		new_body := regexp_replace(new_body, thisvar, thisval);
 	END LOOP;
