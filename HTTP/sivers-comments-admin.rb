@@ -12,9 +12,7 @@ class SiversCommentsAdmin < Sinatra::Base
 			@auth ||= Rack::Auth::Basic::Request.new(request.env)
 			if @auth.provided? && @auth.basic? && @auth.credentials
 				akey, apass = @auth.credentials
-				sql = "SELECT * FROM api_keys" +
-				" WHERE akey=$1 AND apass=$2 AND $3=ANY(apis)" +
-				" AND api_keys.person_id=emailers.person_id"
+				sql = "SELECT * FROM peeps.api_keys WHERE akey=$1 AND apass=$2 AND $3=ANY(apis)"
 				res = self.class.db.exec_params(sql, [akey, apass, 'SiversComments'])
 				return true if res.ntuples == 1
 			end
@@ -51,16 +49,6 @@ class SiversCommentsAdmin < Sinatra::Base
 		qry('new_comments()')
 	end
 
-	# TODO: move just this to its own controller/route/port/test
-	# PARAMS: uri, name, email, html
-	post '/comments' do
-		qry('add_comment($1, $2, $3, $4)', [
-			params[:uri],
-			params[:name],
-			params[:email],
-			params[:html]])
-	end
-
 	get %r{^/comments/([0-9]+)$} do |id|
 		qry('get_comment($1)', [id])
 	end
@@ -91,7 +79,7 @@ P_FIXTURES = File.read('../peeps/fixtures.sql')
 SCHEMA = File.read('../sivers/schema.sql')
 FIXTURES = File.read('../sivers/fixtures.sql')
 
-class SiversTest < SiversCommentsAdmin
+class SiversCommentsAdminTest < SiversCommentsAdmin
 	@db = PG::Connection.new(dbname: 'd50b_test', user: 'd50b')
 
 	delete '/reset' do
