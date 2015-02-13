@@ -86,6 +86,39 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- PUT %r{^/comments/([0-9]+)$}
+-- PARAMS: comments.id, JSON of values to update
+CREATE FUNCTION update_comment(integer, json, OUT mime text, OUT js json) AS $$
+DECLARE
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	PERFORM public.jsonupdate('sivers.comments', $1, $2,
+		public.cols2update('sivers', 'comments', ARRAY['id']));
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM
+		(SELECT * FROM sivers.comments WHERE id=$1) r;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- POST %r{^/comments/([0-9]+)/reply$}
 -- PARAMS: comment_id, my reply
 CREATE FUNCTION reply_to_comment(integer, text, OUT mime text, OUT js json) AS $$

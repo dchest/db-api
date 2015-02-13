@@ -42,6 +42,22 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- PUT %r{^/comments/([0-9]+)$}
+-- PARAMS: comments.id, JSON of values to update
+CREATE FUNCTION update_comment(integer, json, OUT mime text, OUT js json) AS $$
+DECLARE
+m4_ERRVARS
+BEGIN
+	PERFORM public.jsonupdate('sivers.comments', $1, $2,
+		public.cols2update('sivers', 'comments', ARRAY['id']));
+	mime := 'application/json';
+	SELECT row_to_json(r) INTO js FROM
+		(SELECT * FROM sivers.comments WHERE id=$1) r;
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- POST %r{^/comments/([0-9]+)/reply$}
 -- PARAMS: comment_id, my reply
 CREATE FUNCTION reply_to_comment(integer, text, OUT mime text, OUT js json) AS $$

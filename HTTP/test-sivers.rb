@@ -1,28 +1,27 @@
-P_SCHEMA = File.read('../peeps/schema.sql')
-P_FIXTURES = File.read('../peeps/fixtures.sql')
-require '../test_tools.rb'
+require 'minitest/autorun'
+require_relative 'testful.rb'
 
-class TestComment < Minitest::Test
-	include JDB
+#Minitest.after_run do
+	# delete '/reset'
+#end
+
+require_relative 'sivers.rb'
+class TestCommentAPI < Minitest::Test
+	include Testful
+	Testful::BASE = 'http://127.0.0.1:10021'
 
 	def setup
-		super
+		@auth = ['a'*8, 'b'*8]
+		delete '/reset'
 		@new_comment = {uri: 'boo', name: 'Bob Dobalina', email: 'bob@dobali.na', html: 'þ <script>alert("poop")</script> <a href="http://bad.cc">yuck</a> :-)'}
 	end
 
 	def test_add
-		qry("peeps.get_person(9)")
-		assert_equal 'application/problem+json', @res[0]['mime']
-		qry("sivers.get_comment(6)")
-		assert_equal 'application/problem+json', @res[0]['mime']
-		qry("sivers.add_comment($1, $2, $3, $4)", [
-			@new_comment[:uri],
-			@new_comment[:name],
-			@new_comment[:email],
-			@new_comment[:html]])
-		qry("peeps.get_person(9)")
-		assert_equal 'Bob Dobalina', @j['name']
-		qry("sivers.get_comment(6)")
+		get '/comments/6'
+		assert_equal '', @res.body
+		assert_equal 'application/problem+json', @res.headers['content-type']
+		post '/comments', @new_comment
+		get '/comments/6'
 		assert_equal 9, @j['person_id']
 		assert_includes @j['html'], 'þ'
 		refute_includes @j['html'], '<script>'
@@ -57,7 +56,7 @@ class TestComment < Minitest::Test
 		qry("sivers.spam_comment(5)")
 		assert_equal 'spam2', @j['html']
 		qry("peeps.get_person(5)")
-		assert_equal 'application/problem+json', @res[0]['mime']
+		assert_equal 'application/problem+json', @res.headers['content-type']
 		qry("sivers.new_comments()")
 		assert_equal [3, 2, 1], @j.map {|x| x['id']}
 	end

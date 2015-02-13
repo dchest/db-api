@@ -1,4 +1,4 @@
 # TO-DO:
 
-* spam_comment(integer)
+Separate API for adding a new comment.  No api keys needed.
 
