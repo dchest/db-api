@@ -36,7 +36,7 @@ Just a reminder to my future self, what's with this new PostgreSQL db-api way of
 
 ### Authentication:
 
-**db-api/HTTP** REST API uses HTTP Basic Authentication, and all **a50c** client library classes need the API key and pass to initialize.  When testing API, just give it the key and pass strings from the fixtures.
+**db-api/HTTP** REST API uses HTTP Basic Authentication, and most **a50c** client library classes need the API key and pass to initialize.  When testing API, just give it the key and pass strings from the fixtures.
 
 To see whether they're legit, PostgreSQL searches api_keys table for that key, pass, and making sure this API is in the array of apis.  This could be a peeps schema function, but for now is not.  It'd probably be two queries: one for api_keys to get the person, then once authed, returning person_id, another one could get peeps.emailers.id or muckwork.managers.id or whatever, based on their person_id.  One more layer where it might fail just in case their person_id is not in that table.
 
@@ -45,6 +45,20 @@ When **real people** using it, a **50web** route called **ModAuth** checks for t
 /login is a form requiring email address and password, posted to /login, which is also grabbed by ModAuth.  If peeps.person authenticates that email & password, it looks in api_keys for theirs, and returns api_keys using SELECT * FROM auth_api(akey, apass, APIName)
 
 If POST /login works, it sets the 3 needed cookies (person_id, api_key, api_pass).  Those are included in all calls, and sent to A50C To init client library.
+
+
+
+# HTTP ports:
+
+* 10000 = Peep
+* 10001 = Peep test
+* 10010 = MusicThoughtsPublic
+* 10011 = MusicThoughtsPublic test
+* 10020 = SiversCommentsAdmin
+* 10021 = SiversCommentsAdmin test
+* 10030 = SiversCommentsPublic
+* 10031 = SiversCommentsPublic test
+
 
 
 # TODO:

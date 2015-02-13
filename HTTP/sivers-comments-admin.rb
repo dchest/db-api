@@ -1,7 +1,7 @@
 require 'pg'
 require 'sinatra/base'
 
-class Sivers < Sinatra::Base
+class SiversCommentsAdmin < Sinatra::Base
 	@db = PG::Connection.new(dbname: 'd50b', user: 'd50b')
 	class << self
 		attr_accessor :db
@@ -91,7 +91,7 @@ P_FIXTURES = File.read('../peeps/fixtures.sql')
 SCHEMA = File.read('../sivers/schema.sql')
 FIXTURES = File.read('../sivers/fixtures.sql')
 
-class SiversTest < Sivers
+class SiversTest < SiversCommentsAdmin
 	@db = PG::Connection.new(dbname: 'd50b_test', user: 'd50b')
 
 	delete '/reset' do
