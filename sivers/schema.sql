@@ -98,7 +98,7 @@ DECLARE
 
 BEGIN
 	PERFORM public.jsonupdate('sivers.comments', $1, $2,
-		public.cols2update('sivers', 'comments', ARRAY['id']));
+		public.cols2update('sivers', 'comments', ARRAY['id','created_at']));
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM
 		(SELECT * FROM sivers.comments WHERE id=$1) r;

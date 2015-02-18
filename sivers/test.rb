@@ -63,10 +63,11 @@ class TestComment < Minitest::Test
 	end
 
 	def test_update
-		qry("sivers.update_comment(5, $1)", ['{"html":"new body", "name":"Opa!", "ignore":true}'])
+		qry("sivers.update_comment(5, $1)", ['{"html":"new body", "name":"Opa!", "created_at":"2000-01-01"}'])
 		assert_equal 'Opa!', @j['name']
 		assert_equal 'new body', @j['html']
 		assert_equal 'oompa@loompa.mm', @j['email']
+		assert_equal '2014-04-28', @j['created_at']
 	end
 
 end
