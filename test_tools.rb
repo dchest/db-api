@@ -1,3 +1,4 @@
+# This file is just some common shared things used by tests in subdirectories
 require 'pg'
 require 'minitest/autorun'
 require 'json'
