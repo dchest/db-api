@@ -70,4 +70,13 @@ class TestComment < Minitest::Test
 		assert_equal '2014-04-28', @j['created_at']
 	end
 
+	def test_comment_person
+		qry("sivers.get_comment(1)")
+		assert_equal 'trust', @j['uri']
+		assert_equal 'Willy Wonka', @j['person']['name']
+		assert_equal 'musicthoughts', @j['person']['stats'][1]['name']
+		assert_equal 'http://www.wonka.com/', @j['person']['urls'][0]['url']
+		assert_equal 'you coming by?', @j['person']['emails'][0]['subject']
+	end
+
 end

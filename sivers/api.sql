@@ -4,7 +4,9 @@ CREATE FUNCTION get_comment(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM
-		(SELECT * FROM sivers.comments WHERE id=$1) r;
+		(SELECT *, (SELECT row_to_json(p) AS person FROM
+			(SELECT * FROM peeps.person_view WHERE id=sivers.comments.person_id) p)
+		FROM sivers.comments WHERE id=$1) r;
 	IF js IS NULL THEN
 m4_NOTFOUND
 	END IF;
