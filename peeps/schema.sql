@@ -1666,6 +1666,9 @@ BEGIN
 		(SELECT * FROM peeps.people_view WHERE id IN (SELECT id FROM peeps.people
 				WHERE name ILIKE q OR company ILIKE q OR email ILIKE q)
 		ORDER BY email_count DESC, id DESC) r;
+	IF js IS NULL THEN
+		js := '{}';
+	END IF;
 
 EXCEPTION
 	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
