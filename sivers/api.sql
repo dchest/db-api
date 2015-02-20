@@ -94,13 +94,15 @@ $$ LANGUAGE plpgsql;
 -- PARAMS: comment_id
 CREATE FUNCTION spam_comment(integer, OUT mime text, OUT js json) AS $$
 DECLARE
+	pid integer;
 m4_ERRVARS
 BEGIN
+	SELECT person_id INTO pid FROM sivers.comments WHERE id = $1;
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM
 		(SELECT * FROM sivers.comments WHERE id = $1) r;
-	DELETE FROM peeps.people WHERE id=(SELECT person_id
-		FROM sivers.comments WHERE id = $1);
+	DELETE FROM sivers.comments WHERE person_id = pid;
+	DELETE FROM peeps.people WHERE id = pid;
 m4_ERRCATCH
 END;
 $$ LANGUAGE plpgsql;
