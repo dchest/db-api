@@ -111,7 +111,7 @@ class TestPeepsAPI < Minitest::Test
 	def test_reply_to_email
 		qry("reply_to_email(4, 8, 'Groovy, baby')")
 		assert_equal 11, @j['id']
-		assert_equal 3, @j['person_id']
+		assert_equal 3, @j['person']['id']
 		assert_match /\A[0-9]{17}\.3@sivers.org\Z/, @j['message_id']
 		assert_equal @j['message_id'][0,12], Time.now.strftime('%Y%m%d%H%M')
 		assert @j['body'].include? 'Groovy, baby'
@@ -158,9 +158,9 @@ class TestPeepsAPI < Minitest::Test
 
 	def test_set_unknown_person
 		qry("set_unknown_person(1, 5, 0)")
-		assert_equal 9, @j['person_id']
+		assert_equal 9, @j['person']['id']
 		qry("set_unknown_person(1, 10, 5)")
-		assert_equal 5, @j['person_id']
+		assert_equal 5, @j['person']['id']
 		qry("get_person(5)")
 		assert_equal 'OLD EMAIL: oompa@loompa.mm', @j['notes'].strip
 	end
