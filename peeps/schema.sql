@@ -1185,7 +1185,7 @@ BEGIN
 		-- PARAMS: emailer_id, person_id, profile, category, subject, body, reference_id 
 		SELECT * INTO new_id FROM peeps.outgoing_email($1, e.person_id, e.profile, e.profile,
 			concat('re: ', e.subject), $3, $2);
-		UPDATE peeps.emails SET answer_id = new_id WHERE id = $2;
+		UPDATE peeps.emails SET answer_id=new_id, closed_at=NOW(), closed_by=$1 WHERE id=$2;
 		mime := 'application/json';
 		SELECT row_to_json(r) INTO js FROM
 			(SELECT * FROM peeps.email_view WHERE id = new_id) r;

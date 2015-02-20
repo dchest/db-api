@@ -128,6 +128,11 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal '巩俐', @j['closor']['name']
 		assert_equal 'Veruca Salt', @j['their_name']
 		assert_equal 'veruca@salt.com', @j['their_email']
+		# and it also closes the original email
+		qry("get_email(4, 8)")
+		assert_equal 11, @j['answer_id']
+		assert_match %r{^20}, @j['closed_at']
+		assert_equal '巩俐', @j['closor']['name']
 	end
 
 	def test_count_unknowns
