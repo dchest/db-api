@@ -71,7 +71,7 @@ COMMIT;
 --------------- VIEWS FOR JSON RESPONSES:
 ----------------------------------------
 
-CREATE VIEW category_view AS
+CREATE OR REPLACE VIEW category_view AS
 	SELECT categories.*, (SELECT json_agg(t) FROM
 		(SELECT id, en, es, fr, de, it, pt, ja, zh, ar, ru,
 			(SELECT row_to_json(a) FROM
@@ -81,7 +81,7 @@ CREATE VIEW category_view AS
 			ORDER BY id DESC) t) AS thoughts
 		FROM categories;
 
-CREATE VIEW authors_view AS
+CREATE OR REPLACE VIEW authors_view AS
 	SELECT id, name,
 		(SELECT COUNT(*) FROM thoughts
 			WHERE author_id=authors.id AND approved IS TRUE) AS howmany
@@ -89,7 +89,7 @@ CREATE VIEW authors_view AS
 			(SELECT author_id FROM thoughts WHERE approved IS TRUE)
 		ORDER BY howmany DESC, name ASC;
 
-CREATE VIEW contributors_view AS
+CREATE OR REPLACE VIEW contributors_view AS
 	SELECT contributors.id, peeps.people.name,
 		(SELECT COUNT(*) FROM thoughts
 			WHERE contributor_id=contributors.id AND approved IS TRUE) AS howmany
@@ -98,14 +98,14 @@ CREATE VIEW contributors_view AS
 			(SELECT contributor_id FROM thoughts WHERE approved IS TRUE)
 		ORDER BY howmany DESC, name ASC;
 
-CREATE VIEW author_view AS
+CREATE OR REPLACE VIEW author_view AS
 	SELECT id, name, (SELECT json_agg(t) FROM
 		(SELECT id, en, es, fr, de, it, pt, ja, zh, ar, ru FROM thoughts
 			WHERE author_id=authors.id AND approved IS TRUE
 			ORDER BY id DESC) t) AS thoughts
 		FROM authors;
 
-CREATE VIEW contributor_view AS
+CREATE OR REPLACE VIEW contributor_view AS
 	SELECT contributors.id, peeps.people.name, (SELECT json_agg(t) FROM
 		(SELECT id, en, es, fr, de, it, pt, ja, zh, ar, ru,
 			(SELECT row_to_json(a) FROM
@@ -115,7 +115,7 @@ CREATE VIEW contributor_view AS
 			ORDER BY id DESC) t) AS thoughts
 		FROM contributors, peeps.people WHERE contributors.person_id=peeps.people.id;
 
-CREATE VIEW thought_view AS
+CREATE OR REPLACE VIEW thought_view AS
 	SELECT id, source_url, en, es, fr, de, it, pt, ja, zh, ar, ru,
 		(SELECT row_to_json(a) FROM
 			(SELECT id, name FROM authors WHERE thoughts.author_id=authors.id) a) AS author,
@@ -134,7 +134,7 @@ CREATE VIEW thought_view AS
 
 -- get '/languages'
 -- PARAMS: -none-
-CREATE FUNCTION languages(OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION languages(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := '["en","es","fr","de","it","pt","ja","zh","ar","ru"]';
@@ -144,7 +144,7 @@ $$ LANGUAGE plpgsql;
 
 -- get '/categories'
 -- PARAMS: -none-
-CREATE FUNCTION all_categories(OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION all_categories(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := json_agg(r) FROM (SELECT id, en, es, fr, de, it, pt, ja, zh, ar, ru,
@@ -158,7 +158,7 @@ $$ LANGUAGE plpgsql;
 
 -- get %r{^/categories/([0-9]+)$}
 -- PARAMS: category id
-CREATE FUNCTION category(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION category(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM category_view WHERE id=$1) r;
@@ -178,7 +178,7 @@ $$ LANGUAGE plpgsql;
 -- get '/authors'
 -- get '/authors/top'
 -- PARAMS: top limit  (NULL for all)
-CREATE FUNCTION top_authors(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION top_authors(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := json_agg(r) FROM (SELECT * FROM authors_view LIMIT $1) r;
@@ -188,7 +188,7 @@ $$ LANGUAGE plpgsql;
 
 -- get %r{^/authors/([0-9]+)$}
 -- PARAMS: author id
-CREATE FUNCTION get_author(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION get_author(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM author_view WHERE id=$1) r;
@@ -208,7 +208,7 @@ $$ LANGUAGE plpgsql;
 -- get '/contributors'
 -- get '/contributors/top'
 -- PARAMS: top limit  (NULL for all)
-CREATE FUNCTION top_contributors(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION top_contributors(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := json_agg(r) FROM (SELECT * FROM contributors_view LIMIT $1) r;
@@ -218,7 +218,7 @@ $$ LANGUAGE plpgsql;
 
 -- get %r{^/contributors/([0-9]+)$}
 -- PARAMS: contributor id
-CREATE FUNCTION get_contributor(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION get_contributor(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM contributor_view WHERE id=$1) r;
@@ -237,7 +237,7 @@ $$ LANGUAGE plpgsql;
 
 -- get '/thoughts/random'
 -- PARAMS: -none-
-CREATE FUNCTION random_thought(OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION random_thought(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM thought_view WHERE id =
@@ -248,7 +248,7 @@ $$ LANGUAGE plpgsql;
 
 -- get %r{^/thoughts/([0-9]+)$}
 -- PARAMS: thought id
-CREATE FUNCTION get_thought(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION get_thought(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM thought_view WHERE id = $1) r;
@@ -268,7 +268,7 @@ $$ LANGUAGE plpgsql;
 -- get '/thoughts'
 -- get '/thoughts/new'
 -- PARAMS: newest limit (NULL for all)
-CREATE FUNCTION new_thoughts(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION new_thoughts(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := json_agg(r) FROM (SELECT * FROM thought_view LIMIT $1) r;
@@ -277,7 +277,7 @@ $$ LANGUAGE plpgsql;
 
 -- get '/search/:q'
 -- PARAMS: search term
-CREATE FUNCTION search(text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION search(text, OUT mime text, OUT js json) AS $$
 DECLARE
 	q text;
 	auth json;
@@ -343,7 +343,7 @@ $$ LANGUAGE plpgsql;
 -- $9 = array of category ids
 -- Having ordered params is a drag, so is accepting then unnesting JSON with specific key names.
 -- Returns simple hash of ids, since thought is unapproved and untranslated, no view yet.
-CREATE FUNCTION add_thought(char(2), text, text, text, text, text, text, text, integer[], OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION add_thought(char(2), text, text, text, text, text, text, text, integer[], OUT mime text, OUT js json) AS $$
 DECLARE
 	pers_id integer;
 	cont_id integer;
