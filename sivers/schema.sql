@@ -24,7 +24,7 @@ COMMIT;
 CREATE FUNCTION get_comment(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM
+	js := row_to_json(r) FROM
 		(SELECT *, (SELECT row_to_json(p) AS person FROM
 			(SELECT * FROM peeps.person_view WHERE id=sivers.comments.person_id) p)
 		FROM sivers.comments WHERE id=$1) r;
@@ -69,7 +69,7 @@ BEGIN
 		VALUES (new_uri, new_name, new_email, new_html, new_person_id)
 		RETURNING id INTO new_id;
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM
+	js := row_to_json(r) FROM
 		(SELECT * FROM sivers.comments WHERE id=new_id) r;
 
 EXCEPTION
@@ -102,7 +102,7 @@ BEGIN
 	PERFORM public.jsonupdate('sivers.comments', $1, $2,
 		public.cols2update('sivers', 'comments', ARRAY['id','created_at']));
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM
+	js := row_to_json(r) FROM
 		(SELECT * FROM sivers.comments WHERE id=$1) r;
 
 EXCEPTION
@@ -130,7 +130,7 @@ BEGIN
 		'<img src="/images/icon_smile.gif" width="15" height="15" alt="smile">'),
 		' -- Derek</span>') WHERE id = $1;
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM
+	js := row_to_json(r) FROM
 		(SELECT * FROM sivers.comments WHERE id = $1) r;
 END;
 $$ LANGUAGE plpgsql;
@@ -148,7 +148,7 @@ DECLARE
 
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM
+	js := row_to_json(r) FROM
 		(SELECT * FROM sivers.comments WHERE id = $1) r;
 	DELETE FROM sivers.comments WHERE id = $1;
 
@@ -182,7 +182,7 @@ DECLARE
 BEGIN
 	SELECT person_id INTO pid FROM sivers.comments WHERE id = $1;
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM
+	js := row_to_json(r) FROM
 		(SELECT * FROM sivers.comments WHERE id = $1) r;
 	DELETE FROM sivers.comments WHERE person_id = pid;
 	DELETE FROM peeps.people WHERE id = pid;
@@ -208,7 +208,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION new_comments(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM
+	js := json_agg(r) FROM
 		(SELECT * FROM comments ORDER BY id DESC LIMIT 100) r;
 END;
 $$ LANGUAGE plpgsql;
