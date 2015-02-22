@@ -863,8 +863,7 @@ CREATE TRIGGER make_message_id BEFORE INSERT ON emails FOR EACH ROW EXECUTE PROC
 -- peeps.emailers.id needed as first argument to many functions here
 
 -- PARAMS: email, password, API_name
-DROP FUNCTION IF EXISTS auth_api(text, text, text) CASCADE;
-CREATE FUNCTION auth_api(text, text, text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION auth_api(text, text, text, OUT mime text, OUT js json) AS $$
 DECLARE
 
 	err_code text;
@@ -910,8 +909,7 @@ $$ LANGUAGE plpgsql;
 --{"derek@sivers":{"derek@sivers":43,"derek":2,"programmer":1},
 -- "we@woodegg":{"woodeggRESEARCH":1,"woodegg":1,"we@woodegg":1}}
 -- PARAMS: emailer_id
-DROP FUNCTION IF EXISTS unopened_email_count(integer) CASCADE;
-CREATE FUNCTION unopened_email_count(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION unopened_email_count(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_object_agg(profile, cats) INTO js FROM (WITH unopened AS
@@ -931,8 +929,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /emails/unopened/:profile/:category
 -- PARAMS: emailer_id, profile, category
-DROP FUNCTION IF EXISTS unopened_emails(integer, text, text) CASCADE;
-CREATE FUNCTION unopened_emails(integer, text, text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION unopened_emails(integer, text, text, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.emails_view WHERE id IN
@@ -948,8 +945,7 @@ $$ LANGUAGE plpgsql;
 -- POST /emails/next/:profile/:category
 -- Opens email (updates status as opened by this emailer) then returns view
 -- PARAMS: emailer_id, profile, category
-DROP FUNCTION IF EXISTS open_next_email(integer, text, text) CASCADE;
-CREATE FUNCTION open_next_email(integer, text, text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION open_next_email(integer, text, text, OUT mime text, OUT js json) AS $$
 DECLARE
 	eid integer;
 BEGIN
@@ -976,8 +972,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /emails/opened
 -- PARAMS: emailer_id
-DROP FUNCTION IF EXISTS opened_emails(integer) CASCADE;
-CREATE FUNCTION opened_emails(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION opened_emails(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.emails_view WHERE id IN
@@ -991,8 +986,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /emails/:id
 -- PARAMS: emailer_id, email_id
-DROP FUNCTION IF EXISTS get_email(integer, integer) CASCADE;
-CREATE FUNCTION get_email(integer, integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION get_email(integer, integer, OUT mime text, OUT js json) AS $$
 DECLARE
 	eid integer;
 BEGIN
@@ -1016,8 +1010,7 @@ $$ LANGUAGE plpgsql;
 
 -- PUT /emails/:id
 -- PARAMS: emailer_id, email_id, JSON of new values
-DROP FUNCTION IF EXISTS update_email(integer, integer, json) CASCADE;
-CREATE FUNCTION update_email(integer, integer, json, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION update_email(integer, integer, json, OUT mime text, OUT js json) AS $$
 DECLARE
 	eid integer;
 
@@ -1062,8 +1055,7 @@ $$ LANGUAGE plpgsql;
 
 -- DELETE /emails/:id
 -- PARAMS: emailer_id, email_id
-DROP FUNCTION IF EXISTS delete_email(integer, integer) CASCADE;
-CREATE FUNCTION delete_email(integer, integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION delete_email(integer, integer, OUT mime text, OUT js json) AS $$
 DECLARE
 	eid integer;
 BEGIN
@@ -1088,8 +1080,7 @@ $$ LANGUAGE plpgsql;
 
 -- PUT /emails/:id/close
 -- PARAMS: emailer_id, email_id
-DROP FUNCTION IF EXISTS close_email(integer, integer) CASCADE;
-CREATE FUNCTION close_email(integer, integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION close_email(integer, integer, OUT mime text, OUT js json) AS $$
 DECLARE
 	eid integer;
 BEGIN
@@ -1114,8 +1105,7 @@ $$ LANGUAGE plpgsql;
 
 -- PUT /emails/:id/unread
 -- PARAMS: emailer_id, email_id
-DROP FUNCTION IF EXISTS unread_email(integer, integer) CASCADE;
-CREATE FUNCTION unread_email(integer, integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION unread_email(integer, integer, OUT mime text, OUT js json) AS $$
 DECLARE
 	eid integer;
 BEGIN
@@ -1140,8 +1130,7 @@ $$ LANGUAGE plpgsql;
 
 -- PUT /emails/:id/notme
 -- PARAMS: emailer_id, email_id
-DROP FUNCTION IF EXISTS not_my_email(integer, integer) CASCADE;
-CREATE FUNCTION not_my_email(integer, integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION not_my_email(integer, integer, OUT mime text, OUT js json) AS $$
 DECLARE
 	eid integer;
 BEGIN
@@ -1169,8 +1158,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST /emails/:id/reply?body=blah
 -- PARAMS: emailer_id, email_id, body
-DROP FUNCTION IF EXISTS reply_to_email(integer, integer, text) CASCADE;
-CREATE FUNCTION reply_to_email(integer, integer, text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION reply_to_email(integer, integer, text, OUT mime text, OUT js json) AS $$
 DECLARE
 	e emails;
 	new_id integer;
@@ -1221,8 +1209,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /unknowns/count
 -- PARAMS: emailer_id
-DROP FUNCTION IF EXISTS count_unknowns(integer) CASCADE;
-CREATE FUNCTION count_unknowns(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION count_unknowns(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := json_build_object('count', (SELECT COUNT(*) FROM peeps.unknown_email_ids($1)));
@@ -1232,8 +1219,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /unknowns
 -- PARAMS: emailer_id
-DROP FUNCTION IF EXISTS get_unknowns(integer) CASCADE;
-CREATE FUNCTION get_unknowns(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION get_unknowns(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.emails_view WHERE id IN
@@ -1247,8 +1233,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /unknowns/next
 -- PARAMS: emailer_id
-DROP FUNCTION IF EXISTS get_next_unknown(integer) CASCADE;
-CREATE FUNCTION get_next_unknown(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION get_next_unknown(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.unknown_view WHERE id IN
@@ -1268,8 +1253,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST /unknowns/:id?person_id=123 or 0 to create new
 -- PARAMS: emailer_id, email_id, person_id
-DROP FUNCTION IF EXISTS set_unknown_person(integer, integer, integer) CASCADE;
-CREATE FUNCTION set_unknown_person(integer, integer, integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION set_unknown_person(integer, integer, integer, OUT mime text, OUT js json) AS $$
 DECLARE
 	this_e emails;
 	newperson people;
@@ -1328,8 +1312,7 @@ $$ LANGUAGE plpgsql;
 
 -- DELETE /unknowns/:id
 -- PARAMS: emailer_id, email_id
-DROP FUNCTION IF EXISTS delete_unknown(integer, integer) CASCADE;
-CREATE FUNCTION delete_unknown(integer, integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION delete_unknown(integer, integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.unknown_view
@@ -1353,8 +1336,7 @@ COMMIT;
 
 -- POST /people
 -- PARAMS: name, email
-DROP FUNCTION IF EXISTS create_person(text, text) CASCADE;
-CREATE FUNCTION create_person(text, text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION create_person(text, text, OUT mime text, OUT js json) AS $$
 DECLARE
 	pid integer;
 
@@ -1386,8 +1368,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /people/:id
 -- PARAMS: person_id
-DROP FUNCTION IF EXISTS get_person(integer) CASCADE;
-CREATE FUNCTION get_person(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION get_person(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.person_view WHERE id = $1) r;
@@ -1406,8 +1387,7 @@ $$ LANGUAGE plpgsql;
 
 -- PUT /people/:id
 -- PARAMS: person_id, JSON of new values
-DROP FUNCTION IF EXISTS update_person(integer, json) CASCADE;
-CREATE FUNCTION update_person(integer, json, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION update_person(integer, json, OUT mime text, OUT js json) AS $$
 DECLARE
 
 	err_code text;
@@ -1448,8 +1428,7 @@ $$ LANGUAGE plpgsql;
 
 -- DELETE /people/:id
 -- PARAMS: person_id
-DROP FUNCTION IF EXISTS delete_person(integer) CASCADE;
-CREATE FUNCTION delete_person(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION delete_person(integer, OUT mime text, OUT js json) AS $$
 DECLARE
 
 	err_code text;
@@ -1489,8 +1468,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST /people/:id/urls
 -- PARAMS: person_id, url
-DROP FUNCTION IF EXISTS add_url(integer, text) CASCADE;
-CREATE FUNCTION add_url(integer, text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION add_url(integer, text, OUT mime text, OUT js json) AS $$
 DECLARE
 
 	err_code text;
@@ -1521,8 +1499,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST /people/:id/stats
 -- PARAMS: person_id, stat.name, stat.value
-DROP FUNCTION IF EXISTS add_stat(integer, text, text) CASCADE;
-CREATE FUNCTION add_stat(integer, text, text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION add_stat(integer, text, text, OUT mime text, OUT js json) AS $$
 DECLARE
 
 	err_code text;
@@ -1553,8 +1530,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST /people/:id/emails
 -- PARAMS: emailer_id, person_id, profile, subject, body
-DROP FUNCTION IF EXISTS new_email(integer, integer, text, text, text) CASCADE;
-CREATE FUNCTION new_email(integer, integer, text, text, text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION new_email(integer, integer, text, text, text, OUT mime text, OUT js json) AS $$
 DECLARE
 	new_id integer;
 
@@ -1587,8 +1563,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /people/:id/emails
 -- PARAMS: person_id
-DROP FUNCTION IF EXISTS get_person_emails(integer) CASCADE;
-CREATE FUNCTION get_person_emails(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION get_person_emails(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM
@@ -1602,8 +1577,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST /people/:id/merge?id=old_id
 -- PARAMS: person_id to KEEP, person_id to CHANGE
-DROP FUNCTION IF EXISTS merge_person(integer, integer) CASCADE;
-CREATE FUNCTION merge_person(integer, integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION merge_person(integer, integer, OUT mime text, OUT js json) AS $$
 DECLARE
 
 	err_code text;
@@ -1634,8 +1608,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /people/unmailed
 -- PARAMS: -none-
-DROP FUNCTION IF EXISTS people_unemailed() CASCADE;
-CREATE FUNCTION people_unemailed(OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION people_unemailed(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.people_view
@@ -1646,8 +1619,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /search?q=term
 -- PARAMS: search term
-DROP FUNCTION IF EXISTS people_search(text) CASCADE;
-CREATE FUNCTION people_search(text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION people_search(text, OUT mime text, OUT js json) AS $$
 DECLARE
 	q text;
 
@@ -1688,8 +1660,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /stats/:id
 -- PARAMS: stats.id
-DROP FUNCTION IF EXISTS get_stat(integer) CASCADE;
-CREATE FUNCTION get_stat(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION get_stat(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.stats_view WHERE id=$1) r;
@@ -1709,8 +1680,7 @@ $$ LANGUAGE plpgsql;
 
 -- PUT /stat/:id
 -- PARAMS: stats.id, json
-DROP FUNCTION IF EXISTS update_stat(integer, json) CASCADE;
-CREATE FUNCTION update_stat(integer, json, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION update_stat(integer, json, OUT mime text, OUT js json) AS $$
 DECLARE
 
 	err_code text;
@@ -1751,8 +1721,7 @@ $$ LANGUAGE plpgsql;
 
 -- DELETE /stats/:id
 -- PARAMS: stats.id
-DROP FUNCTION IF EXISTS delete_stat(integer) CASCADE;
-CREATE FUNCTION delete_stat(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION delete_stat(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.stats_view WHERE id=$1) r;
@@ -1773,8 +1742,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /urls/:id
 -- PARAMS: urls.id
-DROP FUNCTION IF EXISTS get_url(integer) CASCADE;
-CREATE FUNCTION get_url(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION get_url(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.urls WHERE id=$1) r;
@@ -1793,8 +1761,7 @@ $$ LANGUAGE plpgsql;
 
 -- DELETE /urls/:id
 -- PARAMS: urls.id
-DROP FUNCTION IF EXISTS delete_url(integer) CASCADE;
-CREATE FUNCTION delete_url(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION delete_url(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM (SELECT * FROM peeps.urls WHERE id = $1) r;
@@ -1815,8 +1782,7 @@ $$ LANGUAGE plpgsql;
 
 -- PUT /urls/:id
 -- PARAMS: urls.id, JSON with allowed: person_id::int, url::text, main::boolean
-DROP FUNCTION IF EXISTS update_url(integer, json) CASCADE;
-CREATE FUNCTION update_url(integer, json, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION update_url(integer, json, OUT mime text, OUT js json) AS $$
 DECLARE
 
 	err_code text;
@@ -1857,8 +1823,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /formletters
 -- PARAMS: -none-
-DROP FUNCTION IF EXISTS get_formletters() CASCADE;
-CREATE FUNCTION get_formletters(OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION get_formletters(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM
@@ -1869,8 +1834,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST /formletters
 -- PARAMS: title
-DROP FUNCTION IF EXISTS create_formletter(text) CASCADE;
-CREATE FUNCTION create_formletter(text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION create_formletter(text, OUT mime text, OUT js json) AS $$
 DECLARE
 	new_id integer;
 
@@ -1903,8 +1867,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /formletters/:id
 -- PARAMS: formletters.id
-DROP FUNCTION IF EXISTS get_formletter(integer) CASCADE;
-CREATE FUNCTION get_formletter(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION get_formletter(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM
@@ -1924,8 +1887,7 @@ $$ LANGUAGE plpgsql;
 
 -- PUT /formletters/:id
 -- PARAMS: formletters.id, JSON keys: title, explanation, body
-DROP FUNCTION IF EXISTS update_formletter(integer, json) CASCADE;
-CREATE FUNCTION update_formletter(integer, json, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION update_formletter(integer, json, OUT mime text, OUT js json) AS $$
 DECLARE
 
 	err_code text;
@@ -1967,8 +1929,7 @@ $$ LANGUAGE plpgsql;
 
 -- DELETE /formletters/:id
 -- PARAMS: formletters.id
-DROP FUNCTION IF EXISTS delete_formletter(integer) CASCADE;
-CREATE FUNCTION delete_formletter(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION delete_formletter(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT row_to_json(r) INTO js FROM
@@ -1992,8 +1953,7 @@ $$ LANGUAGE plpgsql;
 -- If wrong IDs given, value is null
 -- GET /people/:id/formletters/:id
 -- PARAMS: people.id, formletters.id
-DROP FUNCTION IF EXISTS parsed_formletter(integer, integer) CASCADE;
-CREATE FUNCTION parsed_formletter(integer, integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION parsed_formletter(integer, integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := json_build_object('body', parse_formletter_body($1, $2));
@@ -2003,8 +1963,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /locations
 -- PARAMS: -none-
-DROP FUNCTION IF EXISTS all_countries() CASCADE;
-CREATE FUNCTION all_countries(OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION all_countries(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.countries ORDER BY name) r;
@@ -2014,8 +1973,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /country_names
 -- PARAMS: -none-
-DROP FUNCTION IF EXISTS country_names() CASCADE;
-CREATE FUNCTION country_names(OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION country_names(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := json_object(
@@ -2027,8 +1985,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /countries
 -- PARAMS: -none-
-DROP FUNCTION IF EXISTS country_count() CASCADE;
-CREATE FUNCTION country_count(OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION country_count(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT country, COUNT(*) FROM peeps.people
@@ -2039,8 +1996,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /states/:country_code
 -- PARAMS: 2-letter country code
-DROP FUNCTION IF EXISTS state_count(char(2)) CASCADE;
-CREATE FUNCTION state_count(char(2), OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION state_count(char(2), OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT state, COUNT(*) FROM peeps.people
@@ -2061,8 +2017,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /cities/:country_code/:state
 -- PARAMS: 2-letter country code, state name
-DROP FUNCTION IF EXISTS city_count(char(2)) CASCADE;
-CREATE FUNCTION city_count(char(2), text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION city_count(char(2), text, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT city, COUNT(*) FROM peeps.people
@@ -2083,8 +2038,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /cities/:country_code
 -- PARAMS: 2-letter country code
-DROP FUNCTION IF EXISTS city_count(char(2)) CASCADE;
-CREATE FUNCTION city_count(char(2), OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION city_count(char(2), OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT city, COUNT(*) FROM peeps.people
@@ -2105,8 +2059,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /where/:country_code
 -- PARAMS: 2-letter country code
-DROP FUNCTION IF EXISTS people_from_country(char(2)) CASCADE;
-CREATE FUNCTION people_from_country(char(2), OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION people_from_country(char(2), OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.people_view WHERE id IN
@@ -2127,8 +2080,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /where/:country_code?state=XX
 -- PARAMS: 2-letter country code, state
-DROP FUNCTION IF EXISTS people_from_state(char(2)) CASCADE;
-CREATE FUNCTION people_from_state(char(2), text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION people_from_state(char(2), text, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.people_view WHERE id IN
@@ -2149,8 +2101,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /where/:country_code?city=XX
 -- PARAMS: 2-letter country code, state
-DROP FUNCTION IF EXISTS people_from_city(char(2)) CASCADE;
-CREATE FUNCTION people_from_city(char(2), text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION people_from_city(char(2), text, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.people_view WHERE id IN
@@ -2171,8 +2122,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /where/:country_code?city=XX&state=XX
 -- PARAMS: 2-letter country code, state, city
-DROP FUNCTION IF EXISTS people_from_state_city(char(2)) CASCADE;
-CREATE FUNCTION people_from_state_city(char(2), text, text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION people_from_state_city(char(2), text, text, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	SELECT json_agg(r) INTO js FROM (SELECT * FROM peeps.people_view WHERE id IN
@@ -2194,8 +2144,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /stats/:key/:value
 -- PARAMS: stats.name, stats.value
-DROP FUNCTION IF EXISTS get_stats(text, text) CASCADE;
-CREATE FUNCTION get_stats(text, text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION get_stats(text, text, OUT mime text, OUT js json) AS $$
 DECLARE
 BEGIN
 	mime := 'application/json';
@@ -2210,8 +2159,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /stats/:key
 -- PARAMS: stats.name
-DROP FUNCTION IF EXISTS get_stats(text) CASCADE;
-CREATE FUNCTION get_stats(text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION get_stats(text, OUT mime text, OUT js json) AS $$
 DECLARE
 BEGIN
 	mime := 'application/json';
@@ -2225,8 +2173,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /statcount/:key
 -- PARAMS: stats.name
-DROP FUNCTION IF EXISTS get_stat_value_count(text) CASCADE;
-CREATE FUNCTION get_stat_value_count(text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION get_stat_value_count(text, OUT mime text, OUT js json) AS $$
 DECLARE
 BEGIN
 	mime := 'application/json';
@@ -2241,8 +2188,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET /statcount
 -- PARAMS: -none-
-DROP FUNCTION IF EXISTS get_stat_name_count() CASCADE;
-CREATE FUNCTION get_stat_name_count(OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION get_stat_name_count(OUT mime text, OUT js json) AS $$
 DECLARE
 BEGIN
 	mime := 'application/json';
