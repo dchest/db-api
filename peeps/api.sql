@@ -729,6 +729,19 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- GET /country_names
+-- PARAMS: -none-
+DROP FUNCTION IF EXISTS country_names() CASCADE;
+CREATE FUNCTION country_names(OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	js := json_object(
+		ARRAY(SELECT code FROM countries ORDER BY code),
+		ARRAY(SELECT name FROM countries ORDER BY code));
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- GET /countries
 -- PARAMS: -none-
 DROP FUNCTION IF EXISTS country_count() CASCADE;

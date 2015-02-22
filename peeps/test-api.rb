@@ -400,6 +400,13 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal({'code' => 'ZW','name' => 'Zimbabwe'}, @j[241])
 	end
 
+	def test_all_countries
+		qry("country_names()")
+		assert_equal 242, @j.size
+		assert_equal 'Singapore', @j['SG']
+		assert_equal 'New Zealand', @j['NZ']
+	end
+
 	def test_country_count
 		qry("country_count()")
 		assert_equal 6, @j.size
