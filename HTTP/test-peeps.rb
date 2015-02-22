@@ -157,7 +157,7 @@ class TestPeepsAPI < Minitest::Test
 		@auth = @emailer_4
 		post '/emails/8/reply', {body: 'Groovy, baby'}
 		assert_equal 11, @j['id']
-		assert_equal 3, @j['person_id']
+		assert_equal 3, @j['person']['id']
 		assert_match /\A[0-9]{17}\.3@sivers.org\Z/, @j['message_id']
 		assert_equal @j['message_id'][0,12], Time.now.strftime('%Y%m%d%H%M')
 		assert @j['body'].include? 'Groovy, baby'
@@ -207,9 +207,9 @@ class TestPeepsAPI < Minitest::Test
 
 	def test_set_unknown_person
 		post '/unknowns/5', {person_id: 0}
-		assert_equal 9, @j['person_id']
+		assert_equal 9, @j['person']['id']
 		post '/unknowns/10', {person_id: 5}
-		assert_equal 5, @j['person_id']
+		assert_equal 5, @j['person']['id']
 		get '/people/5'
 		assert_equal 'OLD EMAIL: oompa@loompa.mm', @j['notes'].strip
 	end
@@ -446,6 +446,13 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 242, @j.size
 		assert_equal({'code' => 'AF','name' => 'Afghanistan'}, @j[0])
 		assert_equal({'code' => 'ZW','name' => 'Zimbabwe'}, @j[241])
+	end
+
+	def test_country_names
+		get '/country_names'
+		assert_equal 242, @j.size
+		assert_equal 'New Zealand', @j['NZ']
+		assert_equal 'Singapore', @j['SG']
 	end
 
 	def test_country_count

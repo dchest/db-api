@@ -231,6 +231,10 @@ class Peep < Sinatra::Base
 		qry('all_countries()')
 	end
 
+	get '/country_names' do
+		qry('country_names()')
+	end
+
 	get '/countries' do
 		qry('country_count()')
 	end
