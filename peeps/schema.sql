@@ -150,10 +150,10 @@ COMMIT;
 --------------- VIEWS FOR JSON RESPONSES:
 ----------------------------------------
 
-CREATE VIEW people_view AS
+CREATE OR REPLACE VIEW people_view AS
 	SELECT id, name, email, email_count FROM people;
 
-CREATE VIEW person_view AS
+CREATE OR REPLACE VIEW person_view AS
 	SELECT id, name, address, email, company, city, state, country, notes, phone, 
 		listype, categorize_as, created_at,
 		(SELECT json_agg(s) AS stats FROM
@@ -167,15 +167,15 @@ CREATE VIEW person_view AS
 				WHERE person_id=people.id ORDER BY id) e)
 		FROM people;
 
-CREATE VIEW emails_view AS
+CREATE OR REPLACE VIEW emails_view AS
 	SELECT id, subject, created_at, their_name, their_email FROM emails;
 
-CREATE VIEW emails_full_view AS
+CREATE OR REPLACE VIEW emails_full_view AS
 	SELECT id, message_id, profile, category, created_at, opened_at, closed_at,
 		their_email, their_name, subject, headers, body, outgoing, person_id
 		FROM emails;
 
-CREATE VIEW email_view AS
+CREATE OR REPLACE VIEW email_view AS
 	SELECT id, profile, category,
 		created_at, (SELECT row_to_json(p1) AS creator FROM
 			(SELECT emailers.id, people.name FROM emailers
@@ -197,16 +197,16 @@ CREATE VIEW email_view AS
 			(SELECT * FROM person_view WHERE id = person_id) p)
 		FROM emails;
 
-CREATE VIEW unknown_view AS
+CREATE OR REPLACE VIEW unknown_view AS
 	SELECT id, their_email, their_name, headers, subject, body FROM emails;
 
-CREATE VIEW formletters_view AS
+CREATE OR REPLACE VIEW formletters_view AS
 	SELECT id, title, explanation, created_at FROM formletters;
 
-CREATE VIEW formletter_view AS
+CREATE OR REPLACE VIEW formletter_view AS
 	SELECT id, title, explanation, body, created_at FROM formletters;
 
-CREATE VIEW stats_view AS
+CREATE OR REPLACE VIEW stats_view AS
 	SELECT userstats.id, userstats.created_at, statkey AS name, statvalue AS value,
 		(SELECT row_to_json(p) FROM
 			(SELECT people.id, people.name, people.email) p) AS person
@@ -708,27 +708,29 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Strip spaces and lowercase email address before validating & storing
-CREATE FUNCTION clean_email() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION clean_email() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.email = lower(regexp_replace(NEW.email, '\s', '', 'g'));
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS clean_email ON people CASCADE;
 CREATE TRIGGER clean_email BEFORE INSERT OR UPDATE OF email ON people FOR EACH ROW EXECUTE PROCEDURE clean_email();
 
 
 -- Strip all line breaks and spaces around name before storing
-CREATE FUNCTION clean_name() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION clean_name() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.name = public.strip_tags(btrim(regexp_replace(NEW.name, '\s+', ' ', 'g')));
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS clean_name ON people CASCADE;
 CREATE TRIGGER clean_name BEFORE INSERT OR UPDATE OF name ON people FOR EACH ROW EXECUTE PROCEDURE clean_name();
 
 
 -- Statkey has no whitespace at all. Statvalue trimmed but keeps inner whitespace.
-CREATE FUNCTION clean_userstats() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION clean_userstats() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.statkey = lower(regexp_replace(NEW.statkey, '[^[:alnum:]._-]', '', 'g'));
 	IF NEW.statkey = '' THEN
@@ -741,11 +743,12 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS clean_userstats ON userstats CASCADE;
 CREATE TRIGGER clean_userstats BEFORE INSERT OR UPDATE OF statkey, statvalue ON userstats FOR EACH ROW EXECUTE PROCEDURE clean_userstats();
 
 
 -- urls.url remove all whitespace, then add http:// if not there
-CREATE FUNCTION clean_url() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION clean_url() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.url = regexp_replace(NEW.url, '\s', '', 'g');
 	IF NEW.url !~ '^https?://' THEN
@@ -757,11 +760,12 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS clean_url ON urls CASCADE;
 CREATE TRIGGER clean_url BEFORE INSERT OR UPDATE OF url ON urls FOR EACH ROW EXECUTE PROCEDURE clean_url();
 
 
 -- Create "address" (first word of name) and random password upon insert of new person
-CREATE FUNCTION generated_person_fields() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION generated_person_fields() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.address = split_part(btrim(regexp_replace(NEW.name, '\s+', ' ', 'g')), ' ', 1);
 	NEW.lopass = public.random_string(4);
@@ -769,11 +773,12 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS generate_person_fields ON peeps CASCADE;
 CREATE TRIGGER generate_person_fields BEFORE INSERT ON peeps.people FOR EACH ROW EXECUTE PROCEDURE generated_person_fields();
 
 
 -- If something sets any of these fields to '', change it to NULL before saving
-CREATE FUNCTION null_person_fields() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION null_person_fields() RETURNS TRIGGER AS $$
 BEGIN
 	IF btrim(NEW.country) = '' THEN
 		NEW.country = NULL;
@@ -784,11 +789,12 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS null_person_fields ON people CASCADE;
 CREATE TRIGGER null_person_fields BEFORE INSERT OR UPDATE OF country, email ON people FOR EACH ROW EXECUTE PROCEDURE null_person_fields();
 
 
 -- No whitespace, all lowercase, for emails.profile and emails.category
-CREATE FUNCTION clean_emails_fields() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION clean_emails_fields() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.profile = regexp_replace(lower(NEW.profile), '[^[:alnum:]_@-]', '', 'g');
 	IF TG_OP = 'INSERT' AND (NEW.category IS NULL OR trim(both ' ' from NEW.category) = '') THEN
@@ -799,11 +805,12 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS clean_emails_fields ON emails CASCADE;
 CREATE TRIGGER clean_emails_fields BEFORE INSERT OR UPDATE OF profile, category ON emails FOR EACH ROW EXECUTE PROCEDURE clean_emails_fields();
 
 
 -- Update people.email_count when number of emails for this person_id changes
-CREATE FUNCTION update_email_count() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION update_email_count() RETURNS TRIGGER AS $$
 DECLARE
 	pid integer := NULL;
 BEGIN
@@ -820,11 +827,12 @@ BEGIN
 	RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS update_email_count ON emails CASCADE;
 CREATE TRIGGER update_email_count AFTER INSERT OR DELETE OR UPDATE OF person_id ON emails FOR EACH ROW EXECUTE PROCEDURE update_email_count();
 
 
 -- Setting a URL to be the "main" one sets all other URLs for that person to be NOT main
-CREATE FUNCTION one_main_url() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION one_main_url() RETURNS TRIGGER AS $$
 BEGIN
 	IF NEW.main = 't' THEN
 		UPDATE peeps.urls SET main=FALSE WHERE person_id=NEW.person_id AND id != NEW.id;
@@ -832,22 +840,24 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS one_main_url ON urls CASCADE;
 CREATE TRIGGER one_main_url AFTER INSERT OR UPDATE OF main ON urls FOR EACH ROW EXECUTE PROCEDURE one_main_url();
 
 
 -- Generate random strings when creating new api_key
-CREATE FUNCTION generated_api_keys() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION generated_api_keys() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.akey = public.unique_for_table_field(8, 'peeps.api_keys', 'akey');
 	NEW.apass = public.random_string(8);
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS generated_api_keys ON peeps CASCADE;
 CREATE TRIGGER generated_api_keys BEFORE INSERT ON peeps.api_keys FOR EACH ROW EXECUTE PROCEDURE generated_api_keys();
 
 
 -- generate message_id for outgoing emails
-CREATE FUNCTION make_message_id() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION make_message_id() RETURNS TRIGGER AS $$
 BEGIN
 	IF NEW.message_id IS NULL AND (NEW.outgoing IS TRUE OR NEW.outgoing IS NULL) THEN
 		NEW.message_id = CONCAT(
@@ -857,6 +867,7 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS make_message_id ON emails CASCADE;
 CREATE TRIGGER make_message_id BEFORE INSERT ON emails FOR EACH ROW EXECUTE PROCEDURE make_message_id();
 
 -- API REQUIRES AUTHENTICATION. User must be in peeps.emailers
