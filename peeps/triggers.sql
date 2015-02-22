@@ -1,5 +1,5 @@
 -- Strip spaces and lowercase email address before validating & storing
-CREATE FUNCTION clean_email() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION clean_email() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.email = lower(regexp_replace(NEW.email, '\s', '', 'g'));
 	RETURN NEW;
@@ -9,7 +9,7 @@ CREATE TRIGGER clean_email BEFORE INSERT OR UPDATE OF email ON people FOR EACH R
 
 
 -- Strip all line breaks and spaces around name before storing
-CREATE FUNCTION clean_name() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION clean_name() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.name = public.strip_tags(btrim(regexp_replace(NEW.name, '\s+', ' ', 'g')));
 	RETURN NEW;
@@ -19,7 +19,7 @@ CREATE TRIGGER clean_name BEFORE INSERT OR UPDATE OF name ON people FOR EACH ROW
 
 
 -- Statkey has no whitespace at all. Statvalue trimmed but keeps inner whitespace.
-CREATE FUNCTION clean_userstats() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION clean_userstats() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.statkey = lower(regexp_replace(NEW.statkey, '[^[:alnum:]._-]', '', 'g'));
 	IF NEW.statkey = '' THEN
@@ -36,7 +36,7 @@ CREATE TRIGGER clean_userstats BEFORE INSERT OR UPDATE OF statkey, statvalue ON 
 
 
 -- urls.url remove all whitespace, then add http:// if not there
-CREATE FUNCTION clean_url() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION clean_url() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.url = regexp_replace(NEW.url, '\s', '', 'g');
 	IF NEW.url !~ '^https?://' THEN
@@ -52,7 +52,7 @@ CREATE TRIGGER clean_url BEFORE INSERT OR UPDATE OF url ON urls FOR EACH ROW EXE
 
 
 -- Create "address" (first word of name) and random password upon insert of new person
-CREATE FUNCTION generated_person_fields() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION generated_person_fields() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.address = split_part(btrim(regexp_replace(NEW.name, '\s+', ' ', 'g')), ' ', 1);
 	NEW.lopass = public.random_string(4);
@@ -64,7 +64,7 @@ CREATE TRIGGER generate_person_fields BEFORE INSERT ON peeps.people FOR EACH ROW
 
 
 -- If something sets any of these fields to '', change it to NULL before saving
-CREATE FUNCTION null_person_fields() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION null_person_fields() RETURNS TRIGGER AS $$
 BEGIN
 	IF btrim(NEW.country) = '' THEN
 		NEW.country = NULL;
@@ -79,7 +79,7 @@ CREATE TRIGGER null_person_fields BEFORE INSERT OR UPDATE OF country, email ON p
 
 
 -- No whitespace, all lowercase, for emails.profile and emails.category
-CREATE FUNCTION clean_emails_fields() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION clean_emails_fields() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.profile = regexp_replace(lower(NEW.profile), '[^[:alnum:]_@-]', '', 'g');
 	IF TG_OP = 'INSERT' AND (NEW.category IS NULL OR trim(both ' ' from NEW.category) = '') THEN
@@ -94,7 +94,7 @@ CREATE TRIGGER clean_emails_fields BEFORE INSERT OR UPDATE OF profile, category 
 
 
 -- Update people.email_count when number of emails for this person_id changes
-CREATE FUNCTION update_email_count() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION update_email_count() RETURNS TRIGGER AS $$
 DECLARE
 	pid integer := NULL;
 BEGIN
@@ -115,7 +115,7 @@ CREATE TRIGGER update_email_count AFTER INSERT OR DELETE OR UPDATE OF person_id 
 
 
 -- Setting a URL to be the "main" one sets all other URLs for that person to be NOT main
-CREATE FUNCTION one_main_url() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION one_main_url() RETURNS TRIGGER AS $$
 BEGIN
 	IF NEW.main = 't' THEN
 		UPDATE peeps.urls SET main=FALSE WHERE person_id=NEW.person_id AND id != NEW.id;
@@ -127,7 +127,7 @@ CREATE TRIGGER one_main_url AFTER INSERT OR UPDATE OF main ON urls FOR EACH ROW 
 
 
 -- Generate random strings when creating new api_key
-CREATE FUNCTION generated_api_keys() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION generated_api_keys() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.akey = public.unique_for_table_field(8, 'peeps.api_keys', 'akey');
 	NEW.apass = public.random_string(8);
@@ -138,7 +138,7 @@ CREATE TRIGGER generated_api_keys BEFORE INSERT ON peeps.api_keys FOR EACH ROW E
 
 
 -- generate message_id for outgoing emails
-CREATE FUNCTION make_message_id() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION make_message_id() RETURNS TRIGGER AS $$
 BEGIN
 	IF NEW.message_id IS NULL AND (NEW.outgoing IS TRUE OR NEW.outgoing IS NULL) THEN
 		NEW.message_id = CONCAT(

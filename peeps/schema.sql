@@ -328,14 +328,14 @@ $$ LANGUAGE plpgsql;
 ----------------------------
 
 -- pgcrypto for people.hashpass
-CREATE FUNCTION crypt(text, text) RETURNS text AS '$libdir/pgcrypto', 'pg_crypt' LANGUAGE c IMMUTABLE STRICT;
-CREATE FUNCTION gen_salt(text, integer) RETURNS text AS '$libdir/pgcrypto', 'pg_gen_salt_rounds' LANGUAGE c STRICT;
+CREATE OR REPLACE FUNCTION crypt(text, text) RETURNS text AS '$libdir/pgcrypto', 'pg_crypt' LANGUAGE c IMMUTABLE STRICT;
+CREATE OR REPLACE FUNCTION gen_salt(text, integer) RETURNS text AS '$libdir/pgcrypto', 'pg_gen_salt_rounds' LANGUAGE c STRICT;
 
 
 -- Use this to add a new person to the database.  Ensures unique email without clash.
 -- USAGE: SELECT * FROM person_create('Dude Abides', 'dude@abid.es');
 -- Will always return peeps.people row, whether new INSERT or existing SELECT
-CREATE FUNCTION person_create(new_name text, new_email text) RETURNS SETOF peeps.people AS $$
+CREATE OR REPLACE FUNCTION person_create(new_name text, new_email text) RETURNS SETOF peeps.people AS $$
 DECLARE
 	clean_email text;
 BEGIN
@@ -355,7 +355,7 @@ $$ LANGUAGE plpgsql;
 -- Use this for user choosing their own password.
 -- USAGE: SELECT set_password(123, 'Th€IR nü FunK¥(!) pá$$werđ');
 -- Returns false if that peeps.people.id doesn't exist, otherwise true.
-CREATE FUNCTION set_password(person_id integer, password text) RETURNS boolean AS $$
+CREATE OR REPLACE FUNCTION set_password(person_id integer, password text) RETURNS boolean AS $$
 BEGIN
 	IF password IS NULL OR length(btrim(password)) < 4 THEN
 		RAISE 'short_password';
@@ -374,7 +374,7 @@ $$ LANGUAGE plpgsql;
 -- USAGE: SELECT * FROM person_email_pass('dude@abid.es', 'Th€IR öld FunK¥ pá$$werđ');
 -- Returns peeps.people.* if both are correct, or nothing if not.
 -- Once authorized here, give logins or api_key cookie for future lookups.
-CREATE FUNCTION person_email_pass(my_email text, my_pass text) RETURNS SETOF peeps.people AS $$
+CREATE OR REPLACE FUNCTION person_email_pass(my_email text, my_pass text) RETURNS SETOF peeps.people AS $$
 DECLARE
 	clean_email text;
 BEGIN
@@ -394,7 +394,7 @@ $$ LANGUAGE plpgsql;
 -- USAGE: SELECT person_merge_from_to(5432, 4321);
 -- Returns array of tables actually updated in schema.table format like {'muckwork.clients', 'sivers.comments'}
 -- (Return value is probably unneeded, but here it is anyway, just in case.)
-CREATE FUNCTION person_merge_from_to(old_id integer, new_id integer) RETURNS text[] AS $$
+CREATE OR REPLACE FUNCTION person_merge_from_to(old_id integer, new_id integer) RETURNS text[] AS $$
 DECLARE
 	done_tables text[] := ARRAY[]::text[];
 	a_table text;
@@ -447,7 +447,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Returns emails.* only if emailers.profiles && emailers.cateories matches
-CREATE FUNCTION emailer_get_email(emailer_id integer, email_id integer) RETURNS SETOF peeps.emails AS $$
+CREATE OR REPLACE FUNCTION emailer_get_email(emailer_id integer, email_id integer) RETURNS SETOF peeps.emails AS $$
 DECLARE
 	emailer emailers;
 	email emails;
@@ -465,7 +465,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Returns unopened emails.* that this emailer is authorized to see
-CREATE FUNCTION emailer_get_unopened(emailer_id integer) RETURNS SETOF peeps.emails AS $$
+CREATE OR REPLACE FUNCTION emailer_get_unopened(emailer_id integer) RETURNS SETOF peeps.emails AS $$
 DECLARE
 	qry text := 'SELECT * FROM peeps.emails WHERE opened_at IS NULL AND person_id IS NOT NULL';
 	emailer emailers;
@@ -485,7 +485,7 @@ $$ LANGUAGE plpgsql;
 
 -- Once a person has correctly given their email and password, call this to create cookie info.
 -- Returns a single 65-character string, ready to be set as the cookie value
-CREATE FUNCTION login_person_domain(my_person_id integer, my_domain char) RETURNS text AS $$
+CREATE OR REPLACE FUNCTION login_person_domain(my_person_id integer, my_domain char) RETURNS text AS $$
 DECLARE
 	c_id text;
 	c_tok text;
@@ -501,7 +501,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Give the cookie value returned from login_person_domain, and I'll return people.* if found and not expired
-CREATE FUNCTION get_person_from_cookie(cookie char) RETURNS SETOF peeps.people AS $$
+CREATE OR REPLACE FUNCTION get_person_from_cookie(cookie char) RETURNS SETOF peeps.people AS $$
 DECLARE
 	c_id text;
 	c_tok text;
@@ -521,7 +521,7 @@ $$ LANGUAGE plpgsql;
 
 -- ids of unopened emails this emailer is allowed to access
 -- PARAMS: emailer_id
-CREATE FUNCTION unopened_email_ids(integer) RETURNS SETOF integer AS $$
+CREATE OR REPLACE FUNCTION unopened_email_ids(integer) RETURNS SETOF integer AS $$
 DECLARE
 	pros text[];
 	cats text[];
@@ -547,7 +547,7 @@ $$ LANGUAGE plpgsql;
 
 -- ids of already-open emails this emailer is allowed to access
 -- PARAMS: emailer_id
-CREATE FUNCTION opened_email_ids(integer) RETURNS SETOF integer AS $$
+CREATE OR REPLACE FUNCTION opened_email_ids(integer) RETURNS SETOF integer AS $$
 DECLARE
 	pros text[];
 	cats text[];
@@ -574,7 +574,7 @@ $$ LANGUAGE plpgsql;
 -- ids of unknown-person emails, if this emailer is admin or allowed
 -- (unknown-person emails don't have categories, so not checking for that)
 -- PARAMS: emailer_id
-CREATE FUNCTION unknown_email_ids(integer) RETURNS SETOF integer AS $$
+CREATE OR REPLACE FUNCTION unknown_email_ids(integer) RETURNS SETOF integer AS $$
 DECLARE
 	pros text[];
 BEGIN
@@ -592,7 +592,7 @@ $$ LANGUAGE plpgsql;
 -- If this emailer is allowed to see this email,
 -- Returns email.id if found and permission granted, NULL if not
 -- PARAMS: emailer_id, email_id
-CREATE FUNCTION ok_email(integer, integer) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION ok_email(integer, integer) RETURNS integer AS $$
 DECLARE
 	pros text[];
 	cats text[];
@@ -617,7 +617,7 @@ $$ LANGUAGE plpgsql;
 -- Update it to be shown as opened_by this emailer now (if not already open)
 -- Returns email.id if found and permission granted, NULL if not
 -- PARAMS: emailer_id, email_id
-CREATE FUNCTION open_email(integer, integer) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION open_email(integer, integer) RETURNS integer AS $$
 DECLARE
 	ok_id integer;
 BEGIN
@@ -633,7 +633,7 @@ $$ LANGUAGE plpgsql;
 
 -- Create a new outging email
 -- PARAMS: emailer_id, person_id, profile, category, subject, body, reference_id (NULL unless reply)
-CREATE FUNCTION outgoing_email(integer, integer, text, text, text, text, integer) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION outgoing_email(integer, integer, text, text, text, text, integer) RETURNS integer AS $$
 DECLARE
 	p people;
 	rowcount integer;
@@ -690,7 +690,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- PARAMS: people.id, formletters.id
-CREATE FUNCTION parse_formletter_body(integer, integer) RETURNS text AS $$
+CREATE OR REPLACE FUNCTION parse_formletter_body(integer, integer) RETURNS text AS $$
 DECLARE
 	new_body text;
 	thisvar text;

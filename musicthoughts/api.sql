@@ -16,7 +16,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION all_categories(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT id, en, es, fr, de, it, pt, ja, zh, ar, ru,
+	js := json_agg(r) FROM (SELECT id, en, es, fr, de, it, pt, ja, zh, ar, ru,
 		(SELECT COUNT(thoughts.id) FROM categories_thoughts, thoughts
 			WHERE category_id=categories.id
 			AND thoughts.id=categories_thoughts.thought_id AND thoughts.approved IS TRUE)
@@ -30,7 +30,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION category(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM category_view WHERE id=$1) r;
+	js := row_to_json(r) FROM (SELECT * FROM category_view WHERE id=$1) r;
 	IF js IS NULL THEN
 m4_NOTFOUND
 	END IF;
@@ -44,7 +44,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION top_authors(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT * FROM authors_view LIMIT $1) r;
+	js := json_agg(r) FROM (SELECT * FROM authors_view LIMIT $1) r;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -54,7 +54,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION get_author(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM author_view WHERE id=$1) r;
+	js := row_to_json(r) FROM (SELECT * FROM author_view WHERE id=$1) r;
 	IF js IS NULL THEN
 m4_NOTFOUND
 	END IF;
@@ -68,7 +68,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION top_contributors(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT * FROM contributors_view LIMIT $1) r;
+	js := json_agg(r) FROM (SELECT * FROM contributors_view LIMIT $1) r;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -78,7 +78,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION get_contributor(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM contributor_view WHERE id=$1) r;
+	js := row_to_json(r) FROM (SELECT * FROM contributor_view WHERE id=$1) r;
 	IF js IS NULL THEN
 m4_NOTFOUND
 	END IF;
@@ -91,7 +91,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION random_thought(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM thought_view WHERE id =
+	js := row_to_json(r) FROM (SELECT * FROM thought_view WHERE id =
 		(SELECT id FROM thoughts WHERE as_rand IS TRUE ORDER BY RANDOM() LIMIT 1)) r;
 END;
 $$ LANGUAGE plpgsql;
@@ -102,7 +102,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION get_thought(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT row_to_json(r) INTO js FROM (SELECT * FROM thought_view WHERE id = $1) r;
+	js := row_to_json(r) FROM (SELECT * FROM thought_view WHERE id = $1) r;
 	IF js IS NULL THEN
 m4_NOTFOUND
 	END IF;
@@ -116,7 +116,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION new_thoughts(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	SELECT json_agg(r) INTO js FROM (SELECT * FROM thought_view LIMIT $1) r;
+	js := json_agg(r) FROM (SELECT * FROM thought_view LIMIT $1) r;
 END;
 $$ LANGUAGE plpgsql;
 
