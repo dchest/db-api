@@ -1,6 +1,6 @@
 -- POST %r{^/comments/([0-9]+)$}
 -- PARAMS: comment id
-CREATE FUNCTION get_comment(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION get_comment(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM
@@ -16,7 +16,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST %r{^/comments/([0-9]+)$}
 -- PARAMS: uri, name, email, html
-CREATE FUNCTION add_comment(text, text, text, text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION add_comment(text, text, text, text, OUT mime text, OUT js json) AS $$
 DECLARE
 	new_uri text;
 	new_name text;
@@ -46,7 +46,7 @@ $$ LANGUAGE plpgsql;
 
 -- PUT %r{^/comments/([0-9]+)$}
 -- PARAMS: comments.id, JSON of values to update
-CREATE FUNCTION update_comment(integer, json, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION update_comment(integer, json, OUT mime text, OUT js json) AS $$
 DECLARE
 m4_ERRVARS
 BEGIN
@@ -62,7 +62,7 @@ $$ LANGUAGE plpgsql;
 
 -- POST %r{^/comments/([0-9]+)/reply$}
 -- PARAMS: comment_id, my reply
-CREATE FUNCTION reply_to_comment(integer, text, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION reply_to_comment(integer, text, OUT mime text, OUT js json) AS $$
 BEGIN
 	UPDATE sivers.comments SET html = CONCAT(html, '<br><span class="response">',
 		replace($2, ':-)',
@@ -77,7 +77,7 @@ $$ LANGUAGE plpgsql;
 
 -- DELETE %r{^/comments/([0-9]+)$}
 -- PARAMS: comment_id
-CREATE FUNCTION delete_comment(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION delete_comment(integer, OUT mime text, OUT js json) AS $$
 DECLARE
 m4_ERRVARS
 BEGIN
@@ -92,7 +92,7 @@ $$ LANGUAGE plpgsql;
 
 -- DELETE %r{^/comments/([0-9]+)/spam$}
 -- PARAMS: comment_id
-CREATE FUNCTION spam_comment(integer, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION spam_comment(integer, OUT mime text, OUT js json) AS $$
 DECLARE
 	pid integer;
 m4_ERRVARS
@@ -110,7 +110,7 @@ $$ LANGUAGE plpgsql;
 
 -- GET '/comments/new'
 -- PARAMS: -none-
-CREATE FUNCTION new_comments(OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION new_comments(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := json_agg(r) FROM
