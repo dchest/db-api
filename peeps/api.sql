@@ -50,7 +50,7 @@ BEGIN
 	mime := 'application/json';
 	js := json_agg(r) FROM (SELECT * FROM peeps.emails_view WHERE id IN
 		(SELECT id FROM peeps.emails WHERE id IN (SELECT * FROM peeps.unopened_email_ids($1))
-			AND profile = $2 AND category = $3)) r;
+			AND profile = $2 AND category = $3) ORDER BY id) r;
 	IF js IS NULL THEN
 		js := '[]';
 	END IF;
@@ -67,7 +67,7 @@ DECLARE
 BEGIN
 	SELECT id INTO eid FROM peeps.emails
 		WHERE id IN (SELECT * FROM peeps.unopened_email_ids($1))
-		AND profile=$2 AND category=$3 LIMIT 1;
+		AND profile=$2 AND category=$3 ORDER BY id LIMIT 1;
 	IF eid IS NULL THEN
 m4_NOTFOUND
 	ELSE
@@ -86,7 +86,7 @@ CREATE OR REPLACE FUNCTION opened_emails(integer, OUT mime text, OUT js json) AS
 BEGIN
 	mime := 'application/json';
 	js := json_agg(r) FROM (SELECT * FROM peeps.emails_view WHERE id IN
-		(SELECT * FROM peeps.opened_email_ids($1))) r;
+		(SELECT * FROM peeps.opened_email_ids($1)) ORDER BY id) r;
 	IF js IS NULL THEN
 		js := '[]';
 	END IF;
