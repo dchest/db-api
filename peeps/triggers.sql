@@ -64,8 +64,8 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS generate_person_fields ON peeps CASCADE;
-CREATE TRIGGER generate_person_fields BEFORE INSERT ON peeps.people FOR EACH ROW EXECUTE PROCEDURE generated_person_fields();
+DROP TRIGGER IF EXISTS generate_person_fields ON people CASCADE;
+CREATE TRIGGER generate_person_fields BEFORE INSERT ON people FOR EACH ROW EXECUTE PROCEDURE generated_person_fields();
 
 
 -- If something sets any of these fields to '', change it to NULL before saving
@@ -143,8 +143,8 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS generated_api_keys ON peeps CASCADE;
-CREATE TRIGGER generated_api_keys BEFORE INSERT ON peeps.api_keys FOR EACH ROW EXECUTE PROCEDURE generated_api_keys();
+DROP TRIGGER IF EXISTS generated_api_keys ON api_keys CASCADE;
+CREATE TRIGGER generated_api_keys BEFORE INSERT ON api_keys FOR EACH ROW EXECUTE PROCEDURE generated_api_keys();
 
 
 -- generate message_id for outgoing emails

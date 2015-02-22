@@ -150,10 +150,12 @@ COMMIT;
 --------------- VIEWS FOR JSON RESPONSES:
 ----------------------------------------
 
-CREATE OR REPLACE VIEW people_view AS
+DROP VIEW IF EXISTS people_view CASCADE;
+CREATE VIEW people_view AS
 	SELECT id, name, email, email_count FROM people;
 
-CREATE OR REPLACE VIEW person_view AS
+DROP VIEW IF EXISTS person_view CASCADE;
+CREATE VIEW person_view AS
 	SELECT id, name, address, email, company, city, state, country, notes, phone, 
 		listype, categorize_as, created_at,
 		(SELECT json_agg(s) AS stats FROM
@@ -167,15 +169,18 @@ CREATE OR REPLACE VIEW person_view AS
 				WHERE person_id=people.id ORDER BY id) e)
 		FROM people;
 
-CREATE OR REPLACE VIEW emails_view AS
+DROP VIEW IF EXISTS emails_view CASCADE;
+CREATE VIEW emails_view AS
 	SELECT id, subject, created_at, their_name, their_email FROM emails;
 
-CREATE OR REPLACE VIEW emails_full_view AS
+DROP VIEW IF EXISTS emails_full_view CASCADE;
+CREATE VIEW emails_full_view AS
 	SELECT id, message_id, profile, category, created_at, opened_at, closed_at,
 		their_email, their_name, subject, headers, body, outgoing, person_id
 		FROM emails;
 
-CREATE OR REPLACE VIEW email_view AS
+DROP VIEW IF EXISTS email_view CASCADE;
+CREATE VIEW email_view AS
 	SELECT id, profile, category,
 		created_at, (SELECT row_to_json(p1) AS creator FROM
 			(SELECT emailers.id, people.name FROM emailers
@@ -197,16 +202,20 @@ CREATE OR REPLACE VIEW email_view AS
 			(SELECT * FROM person_view WHERE id = person_id) p)
 		FROM emails;
 
-CREATE OR REPLACE VIEW unknown_view AS
+DROP VIEW IF EXISTS unknown_view CASCADE;
+CREATE VIEW unknown_view AS
 	SELECT id, their_email, their_name, headers, subject, body FROM emails;
 
-CREATE OR REPLACE VIEW formletters_view AS
+DROP VIEW IF EXISTS formletters_view CASCADE;
+CREATE VIEW formletters_view AS
 	SELECT id, title, explanation, created_at FROM formletters;
 
-CREATE OR REPLACE VIEW formletter_view AS
+DROP VIEW IF EXISTS formletter_view CASCADE;
+CREATE VIEW formletter_view AS
 	SELECT id, title, explanation, body, created_at FROM formletters;
 
-CREATE OR REPLACE VIEW stats_view AS
+DROP VIEW IF EXISTS stats_view CASCADE;
+CREATE VIEW stats_view AS
 	SELECT userstats.id, userstats.created_at, statkey AS name, statvalue AS value,
 		(SELECT row_to_json(p) FROM
 			(SELECT people.id, people.name, people.email) p) AS person
@@ -773,8 +782,8 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS generate_person_fields ON peeps CASCADE;
-CREATE TRIGGER generate_person_fields BEFORE INSERT ON peeps.people FOR EACH ROW EXECUTE PROCEDURE generated_person_fields();
+DROP TRIGGER IF EXISTS generate_person_fields ON people CASCADE;
+CREATE TRIGGER generate_person_fields BEFORE INSERT ON people FOR EACH ROW EXECUTE PROCEDURE generated_person_fields();
 
 
 -- If something sets any of these fields to '', change it to NULL before saving
@@ -852,8 +861,8 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS generated_api_keys ON peeps CASCADE;
-CREATE TRIGGER generated_api_keys BEFORE INSERT ON peeps.api_keys FOR EACH ROW EXECUTE PROCEDURE generated_api_keys();
+DROP TRIGGER IF EXISTS generated_api_keys ON api_keys CASCADE;
+CREATE TRIGGER generated_api_keys BEFORE INSERT ON api_keys FOR EACH ROW EXECUTE PROCEDURE generated_api_keys();
 
 
 -- generate message_id for outgoing emails
