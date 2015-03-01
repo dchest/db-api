@@ -56,8 +56,6 @@ If POST /login works, it sets the 3 needed cookies (person_id, api_key, api_pass
 * 10011 = MusicThoughtsPublic test
 * 10020 = SiversCommentsAdmin
 * 10021 = SiversCommentsAdmin test
-* 10030 = SiversCommentsPublic
-* 10031 = SiversCommentsPublic test
 
 
 
