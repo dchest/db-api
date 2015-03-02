@@ -43,7 +43,7 @@ module Testful
 			opts.merge!(params: args)
 		end
 		@res = Nestful::Request.new(BASE + url, opts).execute
-		@j = (String(@res.body) == '') ? nil : JSON.parse(@res.body)
+		@j = (String(@res.body) == '') ? nil : JSON.parse(@res.body, symbolize_names: true)
 	end
 	def get(url)
 		prox(:get, url)

@@ -17,35 +17,35 @@ class TestSiversCommentsAdminAPI < Minitest::Test
 
 	def test_comments_newest
 		get '/comments'
-		assert_equal [5, 4, 3, 2, 1], @j.map {|x| x['id']}
+		assert_equal [5, 4, 3, 2, 1], @j.map {|x| x[:id]}
 	end
 
 	def test_reply
 		post '/comments/1/reply', {reply: 'Thanks'}
-		assert_equal 'That is great.<br><span class="response">Thanks -- Derek</span>', @j['html']
+		assert_equal 'That is great.<br><span class="response">Thanks -- Derek</span>', @j[:html]
 		post '/comments/2/reply', {reply: ':-)'}
-		assert_includes @j['html'], 'smile'
+		assert_includes @j[:html], 'smile'
 	end
 
 	def test_delete
 		delete '/comments/5'
-		assert_equal 'spam2', @j['html']
+		assert_equal 'spam2', @j[:html]
 		get '/comments'
-		assert_equal [4, 3, 2, 1], @j.map {|x| x['id']}
+		assert_equal [4, 3, 2, 1], @j.map {|x| x[:id]}
 	end
 
 	def test_spam
 		delete '/comments/5/spam'
-		assert_equal 'spam2', @j['html']
+		assert_equal 'spam2', @j[:html]
 		get '/comments'
-		assert_equal [3, 2, 1], @j.map {|x| x['id']}
+		assert_equal [3, 2, 1], @j.map {|x| x[:id]}
 	end
 
 	def test_update
 		put '/comments/5', {json: '{"html":"new body", "name":"Opa!", "ignore":true}'}
-		assert_equal 'Opa!', @j['name']
-		assert_equal 'new body', @j['html']
-		assert_equal 'oompa@loompa.mm', @j['email']
+		assert_equal 'Opa!', @j[:name]
+		assert_equal 'new body', @j[:html]
+		assert_equal 'oompa@loompa.mm', @j[:email]
 	end
 
 end
