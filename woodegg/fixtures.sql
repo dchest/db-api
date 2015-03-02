@@ -80,8 +80,8 @@ ALTER TABLE questions ENABLE TRIGGER ALL;
 
 ALTER TABLE researchers DISABLE TRIGGER ALL;
 
-INSERT INTO researchers (id, person_id, bio) VALUES (1, 7, 'Yes I am Gong Li');
-INSERT INTO researchers (id, person_id, bio) VALUES (2, 8, 'Yes I am Yoko Ono');
+INSERT INTO researchers (id, person_id, bio) VALUES (1, 7, 'This is Gong Li');
+INSERT INTO researchers (id, person_id, bio) VALUES (2, 8, 'This is Yoko Ono');
 INSERT INTO researchers (id, person_id, bio) VALUES (3, 5, 'yes i am researching China');
 
 
@@ -154,8 +154,8 @@ ALTER TABLE books_customers ENABLE TRIGGER ALL;
 
 ALTER TABLE editors DISABLE TRIGGER ALL;
 
-INSERT INTO editors (id, person_id, bio) VALUES (1, 1, NULL);
-INSERT INTO editors (id, person_id, bio) VALUES (2, 2, NULL);
+INSERT INTO editors (id, person_id, bio) VALUES (1, 1, 'This is Derek');
+INSERT INTO editors (id, person_id, bio) VALUES (2, 2, 'This is Wonka');
 
 
 ALTER TABLE editors ENABLE TRIGGER ALL;
@@ -198,8 +198,8 @@ ALTER TABLE books_researchers ENABLE TRIGGER ALL;
 
 ALTER TABLE writers DISABLE TRIGGER ALL;
 
-INSERT INTO writers (id, person_id, bio) VALUES (1, 3, 'Yes I am Veruca Salt');
-INSERT INTO writers (id, person_id, bio) VALUES (2, 4, 'Yes I am Charlie Bucket');
+INSERT INTO writers (id, person_id, bio) VALUES (1, 3, 'This is Veruca Salt');
+INSERT INTO writers (id, person_id, bio) VALUES (2, 4, 'This is Charlie Buckets');
 
 
 ALTER TABLE writers ENABLE TRIGGER ALL;
