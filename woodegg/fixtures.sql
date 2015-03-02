@@ -93,15 +93,15 @@ ALTER TABLE researchers ENABLE TRIGGER ALL;
 
 ALTER TABLE answers DISABLE TRIGGER ALL;
 
-INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, payable, answer, sources) VALUES (1, 1, 1, '2013-06-28 20:16:40+12', '2013-06-28 20:26:40+12', true, 'China whatever1', 'none');
-INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, payable, answer, sources) VALUES (2, 2, 1, '2013-06-28 20:26:40+12', '2013-06-28 20:36:40+12', true, 'China whatever2', NULL);
-INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, payable, answer, sources) VALUES (3, 3, 1, '2013-06-28 20:36:40+12', '2013-06-28 20:46:40+12', true, 'China whatever3', NULL);
-INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, payable, answer, sources) VALUES (4, 4, 1, '2013-06-28 20:46:40+12', '2013-06-28 20:56:40+12', NULL, 'China whatever4', 'none');
-INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, payable, answer, sources) VALUES (5, 5, 1, '2013-06-28 20:56:40+12', '2013-06-28 21:06:40+12', NULL, 'China whatever5', NULL);
-INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, payable, answer, sources) VALUES (6, 6, 2, '2013-06-28 21:10:26+12', '2013-06-28 21:20:26+12', true, 'Japan it depends 6', 'mind');
-INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, payable, answer, sources) VALUES (7, 7, 2, '2013-06-28 21:20:26+12', '2013-06-28 21:30:26+12', true, 'Japan it depends 7', 'mind');
-INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, payable, answer, sources) VALUES (8, 8, 2, '2013-06-28 21:30:26+12', '2013-06-28 21:40:26+12', false, 'Japan blah blah. Unacceptable answer here.', NULL);
-INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, payable, answer, sources) VALUES (9, 9, 2, '2013-06-28 21:40:26+12', NULL, NULL, NULL, NULL);
+INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, answer, sources) VALUES (1, 1, 1, '2013-06-28 20:16:40+12', '2013-06-28 20:26:40+12', 'China whatever1', 'none');
+INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, answer, sources) VALUES (2, 2, 1, '2013-06-28 20:26:40+12', '2013-06-28 20:36:40+12', 'China whatever2', NULL);
+INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, answer, sources) VALUES (3, 3, 1, '2013-06-28 20:36:40+12', '2013-06-28 20:46:40+12', 'China whatever3', NULL);
+INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, answer, sources) VALUES (4, 4, 1, '2013-06-28 20:46:40+12', '2013-06-28 20:56:40+12', 'China whatever4', 'none');
+INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, answer, sources) VALUES (5, 5, 1, '2013-06-28 20:56:40+12', '2013-06-28 21:06:40+12', 'China whatever5', NULL);
+INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, answer, sources) VALUES (6, 6, 2, '2013-06-28 21:10:26+12', '2013-06-28 21:20:26+12', 'Japan it depends 6', 'mind');
+INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, answer, sources) VALUES (7, 7, 2, '2013-06-28 21:20:26+12', '2013-06-28 21:30:26+12', 'Japan it depends 7', 'mind');
+INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, answer, sources) VALUES (8, 8, 2, '2013-06-28 21:30:26+12', '2013-06-28 21:40:26+12', 'Japan blah blah. Unacceptable answer here.', NULL);
+INSERT INTO answers (id, question_id, researcher_id, started_at, finished_at, answer, sources) VALUES (9, 9, 2, '2013-06-28 21:40:26+12', NULL, NULL, NULL);
 
 
 ALTER TABLE answers ENABLE TRIGGER ALL;
@@ -236,15 +236,15 @@ SELECT pg_catalog.setval('editors_id_seq', 2, true);
 
 ALTER TABLE essays DISABLE TRIGGER ALL;
 
-INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited, payable) VALUES (1, 1, 1, 1, 1, '2013-06-28 22:41:14+12', '2013-06-28 22:51:14+12', '2013-06-29 02:01:14+12', 'China whatever1?', 'China whatever1!', true);
-INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited, payable) VALUES (2, 2, 1, 1, 1, '2013-06-28 22:51:14+12', '2013-06-28 23:01:14+12', '2013-06-29 02:11:14+12', 'China whatever2?', 'China whatever2!', true);
-INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited, payable) VALUES (3, 3, 1, 1, 1, '2013-06-28 23:01:14+12', '2013-06-28 23:11:14+12', '2013-06-29 02:21:14+12', 'China .whatever3.', 'China whatever3', true);
-INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited, payable) VALUES (4, 4, 1, 1, 1, '2013-06-28 23:11:14+12', '2013-06-28 23:21:14+12', '2013-06-29 02:31:14+12', 'China whatever4', 'China whatever4', true);
-INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited, payable) VALUES (5, 5, 1, 1, 1, '2013-06-28 23:21:14+12', '2013-06-28 23:31:14+12', '2013-06-29 02:41:14+12', 'China? whatever5', 'China! whatever5', true);
-INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited, payable) VALUES (6, 6, 2, 2, 2, '2013-07-08 22:41:14+12', '2013-07-08 22:51:14+12', '2013-07-10 02:41:14+12', 'Japan whatever1', 'Japan. Whatever. One.', true);
-INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited, payable) VALUES (7, 7, 2, 2, 2, '2013-07-08 23:41:14+12', '2013-07-08 23:51:14+12', NULL, 'Japan whatever2', 'Editor still editing this one.', true);
-INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited, payable) VALUES (8, 8, 2, 2, NULL, '2013-07-08 23:44:14+12', '2013-07-08 23:49:14+12', NULL, 'Japan finished but unjudged', NULL, NULL);
-INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited, payable) VALUES (9, 9, 2, 2, NULL, '2013-07-08 23:52:14+12', NULL, NULL, 'Japan unfinished', NULL, NULL);
+INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited) VALUES (1, 1, 1, 1, 1, '2013-06-28 22:41:14+12', '2013-06-28 22:51:14+12', '2013-06-29 02:01:14+12', 'China whatever1?', 'China whatever1!');
+INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited) VALUES (2, 2, 1, 1, 1, '2013-06-28 22:51:14+12', '2013-06-28 23:01:14+12', '2013-06-29 02:11:14+12', 'China whatever2?', 'China whatever2!');
+INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited) VALUES (3, 3, 1, 1, 1, '2013-06-28 23:01:14+12', '2013-06-28 23:11:14+12', '2013-06-29 02:21:14+12', 'China .whatever3.', 'China whatever3');
+INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited) VALUES (4, 4, 1, 1, 1, '2013-06-28 23:11:14+12', '2013-06-28 23:21:14+12', '2013-06-29 02:31:14+12', 'China whatever4', 'China whatever4');
+INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited) VALUES (5, 5, 1, 1, 1, '2013-06-28 23:21:14+12', '2013-06-28 23:31:14+12', '2013-06-29 02:41:14+12', 'China? whatever5', 'China! whatever5');
+INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited) VALUES (6, 6, 2, 2, 2, '2013-07-08 22:41:14+12', '2013-07-08 22:51:14+12', '2013-07-10 02:41:14+12', 'Japan whatever1', 'Japan. Whatever. One.');
+INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited) VALUES (7, 7, 2, 2, 2, '2013-07-08 23:41:14+12', '2013-07-08 23:51:14+12', NULL, 'Japan whatever2', 'Editor still editing this one.');
+INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited) VALUES (8, 8, 2, 2, NULL, '2013-07-08 23:44:14+12', '2013-07-08 23:49:14+12', NULL, 'Japan finished but unjudged', NULL);
+INSERT INTO essays (id, question_id, writer_id, book_id, editor_id, started_at, finished_at, edited_at, content, edited) VALUES (9, 9, 2, 2, NULL, '2013-07-08 23:52:14+12', NULL, NULL, 'Japan unfinished', NULL);
 
 
 ALTER TABLE essays ENABLE TRIGGER ALL;

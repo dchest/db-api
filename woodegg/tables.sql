@@ -60,7 +60,6 @@ CREATE TABLE answers (
 	researcher_id integer not null REFERENCES researchers(id),
 	started_at timestamp(0) with time zone,
 	finished_at timestamp(0) with time zone,
-	payable boolean,
 	answer text,
 	sources text
 );
@@ -116,8 +115,7 @@ CREATE TABLE essays (
 	finished_at timestamp(0) with time zone,
 	edited_at timestamp(0) with time zone,
 	content text,
-	edited text,
-	payable boolean
+	edited text
 );
 CREATE INDEX esqi ON essays(question_id);
 CREATE INDEX esbi ON essays(book_id);
