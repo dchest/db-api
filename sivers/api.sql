@@ -1,3 +1,7 @@
+----------------------------------------
+------------------------- API FUNCTIONS:
+----------------------------------------
+
 -- POST %r{^/comments/([0-9]+)$}
 -- PARAMS: comment id
 CREATE OR REPLACE FUNCTION get_comment(integer, OUT mime text, OUT js json) AS $$

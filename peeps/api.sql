@@ -1,3 +1,7 @@
+----------------------------------------
+------------------------- API FUNCTIONS:
+----------------------------------------
+
 -- API REQUIRES AUTHENTICATION. User must be in peeps.emailers
 -- peeps.emailers.id needed as first argument to many functions here
 

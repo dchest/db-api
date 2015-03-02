@@ -1,3 +1,7 @@
+----------------------------------------
+------------------------- API FUNCTIONS:
+----------------------------------------
+
 -- PARAMS: researcher_id
 CREATE OR REPLACE FUNCTION get_researcher(integer, OUT mime text, OUT js json) AS $$
 BEGIN

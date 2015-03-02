@@ -1,3 +1,7 @@
+----------------------------------------
+------------------------- API FUNCTIONS:
+----------------------------------------
+
 -- NOTE: all queries only show where thoughts.approved IS TRUE
 -- When building manager API, I will add unapproved thoughts function
 
