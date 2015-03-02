@@ -49,7 +49,7 @@ CREATE INDEX tqti ON template_questions(subtopic_id);
 CREATE TABLE questions (
 	id serial PRIMARY KEY,
 	template_question_id integer not null REFERENCES template_questions(id),
-	country char(2) not null, -- TODO: REFERENCES peeps.countries.code
+	country char(2) not null REFERENCES peeps.countries(code),
 	question text
 );
 CREATE INDEX qtqi ON questions(template_question_id);
@@ -68,7 +68,7 @@ CREATE INDEX anri ON answers(researcher_id);
 
 CREATE TABLE books (
 	id serial PRIMARY KEY,
-	country char(2) not null, -- TODO: REFERENCES peeps.countries.code
+	country char(2) not null REFERENCES peeps.countries(code),
 	code char(6) not null UNIQUE,
 	title text,
 	pages integer,
