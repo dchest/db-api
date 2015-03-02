@@ -27,7 +27,9 @@ CREATE TABLE file_history (
 );
 ```
 
-https://sivers.org/download/321321/abcd/5/DerekSivers-MarketingYourMusic.pdf
+### Example URL & SQL:
+
+<https://sivers.org/download/321321/abcd/5/DerekSivers-MarketingYourMusic.pdf>
 
 ```sql
 	SELECT files.* FROM files
@@ -41,4 +43,8 @@ https://sivers.org/download/321321/abcd/5/DerekSivers-MarketingYourMusic.pdf
 	-- PARAMS: person_id, file_id, lopass, client_data
 	download_file(integer, integer, text, text)
 	Returns JSON of files.* info and logs download
+
+### Rack::Sendfile ?
+
+<http://www.rubydoc.info/github/rack/rack/Rack/Sendfile>
 
