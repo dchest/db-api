@@ -234,21 +234,24 @@ CREATE VIEW book_view AS
 			FROM researchers, books_researchers, peeps.people
 			WHERE researchers.person_id=peeps.people.id
 			AND books_researchers.book_id=books.id 
-			AND books_researchers.researcher_id=researchers.id) r),
+			AND books_researchers.researcher_id=researchers.id
+			ORDER BY researchers.id) r),
 	(SELECT json_agg(w) AS writers FROM
 		(SELECT writers.id, peeps.people.name,
 			CONCAT('/images/200/writers-', writers.id, '.jpg') AS image
 			FROM writers, books_writers, peeps.people
 			WHERE writers.person_id=peeps.people.id
 			AND books_writers.book_id=books.id 
-			AND books_writers.writer_id=writers.id) w),
+			AND books_writers.writer_id=writers.id
+			ORDER BY writers.id) w),
 	(SELECT json_agg(e) AS editors FROM
 		(SELECT editors.id, peeps.people.name,
 			CONCAT('/images/200/editors-', editors.id, '.jpg') AS image
 			FROM editors, books_editors, peeps.people
 			WHERE editors.person_id=peeps.people.id
 			AND books_editors.book_id=books.id 
-			AND books_editors.editor_id=editors.id) e)
+			AND books_editors.editor_id=editors.id
+			ORDER BY editors.id) e)
 	FROM books;
 
 DROP VIEW IF EXISTS question_view CASCADE;
@@ -261,25 +264,23 @@ CREATE VIEW question_view AS
 				CONCAT('/images/200/researchers-', researchers.id, '.jpg') AS image
 				FROM researchers, peeps.people WHERE researchers.id=answers.researcher_id
 				AND researchers.person_id=peeps.people.id) r)
-			FROM answers WHERE question_id=questions.id) a),
-	(SELECT json_agg(ee) AS essays FROM
+			FROM answers WHERE question_id=questions.id ORDER BY answers.id) a),
+	(SELECT json_agg(ess) AS essays FROM
 		(SELECT id, date(started_at) AS date, edited AS essay,
 		(SELECT row_to_json(w) AS writer FROM
 			(SELECT writers.id, peeps.people.name,
 				CONCAT('/images/200/writers-', writers.id, '.jpg') AS image
 				FROM writers, peeps.people WHERE writers.id=essays.writer_id
-				AND writers.person_id=peeps.people.id) w),
+				AND writers.person_id=peeps.people.id ORDER BY writers.id) w),
 		(SELECT row_to_json(e) AS editor FROM
 			(SELECT editors.id, peeps.people.name,
 				CONCAT('/images/200/editors-', editors.id, '.jpg') AS image
 				FROM editors, peeps.people WHERE editors.id=essays.editor_id
-				AND editors.person_id=peeps.people.id) e)
-			FROM essays WHERE question_id=questions.id) ee)
+				AND editors.person_id=peeps.people.id ORDER BY editors.id) e)
+			FROM essays WHERE question_id=questions.id ORDER BY essays.id) ess)
 	FROM questions;
 
-DROP VIEW IF EXISTS country_view CASCADE;
--- {topics[{name subtopics[{name questions[{id question}]}]}] tidbits}
---CREATE VIEW country_view AS
+-- for country_view see API function get_country
 
 DROP VIEW IF EXISTS templates_view CASCADE;
 -- {topics[{id name subtopics[{name templates[{id template}]]]}
@@ -362,8 +363,36 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- GET /books/23 
+
 -- GET /country/KR
+-- PARAMS: country code
+CREATE OR REPLACE FUNCTION get_country(text, OUT mime text, OUT js json) AS $$
+DECLARE
+	rowcount integer;
+BEGIN
+	-- stop here if country code invalid
+	SELECT COUNT(*) INTO rowcount FROM questions WHERE country=$1;
+	IF rowcount = 0 THEN 
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+ RETURN; END IF;
+	-- JSON here instead of VIEW because needs $1 for q.country join in query
+	js := json_agg(cv) FROM (SELECT id, topic, (SELECT json_agg(st) AS subtopics FROM
+		(SELECT id, subtopic, (SELECT json_agg(qs) AS questions FROM
+			(SELECT q.id, q.question FROM questions q, template_questions tq
+				WHERE q.template_question_id=tq.id AND subtopic_id=sub.id
+				AND q.country=$1 ORDER BY q.id) qs)
+			FROM subtopics sub WHERE topics.id=topic_id ORDER BY id) st)
+		FROM topics ORDER BY id) cv;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+-- GET /books/23 
 -- GET /questions/1234
 -- GET /templates
 -- GET /templates/123
