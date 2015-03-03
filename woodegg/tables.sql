@@ -151,6 +151,7 @@ CREATE TABLE uploads (
 	id serial PRIMARY KEY,
 	created_at date NOT NULL DEFAULT CURRENT_DATE,
 	researcher_id integer not null REFERENCES researchers(id),
+	country char(2) not null REFERENCES peeps.countries(code),
 	their_filename text not null,
 	our_filename text not null,
 	mime_type varchar(32),
@@ -164,7 +165,7 @@ CREATE TABLE uploads (
 CREATE TABLE test_essays (
 	id serial PRIMARY KEY,
 	person_id integer not null REFERENCES peeps.people(id),
-	country char(2) not null,
+	country char(2) not null REFERENCES peeps.countries(code),
 	question_id integer REFERENCES questions(id),
 	started_at timestamp(0) with time zone,
 	finished_at timestamp(0) with time zone,

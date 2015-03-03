@@ -2,6 +2,7 @@
 ------------------------- API FUNCTIONS:
 ----------------------------------------
 
+-- GET /researchers/1
 -- PARAMS: researcher_id
 CREATE OR REPLACE FUNCTION get_researcher(integer, OUT mime text, OUT js json) AS $$
 BEGIN
@@ -14,6 +15,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- GET /writers/1
 -- PARAMS: writer_id
 CREATE OR REPLACE FUNCTION get_writer(integer, OUT mime text, OUT js json) AS $$
 BEGIN
@@ -26,6 +28,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- GET /editors/1
 -- PARAMS: editor_id
 CREATE OR REPLACE FUNCTION get_editor(integer, OUT mime text, OUT js json) AS $$
 BEGIN
@@ -37,3 +40,11 @@ m4_NOTFOUND
 END;
 $$ LANGUAGE plpgsql;
 
+-- GET /books/23 
+-- GET /country/KR
+-- GET /questions/1234
+-- GET /templates
+-- GET /templates/123
+-- GET /topics/5
+-- GET /subtopics/55
+-- GET /tidbits

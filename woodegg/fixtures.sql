@@ -382,9 +382,9 @@ SELECT pg_catalog.setval('topics_id_seq', 2, true);
 
 ALTER TABLE uploads DISABLE TRIGGER ALL;
 
-INSERT INTO uploads (id, created_at, researcher_id, their_filename, our_filename, mime_type, bytes, uploaded, status, notes, transcription) VALUES (1, '2013-08-07', 3, 'Some Interview.MP3', 'r003-20130807-someinterview.mp3', 'audio/mp3', 1234567, 'y', 'done', 'This is me interviewing someone.', 'This has a transcription.');
-INSERT INTO uploads (id, created_at, researcher_id, their_filename, our_filename, mime_type, bytes, uploaded, status, notes, transcription) VALUES (2, '2013-08-07', 3, 'Another Interview.MP3', 'r003-20130807-anotherinterview.mp3', 'audio/mp3', 54321, 'p', 'new', 'Currently uploading', NULL);
-INSERT INTO uploads (id, created_at, researcher_id, their_filename, our_filename, mime_type, bytes, uploaded, status, notes, transcription) VALUES (3, '2013-08-08', 3, 'Needs Notes.MP3', 'r003-20130808-needsnotes.mp3', 'audio/mp3', 654321, 'n', 'new', NULL, NULL);
+INSERT INTO uploads (id, created_at, researcher_id, country, their_filename, our_filename, mime_type, bytes, uploaded, status, notes, transcription) VALUES (1, '2013-08-07', 3, 'CN','Some Interview.MP3', 'r003-20130807-someinterview.mp3', 'audio/mp3', 1234567, 'y', 'done', 'This is me interviewing someone.', 'This has a transcription.');
+INSERT INTO uploads (id, created_at, researcher_id, country, their_filename, our_filename, mime_type, bytes, uploaded, status, notes, transcription) VALUES (2, '2013-08-07', 3, 'CN','Another Interview.MP3', 'r003-20130807-anotherinterview.mp3', 'audio/mp3', 54321, 'p', 'new', 'Currently uploading', NULL);
+INSERT INTO uploads (id, created_at, researcher_id, country, their_filename, our_filename, mime_type, bytes, uploaded, status, notes, transcription) VALUES (3, '2013-08-08', 3, 'CN','Needs Notes.MP3', 'r003-20130808-needsnotes.mp3', 'audio/mp3', 654321, 'n', 'new', NULL, NULL);
 
 
 ALTER TABLE uploads ENABLE TRIGGER ALL;
