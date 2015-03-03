@@ -47,4 +47,6 @@ $$ LANGUAGE plpgsql;
 -- GET /templates/123
 -- GET /topics/5
 -- GET /subtopics/55
--- GET /tidbits
+-- GET /uploads/KR
+-- GET /uploads/33
+
