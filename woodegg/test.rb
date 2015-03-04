@@ -28,5 +28,80 @@ class TestWoodEgg < Minitest::Test
 		qry("woodegg.get_editor(99)")
 		assert_equal 'Not Found', @j[:title]
 	end
+
+	def test_country
+		qry("woodegg.get_country('CN')")
+		assert_instance_of Array, @j
+		assert_equal 2, @j.size
+		assert_equal 'Country', @j[0][:topic]
+		assert_instance_of Array, @j[0][:subtopics]
+		assert_equal 2, @j[0][:subtopics].size
+		assert_equal 'how big', @j[0][:subtopics][0][:subtopic]
+		assert_equal 'how old', @j[0][:subtopics][1][:subtopic]
+		assert_instance_of Array, @j[0][:subtopics][0][:questions]
+		assert_equal 'how big is China?', @j[0][:subtopics][0][:questions][0][:question]
+		assert_equal 'Culture', @j[1][:topic]
+		assert_instance_of Array, @j[1][:subtopics]
+		assert_equal 2, @j[1][:subtopics].size
+		qry("woodegg.get_country('XXX')")
+		assert_equal 'Not Found', @j[:title]
+	end
+
+	def test_country2
+		qry("woodegg.get_country('CN')")
+		x = [  # another way of looking at it:
+			{:id=>1, :topic=>'Country', :subtopics=>[
+				{:id=>1, :subtopic=>'how big', :questions=>[
+					{:id=>1, :question=>'how big is China?'}]},
+				{:id=>2, :subtopic=>'how old', :questions=>[
+					{:id=>2, :question=>'how old is China?'}]}]},
+			{:id=>2, :topic=>'Culture', :subtopics=>[
+				{:id=>3, :subtopic=>'is it fun?', :questions=>[
+					{:id=>3, :question=>'what is fun in China?'},
+					{:id=>4, :question=>'do they laugh in China?'}]},
+				{:id=>4, :subtopic=>'what language?', :questions=>[
+					{:id=>5, :question=>'what language in China?'}]}]}]
+		assert_equal x, @j
+	end
+
+	def test_question
+		qry("woodegg.get_question(1)")
+		assert_equal 'CN', @j[:country]
+		assert_equal 1, @j[:template_id]
+		assert_equal 'how big is China?', @j[:question]
+		assert_instance_of Array, @j[:answers]
+		assert_instance_of Array, @j[:essays]
+		assert_equal '2013-06-28', @j[:answers][0][:date]
+		assert_equal 'China whatever1', @j[:answers][0][:answer]
+		assert_equal 'none', @j[:answers][0][:sources]
+		assert_equal '巩俐', @j[:answers][0][:researcher][:name]
+		assert_equal '2013-06-28', @j[:essays][0][:date]
+		assert_equal 'China whatever1!', @j[:essays][0][:essay]
+		assert_equal 'Veruca Salt', @j[:essays][0][:writer][:name]
+		assert_equal '/images/200/writers-1.jpg', @j[:essays][0][:writer][:image]
+		assert_equal 'Derek Sivers', @j[:essays][0][:editor][:name]
+		assert_equal '/images/200/editors-1.jpg', @j[:essays][0][:editor][:image]
+		qry("woodegg.get_question(99)")
+		assert_equal 'Not Found', @j[:title]
+	end
+
+	def test_book
+		qry("woodegg.get_book(1)")
+		assert_equal 'CN', @j[:country]
+		assert_equal 'China 2013: How To', @j[:title]
+		assert_equal '9789810766320', @j[:isbn]
+		assert_equal 'B00D1HOJII', @j[:asin]
+		assert_equal 'ChinaStartupGuide2013', @j[:leanpub]
+		assert_equal 'THIS IS FOR SALE NOW', @j[:salescopy]
+		assert_instance_of Array, @j[:researchers]
+		assert_instance_of Array, @j[:writers]
+		assert_instance_of Array, @j[:editors]
+		assert_equal '巩俐', @j[:researchers][0][:name]
+		assert_equal 'Veruca Salt', @j[:writers][0][:name]
+		assert_equal 'Derek Sivers', @j[:editors][0][:name]
+		assert_equal '/images/200/editors-1.jpg', @j[:editors][0][:image]
+		qry("woodegg.get_book(99)")
+		assert_equal 'Not Found', @j[:title]
+	end
 end
 
