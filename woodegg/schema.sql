@@ -156,6 +156,7 @@ CREATE TABLE uploads (
 	our_filename text not null,
 	mime_type varchar(32),
 	bytes integer,
+	duration varchar(7), -- h:mm:ss
 	uploaded char(1) NOT NULL DEFAULT 'n',
 	status varchar(4) default 'new',
 	notes text,
@@ -324,10 +325,14 @@ CREATE VIEW template_view AS
 	FROM template_questions;  -- WHERE id=1
 
 DROP VIEW IF EXISTS uploads_view CASCADE;
---CREATE VIEW uploads_view AS
+CREATE VIEW uploads_view AS
+	SELECT id, country, created_at AS date, our_filename AS filename, notes
+		FROM uploads ORDER BY id;  -- WHERE country='KR'
 
 DROP VIEW IF EXISTS upload_view CASCADE;
---CREATE VIEW upload_view AS
+CREATE VIEW upload_view AS
+	SELECT id, country, created_at AS date, our_filename AS filename, notes,
+		mime_type, bytes, transcription FROM uploads;  -- WHERE id=1
 
 ----------------------------------------
 ------------------------- API FUNCTIONS:
@@ -485,8 +490,61 @@ $$ LANGUAGE plpgsql;
 
 
 -- GET /topics/5
--- GET /subtopics/55
+-- PARAMS: topic id
+CREATE OR REPLACE FUNCTION get_topic(integer, OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	js := row_to_json(r) FROM (SELECT * FROM templates_view WHERE id=$1) r;
+	IF js IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- GET /uploads/KR
+-- PARAMS: country code
+CREATE OR REPLACE FUNCTION get_uploads(text, OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	js := json_agg(r) FROM (SELECT * FROM uploads_view WHERE country=$1) r;
+	IF js IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- GET /uploads/33
+-- PARAMS: upload id#
+CREATE OR REPLACE FUNCTION get_upload(integer, OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	js := row_to_json(r) FROM (SELECT * FROM upload_view WHERE id=$1) r;
+	IF js IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
 
 

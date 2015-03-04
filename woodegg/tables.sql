@@ -156,6 +156,7 @@ CREATE TABLE uploads (
 	our_filename text not null,
 	mime_type varchar(32),
 	bytes integer,
+	duration varchar(7), -- h:mm:ss
 	uploaded char(1) NOT NULL DEFAULT 'n',
 	status varchar(4) default 'new',
 	notes text,

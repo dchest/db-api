@@ -103,5 +103,75 @@ class TestWoodEgg < Minitest::Test
 		qry("woodegg.get_book(99)")
 		assert_equal 'Not Found', @j[:title]
 	end
+
+	def test_templates
+		qry("woodegg.get_templates()")
+		x = [
+			{:id=>1, :topic=>'Country', :subtopics=>[
+					{:id=>1, :subtopic=>'how big', :questions=>[
+						{:id=>1, :question=>'how big is {COUNTRY}?'}]},
+					{:id=>2, :subtopic=>'how old', :questions=>[
+						{:id=>2, :question=>'how old is {COUNTRY}?'}]}]},
+			{:id=>2, :topic=>'Culture', :subtopics=>[
+				{:id=>3, :subtopic=>'is it fun?', :questions=>[
+					{:id=>3, :question=>'what is fun in {COUNTRY}?'},
+					{:id=>4, :question=>'do they laugh in {COUNTRY}?'}]},
+				{:id=>4, :subtopic=>'what language?', :questions=>[
+					{:id=>5, :question=>'what language in {COUNTRY}?'}]}]}]
+		assert_equal x, @j
+	end
+
+	def test_template
+		qry("woodegg.get_template(1)")
+		x = {:id=>1, :question=>'how big is {COUNTRY}?', :countries=>[
+			{:id=>1, :country=>'CN', :question=>'how big is China?',
+				:answers=>[
+					{:id=>1, :date=>'2013-06-28', :answer=>'China whatever1', :sources=>'none',
+		 				:researcher=>{:id=>1, :name=>'巩俐', :image=>'/images/200/researchers-1.jpg'}}],
+				:essays=>[
+					{:id=>1, :date=>'2013-06-28', :essay=>'China whatever1!',
+						:writer=>{:id=>1, :name=>'Veruca Salt', :image=>'/images/200/writers-1.jpg'},
+						:editor=>{:id=>1, :name=>'Derek Sivers', :image=>'/images/200/editors-1.jpg'}}]},
+			{:id=>6, :country=>'JP', :question=>'how big is Japan?',
+				:answers=>[
+					{:id=>6, :date=>'2013-06-28', :answer=>'Japan it depends 6', :sources=>'mind',
+						:researcher=>{:id=>2, :name=>'Yoko Ono', :image=>'/images/200/researchers-2.jpg'}}],
+				:essays=>[
+					{:id=>6, :date=>'2013-07-08', :essay=>'Japan. Whatever. One.',
+						:writer=>{:id=>2, :name=>'Charlie Buckets', :image=>'/images/200/writers-2.jpg'},
+						:editor=>{:id=>2, :name=>'Willy Wonka', :image=>'/images/200/editors-2.jpg'}}]}]}
+		assert_equal x, @j
+		qry("woodegg.get_template(99)")
+		assert_equal 'Not Found', @j[:title]
+	end
+
+	def test_uploads
+		qry("woodegg.get_uploads('CN')")
+		assert_instance_of Array, @j
+		x = {id:1,
+			country:'CN',
+			date:'2013-08-07',
+			filename:'r003-20130807-someinterview.mp3',
+			notes:'This is me interviewing someone.'}
+		assert_equal(x, @j[0])
+		qry("woodegg.get_uploads('XX')")
+		assert_equal 'Not Found', @j[:title]
+	end
+
+	def test_upload
+		qry("woodegg.get_upload(1)")
+		x = {id:1,
+			country:'CN',
+			date:'2013-08-07',
+			filename:'r003-20130807-someinterview.mp3',
+			notes:'This is me interviewing someone.',
+		  mime_type:'audio/mp3',
+			bytes:1234567,
+			transcription:'This has a transcription.'}
+		assert_equal(x, @j)
+		qry("woodegg.get_upload(99)")
+		assert_equal 'Not Found', @j[:title]
+	end
+
 end
 

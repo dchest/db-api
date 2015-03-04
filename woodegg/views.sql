@@ -147,8 +147,12 @@ CREATE VIEW template_view AS
 	FROM template_questions;  -- WHERE id=1
 
 DROP VIEW IF EXISTS uploads_view CASCADE;
---CREATE VIEW uploads_view AS
+CREATE VIEW uploads_view AS
+	SELECT id, country, created_at AS date, our_filename AS filename, notes
+		FROM uploads ORDER BY id;  -- WHERE country='KR'
 
 DROP VIEW IF EXISTS upload_view CASCADE;
---CREATE VIEW upload_view AS
+CREATE VIEW upload_view AS
+	SELECT id, country, created_at AS date, our_filename AS filename, notes,
+		mime_type, bytes, transcription FROM uploads;  -- WHERE id=1
 
