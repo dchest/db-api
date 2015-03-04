@@ -47,7 +47,6 @@ When **real people** using it, a **50web** route called **ModAuth** checks for t
 If POST /login works, it sets the 3 needed cookies (person_id, api_key, api_pass).  Those are included in all calls, and sent to A50C To init client library.
 
 
-
 # HTTP ports:
 
 * 10000 = Peep
@@ -56,7 +55,8 @@ If POST /login works, it sets the 3 needed cookies (person_id, api_key, api_pass
 * 10011 = MusicThoughtsPublic test
 * 10020 = SiversCommentsAdmin
 * 10021 = SiversCommentsAdmin test
-
+* 10030 = WoodEgg
+* 10031 = WoodEgg test
 
 
 # TODO:
