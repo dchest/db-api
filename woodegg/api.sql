@@ -40,6 +40,54 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- GET /reset/{reset_string}
+-- PARAMS: 8-char string from https://woodegg.com/reset/:str
+CREATE OR REPLACE FUNCTION get_customer_reset(text, OUT mime text, OUT js json) AS $$
+DECLARE
+	pid integer;
+	cid integer;
+BEGIN
+	SELECT p.id, c.id INTO pid, cid
+		FROM peeps.people p, woodegg.customers c
+		WHERE p.newpass=$1
+		AND p.id=c.person_id;
+	IF pid IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		mime := 'application/json';
+		-- this is just acknowledgement that it's approved to show reset form:
+		js := json_build_object('person_id', pid, 'customer_id', cid, 'reset', $1);
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- POST /reset/{reset_string}
+-- PARAMS: reset string, new password
+CREATE OR REPLACE FUNCTION set_customer_password(text, text, OUT mime text, OUT js json) AS $$
+DECLARE
+	pid integer;
+	cid integer;
+m4_ERRVARS
+BEGIN
+	SELECT p.id, c.id INTO pid, cid
+		FROM peeps.people p, woodegg.customers c
+		WHERE p.newpass=$1
+		AND p.id=c.person_id;
+	IF pid IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		PERFORM peeps.set_password(pid, $2);
+		mime := 'application/json';
+		-- this is just acknowledgement that it's done:
+		js := row_to_json(r) FROM (SELECT id, name, email, address
+			FROM peeps.people WHERE id=pid) r;
+	END IF;
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- POST /register
 -- PARAMS: name, email, password, proof
 CREATE OR REPLACE FUNCTION register(text, text, text, text, OUT mime text, OUT js json) AS $$

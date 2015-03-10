@@ -67,6 +67,28 @@ class TestWoodEgg < Minitest::Test
 		assert res[0]['body'].include? "https://woodegg.com/reset/#{newpass}"
 	end
 
+	def test_get_customer_reset
+		qry("woodegg.get_customer_reset($1)", ['8LLRaMwm'])
+		assert_equal 1, @j[:customer_id]
+		assert_equal 6, @j[:person_id]
+		assert_equal '8LLRaMwm', @j[:reset]
+	end
+
+	def test_set_customer_password
+		qry("woodegg.set_customer_password($1, $2)", ['8LLRaMwm', 'x'])
+		assert_equal 'short_password', @j[:title]
+		nu = 'þø¿€ñ'
+		qry("woodegg.set_customer_password($1, $2)", ['8LLRaMwm', nu])
+		assert_equal 6, @j[:id]
+		assert_equal 'Augustus Gloop', @j[:name]
+		assert_equal 'augustus@gloop.de', @j[:email]
+		assert_equal 'Master Gloop', @j[:address]
+		qry("woodegg.login($1, $2)", ['augustus@gloop.de', nu])
+		assert_match /[a-zA-Z0-9]{32}:[a-zA-Z0-9]{32}/, @j[:cookie]
+		qry("woodegg.set_customer_password($1, $2)", ['8LLRaMwm', nu])
+		assert_equal 'Not Found', @j[:title]
+	end
+
 	def test_researcher
 		qry("woodegg.get_researcher(1)")
 		assert_equal '巩俐', @j[:name]

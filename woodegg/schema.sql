@@ -388,6 +388,83 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- GET /reset/{reset_string}
+-- PARAMS: 8-char string from https://woodegg.com/reset/:str
+CREATE OR REPLACE FUNCTION get_customer_reset(text, OUT mime text, OUT js json) AS $$
+DECLARE
+	pid integer;
+	cid integer;
+BEGIN
+	SELECT p.id, c.id INTO pid, cid
+		FROM peeps.people p, woodegg.customers c
+		WHERE p.newpass=$1
+		AND p.id=c.person_id;
+	IF pid IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	ELSE
+		mime := 'application/json';
+		-- this is just acknowledgement that it's approved to show reset form:
+		js := json_build_object('person_id', pid, 'customer_id', cid, 'reset', $1);
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- POST /reset/{reset_string}
+-- PARAMS: reset string, new password
+CREATE OR REPLACE FUNCTION set_customer_password(text, text, OUT mime text, OUT js json) AS $$
+DECLARE
+	pid integer;
+	cid integer;
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	SELECT p.id, c.id INTO pid, cid
+		FROM peeps.people p, woodegg.customers c
+		WHERE p.newpass=$1
+		AND p.id=c.person_id;
+	IF pid IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	ELSE
+		PERFORM peeps.set_password(pid, $2);
+		mime := 'application/json';
+		-- this is just acknowledgement that it's done:
+		js := row_to_json(r) FROM (SELECT id, name, email, address
+			FROM peeps.people WHERE id=pid) r;
+	END IF;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- POST /register
 -- PARAMS: name, email, password, proof
 CREATE OR REPLACE FUNCTION register(text, text, text, text, OUT mime text, OUT js json) AS $$
