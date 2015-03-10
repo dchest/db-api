@@ -34,6 +34,39 @@ class TestWoodEgg < Minitest::Test
 		assert_equal 'some proof', res[0]['statvalue']
 	end
 
+	def test_forgot
+		qry("woodegg.forgot($1)", ['augustus@gloop.de'])
+		assert_equal 6, @j[:id]
+		assert_equal 'Augustus Gloop', @j[:name]
+		assert_equal 'augustus@gloop.de', @j[:email]
+		assert_equal 'Master Gloop', @j[:address]
+		res = DB.exec("SELECT * FROM peeps.emails WHERE id=11")
+		assert_equal '6', res[0]['person_id']
+		assert_equal 'augustus@gloop.de', res[0]['their_email']
+		assert_equal 'your Wood Egg password reset link', res[0]['subject']
+		assert_nil res[0]['outgoing']
+		assert res[0]['body'].include? 'https://woodegg.com/reset/8LLRaMwm'
+		assert res[0]['body'].include? 'Hi Master Gloop'
+		assert res[0]['body'].include? 'we@woodegg.com'
+		qry("woodegg.forgot($1)", ['derek@sivers.org'])
+		assert_equal 'Not Found', @j[:title]
+		qry("woodegg.forgot($1)", ['x'])
+		assert_equal 'Not Found', @j[:title]
+		qry("woodegg.forgot($1)", [''])
+		assert_equal 'Not Found', @j[:title]
+		qry("woodegg.forgot(NULL)")
+		assert_equal 'Not Found', @j[:title]
+	end
+
+	def test_forgot_sets_newpass
+		DB.exec("UPDATE peeps.people SET newpass=NULL WHERE id=6")
+		qry("woodegg.forgot($1)", ['augustus@gloop.de'])
+		newpass = DB.exec("SELECT newpass FROM peeps.people WHERE id=6")[0]['newpass']
+		assert_match /[a-zA-Z0-9]{8}/, newpass
+		res = DB.exec("SELECT * FROM peeps.emails WHERE id=11")
+		assert res[0]['body'].include? "https://woodegg.com/reset/#{newpass}"
+	end
+
 	def test_researcher
 		qry("woodegg.get_researcher(1)")
 		assert_equal '巩俐', @j[:name]

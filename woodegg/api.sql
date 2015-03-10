@@ -64,9 +64,31 @@ $$ LANGUAGE plpgsql;
 -- POST /forgot
 -- PARAMS: email
 CREATE OR REPLACE FUNCTION forgot(text, OUT mime text, OUT js json) AS $$
+DECLARE
+	pid integer;
+	pnp text;
+m4_ERRVARS
 BEGIN
-	mime := 'application/json';
-	js := '{"TODO":"TODO"}';
+	SELECT p.id, p.newpass INTO pid, pnp FROM peeps.people p, woodegg.customers c
+		WHERE p.id=c.person_id AND p.email = lower(regexp_replace($1, '\s', '', 'g'));
+	IF pid IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		IF pnp IS NULL THEN
+			UPDATE peeps.people SET
+			newpass = public.unique_for_table_field(8, 'peeps.people', 'newpass')
+			WHERE id = pid RETURNING newpass INTO pnp;
+		END IF;
+		-- PARAMS: emailer_id, person_id, profile, category, subject, body, reference_id
+		PERFORM peeps.outgoing_email(1, pid, 'we@woodegg', 'we@woodegg',
+			'your Wood Egg password reset link',
+			'Click to reset your password:\n\nhttps://woodegg.com/reset/' || pnp,
+			NULL);
+		mime := 'application/json';
+		js := row_to_json(r) FROM (SELECT id, name, email, address
+			FROM peeps.people WHERE id=pid) r;
+	END IF;
+m4_ERRCATCH
 END;
 $$ LANGUAGE plpgsql;
 
