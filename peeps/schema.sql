@@ -482,8 +482,8 @@ $$ LANGUAGE plpgsql;
 -- Returns emails.* only if emailers.profiles && emailers.cateories matches
 CREATE OR REPLACE FUNCTION emailer_get_email(emailer_id integer, email_id integer) RETURNS SETOF peeps.emails AS $$
 DECLARE
-	emailer emailers;
-	email emails;
+	emailer peeps.emailers;
+	email peeps.emails;
 BEGIN
 	SELECT * INTO emailer FROM peeps.emailers WHERE id = emailer_id;
 	SELECT * INTO email FROM peeps.emails WHERE id = email_id;
@@ -501,7 +501,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION emailer_get_unopened(emailer_id integer) RETURNS SETOF peeps.emails AS $$
 DECLARE
 	qry text := 'SELECT * FROM peeps.emails WHERE opened_at IS NULL AND person_id IS NOT NULL';
-	emailer emailers;
+	emailer peeps.emailers;
 BEGIN
 	SELECT * INTO emailer FROM peeps.emailers WHERE id = emailer_id;
 	IF (emailer.profiles != '{ALL}') THEN
@@ -656,7 +656,7 @@ DECLARE
 BEGIN
 	ok_id := ok_email($1, $2);
 	IF ok_id IS NOT NULL THEN
-		UPDATE emails SET opened_at=NOW(), opened_by=$1
+		UPDATE peeps.emails SET opened_at=NOW(), opened_by=$1
 			WHERE id=ok_id AND opened_by IS NULL;
 	END IF;
 	RETURN ok_id;
@@ -670,7 +670,7 @@ CREATE OR REPLACE FUNCTION outgoing_email(integer, integer, text, text, text, te
 DECLARE
 	p peeps.people;
 	rowcount integer;
-	e emails;
+	e peeps.emails;
 	greeting text;
 	signature text;
 	new_body text;
@@ -708,7 +708,7 @@ BEGIN
 	-- START CREATING EMAIL:
 	greeting := concat('Hi ', p.address);
 	new_body := concat(greeting, E' -\n\n', $6, E'\n\n--\n', signature, old_body);
-	EXECUTE 'INSERT INTO emails (person_id, outgoing, their_email, their_name,'
+	EXECUTE 'INSERT INTO peeps.emails (person_id, outgoing, their_email, their_name,'
 		|| ' created_at, created_by, opened_at, opened_by, closed_at, closed_by,'
 		|| ' profile, category, subject, body, headers, reference_id) VALUES'
 		|| ' ($1, NULL, $2, $3,'  -- outgoing = NULL = queued for sending
