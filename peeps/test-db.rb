@@ -336,6 +336,32 @@ class TestPeeps < Minitest::Test
 		assert err.message.include? 'short_password'
 	end
 
+	def test_person_create_pass
+		res = DB.exec_params("SELECT * FROM person_create_pass($1, $2, $3)",
+			['Bob Dobalina', 'BOB@dobali.NA', 'mYPass!'])
+		assert_equal '9', res[0]['id']
+		assert_equal 'bob@dobali.na', res[0]['email']
+		assert_equal 'Bob', res[0]['address']
+		res = DB.exec_params("SELECT * FROM person_email_pass($1, $2)",
+			['bob@dobali.na', 'mYPass!'])
+		assert_equal '9', res[0]['id']
+		err = assert_raises PG::RaiseException do
+			DB.exec_params("SELECT * FROM person_create_pass($1, $2, $3)",
+			['Derek', 'derek@sivers.org', 'attack!'])
+		end
+		assert err.message.include? 'exists'
+		err = assert_raises PG::RaiseException do
+			DB.exec_params("SELECT * FROM person_create_pass($1, $2, $3)",
+			['Derek', '', 'attack!'])
+		end
+		assert err.message.include? 'missing_email'
+		err = assert_raises PG::RaiseException do
+			DB.exec_params("SELECT * FROM person_create_pass($1, $2, $3)",
+			['New Person', 'new@person.cc', 'x'])
+		end
+		assert err.message.include? 'short_password'
+	end
+
 	# needs valid email and password 4+ chars.	use exec_params
 	def test_person_email_pass
 		res = DB.exec_params("SELECT * FROM person_email_pass($1, $2)", ['derek@sivers.org', 'derek'])

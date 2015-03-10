@@ -369,12 +369,36 @@ BEGIN
 	IF password IS NULL OR length(btrim(password)) < 4 THEN
 		RAISE 'short_password';
 	END IF;
-	UPDATE peeps.people SET newpass=NULL, hashpass=crypt(password, gen_salt('bf', 8)) WHERE id = person_id;
+	UPDATE peeps.people SET newpass=NULL,
+		hashpass=peeps.crypt(password, peeps.gen_salt('bf', 8)) WHERE id = person_id;
 	IF FOUND THEN
 		RETURN true;
 	ELSE
 		RETURN false;
 	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- For signups where new user gives name, email, AND password at once.
+-- Don't want to set password if email already exists in system, otherwise attacker
+-- could use it to change someone's password. So check existence first, then create.
+-- PARAMS: name, email, password
+CREATE OR REPLACE FUNCTION person_create_pass(text, text, text) RETURNS SETOF peeps.people AS $$
+DECLARE
+	clean_email text;
+	pid integer;
+BEGIN
+	clean_email := lower(regexp_replace($2, '\s', '', 'g'));
+	IF clean_email IS NULL OR clean_email = '' THEN
+		RAISE 'missing_email';
+	END IF;
+	IF EXISTS (SELECT 1 FROM peeps.people WHERE email = clean_email) THEN
+		RAISE 'exists';
+	END IF;
+	SELECT id INTO pid FROM peeps.person_create($1, $2);
+	PERFORM peeps.set_password(pid, $3);
+	RETURN QUERY SELECT * FROM peeps.people WHERE id = pid;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -394,7 +418,7 @@ BEGIN
 	IF my_pass IS NULL OR length(btrim(my_pass)) < 4 THEN
 		RAISE 'short_password';
 	END IF;
-	RETURN QUERY SELECT * FROM peeps.people WHERE email=clean_email AND hashpass=crypt(my_pass, hashpass);
+	RETURN QUERY SELECT * FROM peeps.people WHERE email=clean_email AND hashpass=peeps.crypt(my_pass, hashpass);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -408,8 +432,8 @@ DECLARE
 	done_tables text[] := ARRAY[]::text[];
 	a_table text;
 	rowcount integer;
-	old_p people;
-	new_p people;
+	old_p peeps.people;
+	new_p peeps.people;
 BEGIN
 	-- update ids to point to new one
 	FOREACH a_table IN ARRAY tables_referencing('peeps', 'people', 'id') LOOP
@@ -425,28 +449,28 @@ BEGIN
 	SELECT * INTO old_p FROM peeps.people WHERE id = old_id;
 	SELECT * INTO new_p FROM peeps.people WHERE id = new_id;
 	IF COALESCE(LENGTH(old_p.company), 0) > COALESCE(LENGTH(new_p.company), 0) THEN
-		UPDATE people SET company = old_p.company WHERE id = new_id;
+		UPDATE peeps.people SET company = old_p.company WHERE id = new_id;
 	END IF;
 	IF COALESCE(LENGTH(old_p.city), 0) > COALESCE(LENGTH(new_p.city), 0) THEN
-		UPDATE people SET city = old_p.city WHERE id = new_id;
+		UPDATE peeps.people SET city = old_p.city WHERE id = new_id;
 	END IF;
 	IF COALESCE(LENGTH(old_p.state), 0) > COALESCE(LENGTH(new_p.state), 0) THEN
-		UPDATE people SET state = old_p.state WHERE id = new_id;
+		UPDATE peeps.people SET state = old_p.state WHERE id = new_id;
 	END IF;
 	IF COALESCE(LENGTH(old_p.postalcode), 0) > COALESCE(LENGTH(new_p.postalcode), 0) THEN
-		UPDATE people SET postalcode = old_p.postalcode WHERE id = new_id;
+		UPDATE peeps.people SET postalcode = old_p.postalcode WHERE id = new_id;
 	END IF;
 	IF COALESCE(LENGTH(old_p.country), 0) > COALESCE(LENGTH(new_p.country), 0) THEN
-		UPDATE people SET country = old_p.country WHERE id = new_id;
+		UPDATE peeps.people SET country = old_p.country WHERE id = new_id;
 	END IF;
 	IF COALESCE(LENGTH(old_p.phone), 0) > COALESCE(LENGTH(new_p.phone), 0) THEN
-		UPDATE people SET phone = old_p.phone WHERE id = new_id;
+		UPDATE peeps.people SET phone = old_p.phone WHERE id = new_id;
 	END IF;
 	IF COALESCE(LENGTH(old_p.categorize_as), 0) > COALESCE(LENGTH(new_p.categorize_as), 0) THEN
-		UPDATE people SET categorize_as = old_p.categorize_as WHERE id = new_id;
+		UPDATE peeps.people SET categorize_as = old_p.categorize_as WHERE id = new_id;
 	END IF;
 	IF LENGTH(old_p.notes) > 0 THEN  -- combine notes
-		UPDATE people SET notes = CONCAT(old_p.notes, E'\n', notes) WHERE id = new_id;
+		UPDATE peeps.people SET notes = CONCAT(old_p.notes, E'\n', notes) WHERE id = new_id;
 	END IF;
 	-- Done! delete old one
 	DELETE FROM peeps.people WHERE id = old_id;
@@ -494,7 +518,7 @@ $$ LANGUAGE plpgsql;
 
 -- Once a person has correctly given their email and password, call this to create cookie info.
 -- Returns a single 65-character string, ready to be set as the cookie value
-CREATE OR REPLACE FUNCTION login_person_domain(my_person_id integer, my_domain char) RETURNS text AS $$
+CREATE OR REPLACE FUNCTION login_person_domain(my_person_id integer, my_domain char, OUT cookie text) RETURNS text AS $$
 DECLARE
 	c_id text;
 	c_tok text;
@@ -504,7 +528,7 @@ BEGIN
 	c_tok := public.random_string(32);
 	c_exp := FLOOR(EXTRACT(epoch from (NOW() + interval '1 year')));
 	INSERT INTO peeps.logins(person_id, cookie_id, cookie_tok, cookie_exp, domain) VALUES (my_person_id, c_id, c_tok, c_exp, my_domain);
-	RETURN CONCAT(c_id, ':', c_tok);
+	cookie := CONCAT(c_id, ':', c_tok);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -514,7 +538,7 @@ CREATE OR REPLACE FUNCTION get_person_from_cookie(cookie char) RETURNS SETOF pee
 DECLARE
 	c_id text;
 	c_tok text;
-	a_login logins;
+	a_login peeps.logins;
 BEGIN
 	c_id := split_part(cookie, ':', 1);
 	c_tok := split_part(cookie, ':', 2);
@@ -644,7 +668,7 @@ $$ LANGUAGE plpgsql;
 -- PARAMS: emailer_id, person_id, profile, category, subject, body, reference_id (NULL unless reply)
 CREATE OR REPLACE FUNCTION outgoing_email(integer, integer, text, text, text, text, integer) RETURNS integer AS $$
 DECLARE
-	p people;
+	p peeps.people;
 	rowcount integer;
 	e emails;
 	greeting text;
@@ -878,6 +902,10 @@ END;
 $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS make_message_id ON emails CASCADE;
 CREATE TRIGGER make_message_id BEFORE INSERT ON emails FOR EACH ROW EXECUTE PROCEDURE make_message_id();
+
+----------------------------------------
+------------------------- API FUNCTIONS:
+----------------------------------------
 
 -- API REQUIRES AUTHENTICATION. User must be in peeps.emailers
 -- peeps.emailers.id needed as first argument to many functions here
