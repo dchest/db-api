@@ -5,6 +5,35 @@ require '../test_tools.rb'
 class TestWoodEgg < Minitest::Test
 	include JDB
 
+	def test_login
+		qry("woodegg.login($1, $2)", ['augustus@gloop.de', 'augustus'])
+		assert @j[:cookie]
+		assert_match /[a-zA-Z0-9]{32}:[a-zA-Z0-9]{32}/, @j[:cookie]
+		qry("woodegg.login($1, $2)", ['derek@sivers.org', 'derek'])
+		assert_equal 'Not Found', @j[:title]
+	end
+
+	def test_customer
+		qry("woodegg.login($1, $2)", ['augustus@gloop.de', 'augustus'])
+		qry("woodegg.get_customer($1)", [@j[:cookie]])
+		assert_equal 1, @j[:id]
+		assert_equal 'Augustus Gloop', @j[:name]
+		qry("woodegg.get_customer($1)", ['a bad cookie value here'])
+		assert_equal 'Not Found', @j[:title]
+	end
+
+	def test_register
+		qry("woodegg.register($1, $2, $3, $4)",
+			['Dude Abides', 'DUDE@abid.ES', 'TheDude', 'some proof'])
+		assert_equal 9, @j[:id]
+		assert_equal 'Dude Abides', @j[:name]
+		assert_equal 'dude@abid.es', @j[:email]
+		assert_equal 'Dude', @j[:address]
+		res = DB.exec("SELECT * FROM peeps.userstats WHERE person_id=9")
+		assert_equal 'proof-we14asia', res[0]['statkey']
+		assert_equal 'some proof', res[0]['statvalue']
+	end
+
 	def test_researcher
 		qry("woodegg.get_researcher(1)")
 		assert_equal '巩俐', @j[:name]
