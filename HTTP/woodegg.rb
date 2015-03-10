@@ -24,21 +24,30 @@ class WoodEgg < Sinatra::Base
 		end
 	end
 
-	# post '/login' # email password
-	#   qry('login($1, $2)', [params[:email], params[:password]])
-	# end
+	post '/login' do
+		qry('login($1, $2)', [params[:email], params[:password]])
+	end
 
-	# post '/register' # name email password
-	#   qry('register($1, $2, $3)', [params[:name], params[:email], params[:password]])
-	# end
+	get %r{^/customer/([a-zA-Z0-9]{32}:[a-zA-Z0-9]{32})$} do |cookie|
+		qry('get_customer($1)', [cookie])
+	end
 
-	# post '/forgot' # email 
-	#   qry('forgot($1)', [params[:email]])
-	# end
+	post '/register' do
+		qry('register($1, $2, $3, $4)',
+			[params[:name], params[:email], params[:password], params[:proof]])
+	end
 
-	# get '/customer/(32:32)' do |cookie|
-	#   qry('get_customer($1)', [cookie])
-	# end
+	post '/forgot' do
+		qry('forgot($1)', [params[:email]])
+	end
+
+	get %r{^/customer/([a-zA-Z0-9]{8})$} do |newpass|
+		qry('get_customer_reset($1)', [newpass])
+	end
+
+	post %r{^/customer/([a-zA-Z0-9]{8})$} do |newpass|
+		qry('set_customer_password($1, $2)', [newpass, params[:password]])
+	end
 
 	get %r{^/researchers/([0-9]+)$} do |id|
 		qry('get_researcher($1)', [id])

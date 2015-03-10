@@ -10,6 +10,73 @@ class TestWoodEgg < Minitest::Test
 		delete '/reset'
 	end
 
+	def test_login
+		post '/login', {email: 'augustus@gloop.de', password: 'augustus'}
+		assert @j[:cookie]
+		assert_match /[a-zA-Z0-9]{32}:[a-zA-Z0-9]{32}/, @j[:cookie]
+		post '/login', {email: 'derek@sivers.org', password: 'derek'}
+		assert_equal 'Not Found', @j[:title]
+	end
+
+	def test_customer
+		post '/login', {email: 'augustus@gloop.de', password: 'augustus'}
+		get '/customer/%s' % @j[:cookie]
+		assert_equal 1, @j[:id]
+		assert_equal 'Augustus Gloop', @j[:name]
+		get '/customer/95a1aa2d50a38ec052179065329bdb0d:iXFyoXL6AJGs1p9F66L2M8oI9uGO4vmZ'
+		assert_equal 'Not Found', @j[:title]
+	end
+
+	def test_register
+		post '/register', {
+			name: 'Dude Abides',
+			email: 'DUDE@abid.ES',
+			password: 'TheDude',
+			proof: 'some proof'}
+		assert_equal 9, @j[:id]
+		assert_equal 'Dude Abides', @j[:name]
+		assert_equal 'dude@abid.es', @j[:email]
+		assert_equal 'Dude', @j[:address]
+	end
+
+	def test_forgot
+		post '/forgot', {email: 'augustus@gloop.de'}
+		assert_equal 6, @j[:id]
+		assert_equal 'Augustus Gloop', @j[:name]
+		assert_equal 'augustus@gloop.de', @j[:email]
+		assert_equal 'Master Gloop', @j[:address]
+		post '/forgot', {email: 'derek@sivers.org'}
+		assert_equal 'Not Found', @j[:title]
+		post '/forgot', {email: 'x'}
+		assert_equal 'Not Found', @j[:title]
+		post '/forgot', {email: ''}
+		assert_equal 'Not Found', @j[:title]
+		post '/forgot', {email: nil}
+		assert_equal 'Not Found', @j[:title]
+	end
+
+	def test_get_customer_reset
+		get '/customer/8LLRaMwm'
+		assert_equal 1, @j[:customer_id]
+		assert_equal 6, @j[:person_id]
+		assert_equal '8LLRaMwm', @j[:reset]
+	end
+
+	def test_set_customer_password
+		post '/customer/8LLRaMwm', {password: 'x'}
+		assert_equal 'short_password', @j[:title]
+		nu = 'þø¿€ñ'
+		post '/customer/8LLRaMwm', {password: nu}
+		assert_equal 6, @j[:id]
+		assert_equal 'Augustus Gloop', @j[:name]
+		assert_equal 'augustus@gloop.de', @j[:email]
+		assert_equal 'Master Gloop', @j[:address]
+		post '/login', {email: 'augustus@gloop.de', password: nu}
+		assert_match /[a-zA-Z0-9]{32}:[a-zA-Z0-9]{32}/, @j[:cookie]
+		post '/customer/8LLRaMwm', {password: nu}
+		assert_equal 'Not Found', @j[:title]
+	end
+
 	def test_researcher
 		get '/researchers/1'
 		assert_equal '巩俐', @j[:name]
