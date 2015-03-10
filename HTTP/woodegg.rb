@@ -24,6 +24,22 @@ class WoodEgg < Sinatra::Base
 		end
 	end
 
+	# post '/login' # email password
+	#   qry('login($1, $2)', [params[:email], params[:password]])
+	# end
+
+	# post '/register' # name email password
+	#   qry('register($1, $2, $3)', [params[:name], params[:email], params[:password]])
+	# end
+
+	# post '/forgot' # email 
+	#   qry('forgot($1)', [params[:email]])
+	# end
+
+	# get '/customer/(32:32)' do |cookie|
+	#   qry('get_customer($1)', [cookie])
+	# end
+
 	get %r{^/researchers/([0-9]+)$} do |id|
 		qry('get_researcher($1)', [id])
 	end
