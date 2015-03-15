@@ -1,20 +1,17 @@
 # db-api
 
-My PostgreSQL database.
-
-In each schema subdirectory:
-
-`m4 schema.m4 > schema.sql`
-
-And when I change fixtures:
-
-`sh fixtures.sh`
-
-© 2015 50pop LLC | Contact: [Derek Sivers](http://sivers.org/)
+My PostgreSQL database.  © 2015 50pop LLC | Contact: [Derek Sivers](http://sivers.org/)
 
 # WHAT'S WHAT:
 
 Just a reminder to my future self, what's with this new PostgreSQL db-api way of doing things
+
+1. All smarts, all business rules, are in the database schema functions.
+2. HTTP/ has REST API Sinatra files that map HTTP URLs to the api.sql functions. Most require HTTP authentication. All return just mime and JSON. They're mostly private, but could be public some day.
+3. a50c is a REST API client, with one Ruby class per API, methods mapping to the calls, converting the JSON to hashes.
+4. 50web has the actual end-user UI websites, letting the a50c Ruby class do all the work.
+
+In other words, the database schema functions do all the work.  The other bits just map them to the UI.
 
 ### What's gone:
 
