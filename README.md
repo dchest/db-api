@@ -56,6 +56,10 @@ If POST /login works, it sets the 3 needed cookies (person_id, api_key, api_pass
 * 10031 = WoodEgg test
 
 
+# Alternate ending:
+
+If I really didn't need a public HTTP API, and it's all going to stay on the same server anyway, then I could make an alternate version of a50c that taps PostgreSQL's “SELECT js FROM” API calls directly.
+
 # TODO:
 
 * Can a view be generated from an already-selected record, stored in a variable?  If so, the approach of one function looking up just the ids, then passing id to the view to re-select it could be replaced with that approach.  And after doing an update of a status like opened/closed, could do RETURNING * to return its values instead of selecting again.
