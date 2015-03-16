@@ -2,7 +2,7 @@
 ------------------------- API FUNCTIONS:
 ----------------------------------------
 
--- POST %r{^/comments/([0-9]+)$}
+-- GET %r{^/comments/([0-9]+)$}
 -- PARAMS: comment id
 CREATE OR REPLACE FUNCTION get_comment(integer, OUT mime text, OUT js json) AS $$
 BEGIN
@@ -59,6 +59,9 @@ BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM
 		(SELECT * FROM sivers.comments WHERE id=$1) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
 m4_ERRCATCH
 END;
 $$ LANGUAGE plpgsql;
@@ -75,6 +78,9 @@ BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM
 		(SELECT * FROM sivers.comments WHERE id = $1) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -88,6 +94,9 @@ BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM
 		(SELECT * FROM sivers.comments WHERE id = $1) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
 	DELETE FROM sivers.comments WHERE id = $1;
 m4_ERRCATCH
 END;
@@ -105,6 +114,9 @@ BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM
 		(SELECT * FROM sivers.comments WHERE id = $1) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	END IF;
 	DELETE FROM sivers.comments WHERE person_id = pid;
 	DELETE FROM peeps.people WHERE id = pid;
 m4_ERRCATCH

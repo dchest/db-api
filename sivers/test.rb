@@ -42,6 +42,8 @@ class TestComment < Minitest::Test
 		assert_equal 'That is great.<br><span class="response">Thanks -- Derek</span>', @j[:html]
 		qry("sivers.reply_to_comment(2, ':-)')")
 		assert_includes @j[:html], 'smile'
+		qry("sivers.reply_to_comment(999, 'Thanks')")
+		assert_equal 'Not Found', @j[:title]
 	end
 
 	def test_delete
@@ -51,6 +53,8 @@ class TestComment < Minitest::Test
 		assert_equal [4, 3, 2, 1], @j.map {|x| x[:id]}
 		qry("peeps.get_person(5)")
 		assert_equal 'Oompa Loompa', @j[:name]
+		qry("sivers.delete_comment(999)")
+		assert_equal 'Not Found', @j[:title]
 	end
 
 	def test_spam
@@ -60,6 +64,8 @@ class TestComment < Minitest::Test
 		assert_equal 'application/problem+json', @res[0]['mime']
 		qry("sivers.new_comments()")
 		assert_equal [3, 2, 1], @j.map {|x| x[:id]}
+		qry("sivers.spam_comment(999)")
+		assert_equal 'Not Found', @j[:title]
 	end
 
 	def test_update
@@ -68,6 +74,8 @@ class TestComment < Minitest::Test
 		assert_equal 'new body', @j[:html]
 		assert_equal 'oompa@loompa.mm', @j[:email]
 		assert_equal '2014-04-28', @j[:created_at]
+		qry("sivers.update_comment(999, $1)", ['{"html":"hi"}'])
+		assert_equal 'Not Found', @j[:title]
 	end
 
 	def test_comment_person
@@ -77,6 +85,8 @@ class TestComment < Minitest::Test
 		assert_equal 'musicthoughts', @j[:person][:stats][1][:name]
 		assert_equal 'http://www.wonka.com/', @j[:person][:urls][0][:url]
 		assert_equal 'you coming by?', @j[:person][:emails][0][:subject]
+		qry("sivers.get_comment(999)")
+		assert_equal 'Not Found', @j[:title]
 	end
 
 end
