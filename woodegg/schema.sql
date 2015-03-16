@@ -351,18 +351,23 @@ BEGIN
 	IF pid IS NOT NULL THEN
 		SELECT cookie INTO cook FROM peeps.login_person_domain(pid, 'woodegg.com');
 	END IF;
-	IF cook IS NULL THEN
-
+	IF cook IS NULL THEN 
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+ ELSE
+		mime := 'application/json';
+		js := json_build_object('cookie', cook);
+	END IF;
+EXCEPTION WHEN OTHERS THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(
 		'type', 'about:blank',
 		'title', 'Not Found',
 		'status', 404);
 
-	ELSE
-		mime := 'application/json';
-		js := json_build_object('cookie', cook);
-	END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -375,15 +380,13 @@ BEGIN
 	js := row_to_json(r) FROM (SELECT c.id, name
 		FROM peeps.get_person_from_cookie($1) p, woodegg.customers c
 		WHERE p.id=c.person_id) r;
-	IF js IS NULL THEN
-
+	IF js IS NULL THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(
 		'type', 'about:blank',
 		'title', 'Not Found',
 		'status', 404);
-
-	END IF;
+ END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -399,15 +402,13 @@ BEGIN
 		FROM peeps.people p, woodegg.customers c
 		WHERE p.newpass=$1
 		AND p.id=c.person_id;
-	IF pid IS NULL THEN
-
+	IF pid IS NULL THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(
 		'type', 'about:blank',
 		'title', 'Not Found',
 		'status', 404);
-
-	ELSE
+ ELSE
 		mime := 'application/json';
 		-- this is just acknowledgement that it's approved to show reset form:
 		js := json_build_object('person_id', pid, 'customer_id', cid, 'reset', $1);
@@ -433,15 +434,13 @@ BEGIN
 		FROM peeps.people p, woodegg.customers c
 		WHERE p.newpass=$1
 		AND p.id=c.person_id;
-	IF pid IS NULL THEN
-
+	IF pid IS NULL THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(
 		'type', 'about:blank',
 		'title', 'Not Found',
 		'status', 404);
-
-	ELSE
+ ELSE
 		PERFORM peeps.set_password(pid, $2);
 		mime := 'application/json';
 		-- this is just acknowledgement that it's done:
@@ -483,15 +482,13 @@ BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT id, name, email, address
 		FROM peeps.people WHERE id=pid) r;
-	IF js IS NULL THEN
-
+	IF js IS NULL THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(
 		'type', 'about:blank',
 		'title', 'Not Found',
 		'status', 404);
-
-	END IF;
+ END IF;
 
 EXCEPTION
 	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
@@ -524,15 +521,13 @@ DECLARE
 BEGIN
 	SELECT p.id, p.newpass INTO pid, pnp FROM peeps.people p, woodegg.customers c
 		WHERE p.id=c.person_id AND p.email = lower(regexp_replace($1, '\s', '', 'g'));
-	IF pid IS NULL THEN
-
+	IF pid IS NULL THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(
 		'type', 'about:blank',
 		'title', 'Not Found',
 		'status', 404);
-
-	ELSE
+ ELSE
 		IF pnp IS NULL THEN
 			UPDATE peeps.people SET
 			newpass = public.unique_for_table_field(8, 'peeps.people', 'newpass')
@@ -570,15 +565,13 @@ CREATE OR REPLACE FUNCTION get_researcher(integer, OUT mime text, OUT js json) A
 BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM researcher_view WHERE id=$1) r;
-	IF js IS NULL THEN
-
+	IF js IS NULL THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(
 		'type', 'about:blank',
 		'title', 'Not Found',
 		'status', 404);
-
-	END IF;
+ END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -589,15 +582,13 @@ CREATE OR REPLACE FUNCTION get_writer(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM writer_view WHERE id=$1) r;
-	IF js IS NULL THEN
-
+	IF js IS NULL THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(
 		'type', 'about:blank',
 		'title', 'Not Found',
 		'status', 404);
-
-	END IF;
+ END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -608,15 +599,13 @@ CREATE OR REPLACE FUNCTION get_editor(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM editor_view WHERE id=$1) r;
-	IF js IS NULL THEN
-
+	IF js IS NULL THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(
 		'type', 'about:blank',
 		'title', 'Not Found',
 		'status', 404);
-
-	END IF;
+ END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -655,15 +644,13 @@ CREATE OR REPLACE FUNCTION get_question(integer, OUT mime text, OUT js json) AS 
 BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM question_view WHERE id=$1) r;
-	IF js IS NULL THEN
-
+	IF js IS NULL THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(
 		'type', 'about:blank',
 		'title', 'Not Found',
 		'status', 404);
-
-	END IF;
+ END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -674,15 +661,13 @@ CREATE OR REPLACE FUNCTION get_book(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM book_view WHERE id=$1) r;
-	IF js IS NULL THEN
-
+	IF js IS NULL THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(
 		'type', 'about:blank',
 		'title', 'Not Found',
 		'status', 404);
-
-	END IF;
+ END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -702,15 +687,13 @@ CREATE OR REPLACE FUNCTION get_template(integer, OUT mime text, OUT js json) AS 
 BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM template_view WHERE id=$1) r;
-	IF js IS NULL THEN
-
+	IF js IS NULL THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(
 		'type', 'about:blank',
 		'title', 'Not Found',
 		'status', 404);
-
-	END IF;
+ END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -721,15 +704,13 @@ CREATE OR REPLACE FUNCTION get_topic(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM templates_view WHERE id=$1) r;
-	IF js IS NULL THEN
-
+	IF js IS NULL THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(
 		'type', 'about:blank',
 		'title', 'Not Found',
 		'status', 404);
-
-	END IF;
+ END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -740,15 +721,13 @@ CREATE OR REPLACE FUNCTION get_uploads(text, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := json_agg(r) FROM (SELECT * FROM uploads_view WHERE country=$1) r;
-	IF js IS NULL THEN
-
+	IF js IS NULL THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(
 		'type', 'about:blank',
 		'title', 'Not Found',
 		'status', 404);
-
-	END IF;
+ END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -759,15 +738,13 @@ CREATE OR REPLACE FUNCTION get_upload(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM upload_view WHERE id=$1) r;
-	IF js IS NULL THEN
-
+	IF js IS NULL THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(
 		'type', 'about:blank',
 		'title', 'Not Found',
 		'status', 404);
-
-	END IF;
+ END IF;
 END;
 $$ LANGUAGE plpgsql;
 

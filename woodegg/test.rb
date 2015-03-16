@@ -11,6 +11,9 @@ class TestWoodEgg < Minitest::Test
 		assert_match /[a-zA-Z0-9]{32}:[a-zA-Z0-9]{32}/, @j[:cookie]
 		qry("woodegg.login($1, $2)", ['derek@sivers.org', 'derek'])
 		assert_equal 'Not Found', @j[:title]
+		# catches short password exception and just says not found
+		qry("woodegg.login($1, $2)", ['derek@sivers.org', 'd'])
+		assert_equal 'Not Found', @j[:title]
 	end
 
 	def test_customer
