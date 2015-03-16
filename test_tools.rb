@@ -4,8 +4,8 @@ require 'minitest/autorun'
 require 'json'
 
 DB = PG::Connection.new(dbname: 'd50b_test', user: 'd50b')
-SCHEMA = File.read('schema.sql')
-FIXTURES = File.read('fixtures.sql')
+SCHEMA ||= File.read('schema.sql')
+FIXTURES ||= File.read('fixtures.sql')
 
 class Minitest::Test
 	def setup
