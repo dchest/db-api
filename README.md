@@ -11,10 +11,10 @@ In short:  **The database schema functions do all the work.  The other bits just
 ## As of 2015-03-17:
 
 1. All smarts, all business rules, are in the database schema functions.
-2. b50d is a PostgreSQL API client, with one Ruby class per API, methods mapping to the calls, converting the JSON to hashes.
-3. 50web has the actual end-user UI websites, letting the a50c Ruby class do all the work.
+2. B50D is a PostgreSQL API client, with one Ruby class per API, methods mapping to the pg functions, converting the JSON to hashes.
+3. 50web has the actual end-user UI websites, letting the B50D Ruby class do all the work.
 
-Made “b50d” - a clone of a50c that uses direct PostgreSQL connections instead of going into HTTP and back.  So now the a50c gem will lag behind for a while until needed.
+Made “b50d” - a clone of a50c that uses direct PostgreSQL connections instead of going into HTTP and back.  So now the a50c gem isn't needed, and will lag behind until needed.
 
 Important to note that the HTTP way of doing things is still the architecture/structure, and can be turned on with little effort if/when the APIs need to be made public.  (For example: JavaScript-created pages.)
 
