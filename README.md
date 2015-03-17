@@ -6,20 +6,32 @@ My PostgreSQL database.  © 2015 50pop LLC | Contact: [Derek Sivers](http://sive
 
 Just a reminder to my future self, what's with this new PostgreSQL db-api way of doing things
 
+In short:  **The database schema functions do all the work.  The other bits just map them to the UI.**
+
+## As of 2015-03-17:
+
+1. All smarts, all business rules, are in the database schema functions.
+2. b50d is a PostgreSQL API client, with one Ruby class per API, methods mapping to the calls, converting the JSON to hashes.
+3. 50web has the actual end-user UI websites, letting the a50c Ruby class do all the work.
+
+Made “b50d” - a clone of a50c that uses direct PostgreSQL connections instead of going into HTTP and back.  So now the a50c gem will lag behind for a while until needed.
+
+Important to note that the HTTP way of doing things is still the architecture/structure, and can be turned on with little effort if/when the APIs need to be made public.  (For example: JavaScript-created pages.)
+
+## Before 2015-03-17:
+
 1. All smarts, all business rules, are in the database schema functions.
 2. HTTP/ has REST API Sinatra files that map HTTP URLs to the api.sql functions. Most require HTTP authentication. All return just mime and JSON. They're mostly private, but could be public some day.
 3. a50c is a REST API client, with one Ruby class per API, methods mapping to the calls, converting the JSON to hashes.
 4. 50web has the actual end-user UI websites, letting the a50c Ruby class do all the work.
 
-In other words, the database schema functions do all the work.  The other bits just map them to the UI.
-
-### What's gone:
+### What's gone from -2014:
 
 **d50b** was just Ruby+Sequel models around the database.  No more.  All gone.
 
 **50apis** is now routes in db-api/HTTP since they use schema.sql files for resetting fixtures.  Views are now SQL views in db-api/~/views.sql
 
-### What's new:
+### What's new 2015+:
 
 **db-api** has subdirectories with the rules that were once in d50b models, and views that were once in 50apis/views
 
@@ -27,9 +39,9 @@ In other words, the database schema functions do all the work.  The other bits j
 
 ### What's mostly the same:
 
-**a50c** is still a “client library” Ruby gem to access the HTTP API with Ruby.  Only now instead of Struct with method calls, it's Hash with symbol keys.  I'll probably have to make other “client libraries” some day: JavaScript for JS-heavy front-end sites, Java for Android, ObjC for iOS?
+**a50c** (now **b50d**) is still a “client library” Ruby gem to access the HTTP API with Ruby.  Only now instead of Struct with method calls, it's Hash with symbol keys.  I'll probably have to make other “client libraries” some day: JavaScript for JS-heavy front-end sites, Java for Android, ObjC for iOS?
 
-**50web** is still all the end-user websites, using Sinatra + a50c gem.  Only now instead of Struct with method calls, it's Hash with symbol keys.
+**50web** is still all the end-user websites, using Sinatra + a50c/b50d gem.  Only now instead of Struct with method calls, it's Hash with symbol keys.
 
 ### Authentication:
 
@@ -55,10 +67,6 @@ If POST /login works, it sets the 3 needed cookies (person_id, api_key, api_pass
 * 10030 = WoodEgg
 * 10031 = WoodEgg test
 
-
-# Alternate ending:
-
-If I really didn't need a public HTTP API, and it's all going to stay on the same server anyway, then I could make an alternate version of a50c that taps PostgreSQL's “SELECT js FROM” API calls directly.
 
 # TODO:
 
