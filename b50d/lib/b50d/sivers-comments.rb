@@ -1,14 +1,5 @@
 require_relative 'dbapi.rb'
 
-# USAGE:
-# require '/srv/public/db-api/b50d/sivers-comments.rb'
-# @sc = B50D::SiversComments.new('aaaaaaaa', 'bbbbbbbb', 'test')
-# js = @sc.get_comment(5)
-# unless @sc.delete_comment(123)
-#   puts @sc.error
-#   puts @sc.message
-# end
-
 module B50D
 	class SiversComments
 		def error ; @db.error ; end

@@ -4,7 +4,7 @@ P_SCHEMA = File.read('../../peeps/schema.sql')
 P_FIXTURES = File.read('../../peeps/fixtures.sql')
 require '../../test_tools.rb'
 
-require '../musicthoughts.rb'
+require '../lib/b50d/musicthoughts.rb'
 
 class TestMusicThoughts < Minitest::Test
 

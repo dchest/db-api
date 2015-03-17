@@ -1,13 +1,5 @@
 require_relative 'dbapi.rb'
 
-# USAGE:
-# require '/srv/public/db-api/b50d/woodegg.rb'
-# @we = B50D::WoodEgg.new('test')
-# unless @writer = @we.writer(123)
-#   puts @we.error
-#   puts @we.message
-# end
-
 module B50D
 	class WoodEgg
 		def error ; @db.error ; end

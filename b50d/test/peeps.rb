@@ -2,7 +2,7 @@ SCHEMA = File.read('../../peeps/schema.sql')
 FIXTURES = File.read('../../peeps/fixtures.sql')
 require '../../test_tools.rb'
 
-require '../peeps.rb'
+require '../lib/b50d/peeps.rb'
 
 class TestPeep < Minitest::Test
 

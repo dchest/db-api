@@ -1,6 +1,5 @@
 require_relative 'dbapi.rb'
 
-# OVERVIEW:
 # Main addition is to set the language so that categories and thoughts are
 # translated, like this:
 #
