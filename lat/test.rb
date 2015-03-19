@@ -3,20 +3,6 @@ require '../test_tools.rb'
 class LatTest < Minitest::Test
 	include JDB
 
-	def test_not_null
-		qry("lat.create_concept(NULL, 'something')");
-		assert @j[:title].include? 'not-null'
-		qry("lat.create_concept('something', NULL)");
-		assert @j[:title].include? 'not-null'
-	end
-
-	def test_not_empty
-		qry("lat.create_concept('', 'something')");
-		assert @j[:title].include? 'title_not_empty'
-		qry("lat.create_concept('something', '')");
-		assert @j[:title].include? 'concept_not_empty'
-	end
-
 	def test_clean_concept
 		qry("lat.create_concept('something', $1)", ["  \t \r \n hi \n\t \r  "]);
 		assert_equal 'hi', @j[:concept]
@@ -36,180 +22,164 @@ class LatTest < Minitest::Test
 	end
 
 	def test_new_pairing
-		res = DB.exec("SELECT * FROM new_pairing()")
-		assert_equal '2', res[0]['id']
-		pair2 = [res[0]['concept1_id'], res[0]['concept2_id']].sort
-		refute_equal %w(1 2), pair2
-		res = DB.exec("SELECT * FROM new_pairing()")
-		assert_equal '3', res[0]['id']
-		pair3 = [res[0]['concept1_id'], res[0]['concept2_id']].sort
-		refute_equal %w(1 2), pair3
+		qry("lat.create_pairing()")
+		assert_equal 2, @j[:id]
+		pair2 = [@j[:concept1][:id], @j[:concept2][:id]].sort
+		refute_equal [1,2], pair2
+		qry("lat.create_pairing()")
+		assert_equal 3, @j[:id]
+		pair3 = [@j[:concept1][:id], @j[:concept2][:id]].sort
+		refute_equal [1,2], pair3
 		refute_equal pair2, pair3
-		err = assert_raises PG::RaiseException do
-			DB.exec("SELECT * FROM new_pairing()")
-		end
-		assert err.message.include? 'no unpaired concepts'
+		qry("lat.create_pairing()")
+		assert @j[:title].include? 'no unpaired concepts'
 	end
 
 	def test_get_concept
-		res = DB.exec("SELECT mime, js FROM get_concept(1)")
-		js = JSON.parse(res[0]['js'])
-		assert_equal 'application/json', res[0]['mime']
-		assert_equal %w(id created_at concept tags), js.keys
-		assert_equal %w(color flower), js['tags'].sort
-		assert_equal 'roses are red', js['concept']
-	end
-
-	def test_get_concept_404
-		res = DB.exec("SELECT mime, js FROM get_concept(999)")
-		js = JSON.parse(res[0]['js'])
-		assert_equal 'application/problem+json', res[0]['mime']
-		assert_equal 'about:blank', js['type']
-		assert_equal 'Not Found', js['title']
-		assert_equal 404, js['status']
+		qry("lat.get_concept(1)")
+		r = {id:1, created_at:'2015-03-19', title:'roses', concept:'roses are red',
+			urls:[
+				{id:1, url:'http://www.rosesarered.co.nz/', notes:nil},
+				{id:2, url:'http://en.wikipedia.org/wiki/Roses_are_red', notes:nil}],
+			tags:[
+				{id:1, tag:'flower'},
+				{id:2, tag:'color'}]}
+		assert_equal r, @j
+		qry("lat.get_concept(999)")
+		assert_equal 'Not Found', @j[:title]
 	end
 
 	def test_create_concept
-		res = DB.exec("SELECT mime, js FROM create_concept(' River running ')")
-		assert_equal 'application/json', res[0]['mime']
-		js = JSON.parse(res[0]['js'])
-		assert_equal 4, js['id']
-		assert_equal 'River running', js['concept']
-		assert_equal [], js['tags']
+		qry("lat.create_concept(' river ', ' River running ')")
+		assert_equal 4, @j[:id]
+		assert_equal 'river', @j[:title]
+		assert_equal 'River running', @j[:concept]
+		assert_equal nil, @j[:urls]
+		assert_equal nil, @j[:tags]
 	end
 
 	def test_update_concept
-		res = DB.exec("SELECT mime, js FROM update_concept(3, 'sugar is sticky ')")
-		assert_equal 'application/json', res[0]['mime']
-		js = JSON.parse(res[0]['js'])
-		assert_equal 3, js['id']
-		assert_equal 'sugar is sticky', js['concept']
-		assert_equal %w(flavor), js['tags']
-		res = DB.exec("SELECT mime, js FROM update_concept(999, 'should return 404')")
-		assert_equal 'application/problem+json', res[0]['mime']
-		js = JSON.parse(res[0]['js'])
-		assert_equal 'Not Found', js['title']
+		qry("lat.update_concept(3, '  on sugar  ', 'sugar is sticky ')")
+		assert_equal 'on sugar', @j[:title]
+		assert_equal 'sugar is sticky', @j[:concept]
+		assert_equal [{id:3, tag:'flavor'}], @j[:tags]
+		qry("lat.update_concept(999, 'nope', 'should return 404')")
+		assert_equal 'Not Found', @j[:title]
 	end
 
 	def test_delete_concept
-		res = DB.exec("SELECT mime, js FROM delete_concept(1)")
-		assert_equal 'application/json', res[0]['mime']
-		js = JSON.parse(res[0]['js'])
-		assert_equal 'roses are red', js['concept']
-		res = DB.exec("SELECT mime, js FROM delete_concept(1)")
-		assert_equal 'application/problem+json', res[0]['mime']
-		js = JSON.parse(res[0]['js'])
-		assert_equal 'Not Found', js['title']
+		qry("lat.delete_concept(1)")
+		assert_equal 'roses are red', @j[:concept]
+		qry("lat.delete_concept(1)")
+		assert_equal 'Not Found', @j[:title]
+		qry("lat.delete_concept(999)")
+		assert_equal 'Not Found', @j[:title]
 	end
 
 	def test_update_err
-		res = DB.exec("SELECT mime, js FROM update_concept(1, '')")
-		assert_equal 'application/problem+json', res[0]['mime']
-		js = JSON.parse(res[0]['js'])
-		assert_match /23514$/, js['type']
-		assert_match /not_empty/, js['title']
-		assert_match /^Failing row/, js['detail']
-		res = DB.exec("SELECT mime, js FROM update_concept(1, NULL)")
-		js = JSON.parse(res[0]['js'])
-		assert_match /23502$/, js['type']
-		assert_match /not-null/, js['title']
-		assert_match /^Failing row/, js['detail']
+		qry("lat.update_concept(1, '', 'ok')")
+		assert @j[:title].include? 'not_empty'
+		qry("lat.update_concept(1, 'ok', '')")
+		assert @j[:title].include? 'not_empty'
+		qry("lat.update_concept(1, 'ok', NULL)")
+		assert @j[:title].include? 'not-null'
+		qry("lat.update_concept(1, NULL, 'ok')")
+		assert @j[:title].include? 'not-null'
 	end
 
 	def test_create_err
-		res = DB.exec("SELECT mime, js FROM create_concept('roses are red')")
-		js = JSON.parse(res[0]['js'])
-		assert_match /23505$/, js['type']
-		assert_match /unique constraint/, js['title']
-		res = DB.exec("SELECT mime, js FROM create_concept(NULL)")
-		js = JSON.parse(res[0]['js'])
-		assert_match /23502$/, js['type']
-		assert_match /not-null/, js['title']
-		assert_match /^Failing row/, js['detail']
+		qry("lat.create_concept(NULL, 'something')");
+		assert @j[:title].include? 'not-null'
+		qry("lat.create_concept('something', NULL)");
+		assert @j[:title].include? 'not-null'
+		qry("lat.create_concept('', 'something')");
+		assert @j[:title].include? 'title_not_empty'
+		qry("lat.create_concept('something', '')");
+		assert @j[:title].include? 'concept_not_empty'
+		qry("lat.create_concept('new roses', 'roses are red')")
+		assert @j[:title].include? 'unique constraint'
+		qry("lat.create_concept('roses', 'new roses are red')")
+		assert @j[:title].include? 'unique constraint'
 	end
 
 	def test_tag_concept
-		res = DB.exec("SELECT mime, js FROM tag_concept(3, ' JUICY ')")
-		js = JSON.parse(res[0]['js'])
-		assert_equal 'sugar is sweet', js['concept']
-		assert_equal %w(flavor juicy), js['tags'].sort
+		qry("lat.tag_concept(3, '  JUICY ')")
+		assert_equal [{id:3, tag:'flavor'},{id:4, tag:'juicy'}], @j[:tags]
+		qry("lat.tag_concept(3, 'flavor')")
+		assert_equal [{id:3, tag:'flavor'},{id:4, tag:'juicy'}], @j[:tags]
+		qry("lat.tag_concept(3, '  FLOWER ')")
+		assert_equal [{id:1, tag:'flower'},{id:3, tag:'flavor'},{id:4, tag:'juicy'}], @j[:tags]
+		qry("lat.tag_concept(9999, 'nah')")
+		assert_equal 'Not Found', @j[:title]
+	end
+
+	def test_untag_concept
+		qry("lat.untag_concept(1, 1)")
+		assert_equal [{id:2, tag:'color'}], @j[:tags]
+		qry("lat.get_concept(2)")
+		assert_equal [{id:1, tag:'flower'},{id:2, tag:'color'}], @j[:tags]
+		qry("lat.untag_concept(9999, 1)")
+		assert_equal 'Not Found', @j[:title]
+		qry("lat.untag_concept(2, 9999)")
+		assert_equal [{id:1, tag:'flower'},{id:2, tag:'color'}], @j[:tags]
 	end
 
 	def test_get_concepts
-		res = DB.exec("SELECT * FROM get_concepts(array[3, 1])")
-		js = JSON.parse(res[0]['js'])
-		assert_instance_of Array, js
-		assert_equal 2, js.size
-		assert_equal 1, js[0]['id']
-		assert_equal 3, js[1]['id']
-		assert_equal %w{color flower}, js[0]['tags'].sort
-		assert_equal %w{flavor}, js[1]['tags']
-		res = DB.exec("SELECT * FROM get_concepts(array[99, 123])")
-		assert_equal 'application/json', res[0]['mime']
-		assert_equal [], JSON.parse(res[0]['js'])
+		qry("lat.get_concepts(array[3, 1])")
+		assert_instance_of Array, @j
+		assert_equal 2, @j.size
+		assert_equal 1, @j[0][:id]
+		assert_equal 'roses are red', @j[0][:concept]
+		assert_equal 'http://www.rosesarered.co.nz/', @j[0][:urls][0][:url]
+		assert_equal 3, @j[1][:id]
+		assert_equal 'sugar is sweet', @j[1][:concept]
+		assert_equal 'flavor', @j[1][:tags][0][:tag]
+		qry("lat.get_concepts(array[999, 123])")
+		assert_equal [], @j
 	end
 
 	def test_concepts_tagged
-		res = DB.exec("SELECT * FROM concepts_tagged('flower')")
-		js = JSON.parse(res[0]['js'])
-		assert_instance_of Array, js
-		assert_equal 2, js.size
-		assert_equal 1, js[0]['id']
-		assert_equal 2, js[1]['id']
-		assert_equal %w{color flower}, js[0]['tags'].sort
-		assert_equal %w{color flower}, js[1]['tags'].sort
+		qry("lat.concepts_tagged('flower')")
+		assert_instance_of Array, @j
+		assert_equal 2, @j.size
+		assert_equal 1, @j[0][:id]
+		assert_equal 2, @j[1][:id]
+		qry("lat.concepts_tagged('boop')")
+		assert_equal [], @j
 	end
 
 	def test_get_pairing
-		res = DB.exec("SELECT * FROM get_pairing(1)")
-		assert_equal 'application/json', res[0]['mime']
-		js = JSON.parse(res[0]['js'])
-		assert_equal 1, js['id']
-		assert_match /201[0-9]-[0-9]{2}-[0-9]{2}/, js['created_at']
-		assert_equal 'describing flowers', js['thoughts']
-		assert_instance_of Array, js['concepts']
-		assert_equal 2, js['concepts'].size
-		c = js['concepts'][0]
-		assert_equal 1, c['id']
-		assert_equal 'roses are red', c['concept']
-		assert_equal %w(color flower), c['tags'].sort
-		c = js['concepts'][1]
-		assert_equal 2, c['id']
-		assert_equal 'violets are blue', c['concept']
-		assert_equal %w(color flower), c['tags'].sort
-	end
-
-	def test_create_pairing
-		res = DB.exec("SELECT * FROM create_pairing()")
-		js = JSON.parse(res[0]['js'])
-		assert_equal 2, js['id']
-		assert_match /201[0-9]-[0-9]{2}-[0-9]{2}/, js['created_at']
-		assert_nil js['thoughts']
-		assert_instance_of Array, js['concepts']
-		assert_equal 2, js['concepts'].size
+		qry("lat.get_pairing(1)")
+		r = {:id=>1, :created_at=>'2015-03-19', :thoughts=>'describing flowers',
+			:concept1=>{:id=>1, :created_at=>'2015-03-19', :title=>'roses', :concept=>'roses are red',
+				:urls=>[
+					{:id=>1, :url=>'http://www.rosesarered.co.nz/', :notes=>nil},
+					{:id=>2, :url=>'http://en.wikipedia.org/wiki/Roses_are_red', :notes=>nil}],
+				:tags=>[
+					{:id=>1, :tag=>'flower'}, {:id=>2, :tag=>'color'}]},
+			:concept2=>{:id=>2, :created_at=>'2015-03-19', :title=>'violets', :concept=>'violets are blue',
+				:urls=>[
+					{:id=>3, :url=>'http://en.wikipedia.org/wiki/Violets_Are_Blue', :notes=>'many refs here'}],
+				:tags=>[{:id=>1, :tag=>'flower'}, {:id=>2, :tag=>'color'}]}}
+		assert_equal r, @j
 	end
 
 	def test_update_pairing
-		res = DB.exec("SELECT * FROM update_pairing(1, 'new thoughts')")
-		js = JSON.parse(res[0]['js'])
-		assert_equal 'new thoughts', js['thoughts']
+		qry("lat.update_pairing(1, ' \n new thoughts \t\r ')")
+		assert_equal 'new thoughts', @j[:thoughts]
 	end
 
 	def test_delete_pairing
-		res = DB.exec("SELECT * FROM delete_pairing(1)")
-		js = JSON.parse(res[0]['js'])
-		assert_equal 'describing flowers', js['thoughts']
-		res = DB.exec("SELECT * FROM delete_pairing(1)")
-		assert_equal 'application/problem+json', res[0]['mime']
-		js = JSON.parse(res[0]['js'])
-		assert_equal 'Not Found', js['title']
+		qry("lat.delete_pairing(1)")
+		assert_equal 'describing flowers', @j[:thoughts]
+		qry("lat.delete_pairing(1)")
+		assert_equal 'Not Found', @j[:title]
 	end
 
 	def test_tag_pairing
-		res = DB.exec("SELECT * FROM tag_pairing(1, 'newtag')")
-		js = JSON.parse(res[0]['js'])
-		assert_equal %w{color flower newtag}, js['concepts'][0]['tags'].sort
-		assert_equal %w{color flower newtag}, js['concepts'][1]['tags'].sort
+		qry("lat.tag_pairing(1, 'newtag')")
+		assert_equal %w{flower color newtag}, @j[:concept1][:tags].map {|t| t[:tag]}
+		assert_equal %w{flower color newtag}, @j[:concept2][:tags].map {|t| t[:tag]}
 	end
 
 end

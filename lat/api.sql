@@ -59,17 +59,19 @@ $$ LANGUAGE plpgsql;
 -- PARAMS: concept.id, text of tag
 CREATE OR REPLACE FUNCTION tag_concept(integer, text, OUT mime text, OUT js json) AS $$
 DECLARE
+	cid integer;
 	tid integer;
-	ct lat.concepts_tags;
 m4_ERRVARS
 BEGIN
+	SELECT id INTO cid FROM lat.concepts WHERE id=$1;
+	IF NOT FOUND THEN m4_NOTFOUND RETURN; END IF;
 	SELECT id INTO tid FROM lat.tags
 		WHERE tag = lower(btrim(regexp_replace($2, '\s+', ' ', 'g')));
 	IF tid IS NULL THEN
 		INSERT INTO lat.tags (tag) VALUES ($2) RETURNING id INTO tid;
 	END IF;
-	SELECT * INTO ct FROM lat.concepts_tags WHERE concept_id=$1 AND tag_id=tid;
-	IF ct IS NULL THEN
+	SELECT concept_id INTO cid FROM lat.concepts_tags WHERE concept_id=$1 AND tag_id=tid;
+	IF NOT FOUND THEN
 		INSERT INTO lat.concepts_tags(concept_id, tag_id) VALUES ($1, tid);
 	END IF;
 	SELECT x.mime, x.js INTO mime, js FROM lat.get_concept($1) x;

@@ -40,10 +40,10 @@ CREATE TRIGGER clean_tag BEFORE INSERT OR UPDATE OF tag ON lat.tags FOR EACH ROW
 -- strip all line breaks, tabs, and spaces around thought before storing
 CREATE OR REPLACE FUNCTION clean_pairing() RETURNS TRIGGER AS $$
 BEGIN
-	NEW.thought = btrim(regexp_replace(NEW.thought, '\s+', ' ', 'g'));
+	NEW.thoughts = btrim(regexp_replace(NEW.thoughts, '\s+', ' ', 'g'));
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS clean_pairing ON lat.pairings CASCADE;
-CREATE TRIGGER clean_pairing BEFORE INSERT OR UPDATE ON lat.pairings FOR EACH ROW EXECUTE PROCEDURE clean_pairing();
+CREATE TRIGGER clean_pairing BEFORE INSERT OR UPDATE OF thoughts ON lat.pairings FOR EACH ROW EXECUTE PROCEDURE clean_pairing();
 
