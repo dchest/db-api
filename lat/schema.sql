@@ -66,7 +66,7 @@ CREATE TRIGGER clean_concept BEFORE INSERT OR UPDATE ON lat.concepts FOR EACH RO
 -- strip all line breaks, tabs, and spaces around url before storing (& validating)
 CREATE OR REPLACE FUNCTION clean_url() RETURNS TRIGGER AS $$
 BEGIN
-	NEW.url = regexp_replace(NEW.url, '\s+', '', 'g');
+	NEW.url = regexp_replace(NEW.url, '\s', '', 'g');
 	NEW.notes = btrim(regexp_replace(NEW.notes, '\s+', ' ', 'g'));
 	RETURN NEW;
 END;
@@ -128,10 +128,12 @@ DROP VIEW IF EXISTS concept_view CASCADE;
 CREATE VIEW concept_view AS
 	SELECT id, created_at, title, concept, (SELECT json_agg(uq) AS urls FROM
 		(SELECT u.* FROM lat.urls u, lat.concepts_urls cu
-			WHERE u.id=cu.url_id AND cu.concept_id=lat.concepts.id) uq),
+			WHERE u.id=cu.url_id AND cu.concept_id=lat.concepts.id
+			ORDER BY u.id) uq),
 	(SELECT json_agg(tq) AS tags FROM
 		(SELECT t.* FROM lat.tags t, lat.concepts_tags ct
-			WHERE t.id=ct.tag_id AND ct.concept_id=concepts.id) tq)
+			WHERE t.id=ct.tag_id AND ct.concept_id=concepts.id
+			ORDER BY t.id) tq)
 	FROM lat.concepts;
 
 DROP VIEW IF EXISTS pairing_view CASCADE;
@@ -280,6 +282,15 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- PARAMS: concept.id, tag.id
+CREATE OR REPLACE FUNCTION untag_concept(integer, integer, OUT mime text, OUT js json) AS $$
+BEGIN
+	DELETE FROM lat.concepts_tags WHERE concept_id=$1 AND tag_id=$2;
+	SELECT x.mime, x.js INTO mime, js FROM lat.get_concept($1) x;
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- PARAMS: url.id
 CREATE OR REPLACE FUNCTION get_url(integer, OUT mime text, OUT js json) AS $$
 BEGIN
@@ -309,7 +320,7 @@ DECLARE
 BEGIN
 	INSERT INTO lat.urls (url, notes) VALUES ($2, $3) RETURNING id INTO uid;
 	INSERT INTO lat.concepts_urls (concept_id, url_id) VALUES ($1, uid);
-	SELECT x.mime, x.js INTO mime, js FROM lat.get_url($1) x;
+	SELECT x.mime, x.js INTO mime, js FROM lat.get_url(uid) x;
 
 EXCEPTION
 	WHEN OTHERS THEN GET STACKED DIAGNOSTICS

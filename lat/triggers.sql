@@ -17,7 +17,7 @@ CREATE TRIGGER clean_concept BEFORE INSERT OR UPDATE ON lat.concepts FOR EACH RO
 -- strip all line breaks, tabs, and spaces around url before storing (& validating)
 CREATE OR REPLACE FUNCTION clean_url() RETURNS TRIGGER AS $$
 BEGIN
-	NEW.url = regexp_replace(NEW.url, '\s+', '', 'g');
+	NEW.url = regexp_replace(NEW.url, '\s', '', 'g');
 	NEW.notes = btrim(regexp_replace(NEW.notes, '\s+', ' ', 'g'));
 	RETURN NEW;
 END;

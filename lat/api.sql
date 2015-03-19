@@ -78,6 +78,15 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- PARAMS: concept.id, tag.id
+CREATE OR REPLACE FUNCTION untag_concept(integer, integer, OUT mime text, OUT js json) AS $$
+BEGIN
+	DELETE FROM lat.concepts_tags WHERE concept_id=$1 AND tag_id=$2;
+	SELECT x.mime, x.js INTO mime, js FROM lat.get_concept($1) x;
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- PARAMS: url.id
 CREATE OR REPLACE FUNCTION get_url(integer, OUT mime text, OUT js json) AS $$
 BEGIN
@@ -96,7 +105,7 @@ m4_ERRVARS
 BEGIN
 	INSERT INTO lat.urls (url, notes) VALUES ($2, $3) RETURNING id INTO uid;
 	INSERT INTO lat.concepts_urls (concept_id, url_id) VALUES ($1, uid);
-	SELECT x.mime, x.js INTO mime, js FROM lat.get_url($1) x;
+	SELECT x.mime, x.js INTO mime, js FROM lat.get_url(uid) x;
 m4_ERRCATCH
 END;
 $$ LANGUAGE plpgsql;

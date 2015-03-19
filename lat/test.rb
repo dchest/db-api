@@ -24,9 +24,15 @@ class LatTest < Minitest::Test
 		assert_equal 'hi', @j[:title]
 	end
 
+	def test_clean_url
+		qry("lat.add_url(3, $1, $2)", ["\r\thttp://some.url \t \n", " \t\r\n some notes \n\t "])
+		assert_equal 'http://some.url', @j[:url]
+		assert_equal 'some notes', @j[:notes]
+	end
+
 	def test_clean_tag
-		res = DB.exec_params("INSERT INTO tags (concept_id, tag) VALUES ($1, $2) RETURNING *", [2, " \t\r\n BaNG \n\t "])
-		assert_equal 'bang', res[0]['tag']
+		qry("lat.tag_concept(3, $1)", [" \t\r\n BaNG \n\t "])
+		assert_equal 'bang', @j[:tags][1][:tag]
 	end
 
 	def test_new_pairing
