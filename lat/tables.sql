@@ -25,16 +25,19 @@ CREATE TABLE tags (
 
 CREATE TABLE concepts_urls (
 	concept_id integer not null references concepts(id) on delete cascade,
-	url_id integer not null references urls(id) on delete cascade
+	url_id integer not null references urls(id) on delete cascade,
+	primary key (concept_id, url_id)
 );
 
 CREATE TABLE concepts_tags (
 	concept_id integer not null references concepts(id) on delete cascade,
 	tag_id integer not null references tags(id) on delete cascade
+	primary key (concept_id, tag_id)
 );
 
 CREATE TABLE pairings (
 	id serial primary key,
+	created_at date not null default CURRENT_DATE,
 	concept1_id integer not null references concepts(id) on delete cascade,
 	concept2_id integer not null references concepts(id) on delete cascade,
 	CHECK(concept1_id != concept2_id),
