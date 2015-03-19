@@ -1,36 +1,27 @@
-require 'pg'
-require 'minitest/autorun'
-require 'json'
+require '../test_tools.rb'
 
-DB = PG::Connection.new(dbname: 'sivers', user: 'sivers')
-SQL = File.read('sql.sql')
+class LatTest < Minitest::Test
+	include JDB
 
-class Minitest::Test
-	def setup
-		DB.exec(SQL)
-	end
-end
-Minitest.after_run do
-	DB.exec(SQL)
-end
-
-class SqlTest < Minitest::Test
 	def test_not_null
-		assert_raises PG::NotNullViolation do
-			DB.exec("INSERT INTO concepts (concept) VALUES (NULL)")
-		end
+		qry("lat.create_concept(NULL, 'something')");
+		assert @j[:title].include? 'not-null'
+		qry("lat.create_concept('something', NULL)");
+		assert @j[:title].include? 'not-null'
 	end
 
 	def test_not_empty
-		err = assert_raises PG::CheckViolation do
-			DB.exec("INSERT INTO concepts (concept) VALUES ('')")
-		end
-		assert err.message.include? 'not_empty'
+		qry("lat.create_concept('', 'something')");
+		assert @j[:title].include? 'title_not_empty'
+		qry("lat.create_concept('something', '')");
+		assert @j[:title].include? 'concept_not_empty'
 	end
 
 	def test_clean_concept
-		res = DB.exec_params("INSERT INTO concepts (concept) VALUES ($1) RETURNING *", ["  \t \r \n hi \n\t \r  "])
-		assert_equal 'hi', res[0]['concept']
+		qry("lat.create_concept('something', $1)", ["  \t \r \n hi \n\t \r  "]);
+		assert_equal 'hi', @j[:concept]
+		qry("lat.create_concept($1, 'something')", ["  \t \r \n hi \n\t \r  "]);
+		assert_equal 'hi', @j[:title]
 	end
 
 	def test_clean_tag

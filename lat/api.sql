@@ -6,7 +6,7 @@
 CREATE OR REPLACE FUNCTION get_concept(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := row_to_json(r) FROM (SELECT * FROM lat.concepts WHERE id = $1) r;
+	js := row_to_json(r) FROM (SELECT * FROM lat.concept_view WHERE id=$1) r;
 	IF js IS NULL THEN m4_NOTFOUND END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -16,7 +16,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_concepts(integer[], OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := json_agg(r) FROM (SELECT * FROM lat.concepts WHERE id = ANY($1)) r;
+	js := json_agg(r) FROM (SELECT * FROM lat.concept_view WHERE id=ANY($1) ORDER BY id) r;
 	IF js IS NULL THEN js := '[]'; END IF; -- If none found, js is empty array
 END;
 $$ LANGUAGE plpgsql;
@@ -140,7 +140,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_pairing(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := row_to_json(r) FROM (SELECT * FROM lat.pairings WHERE id=$1) r;
+	js := row_to_json(r) FROM (SELECT * FROM lat.pairing_view WHERE id=$1) r;
 	IF js IS NULL THEN m4_NOTFOUND END IF;
 END;
 $$ LANGUAGE plpgsql;

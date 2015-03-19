@@ -8,8 +8,8 @@ SET search_path = lat;
 CREATE TABLE concepts (
 	id serial primary key,
 	created_at date not null default CURRENT_DATE,
-	title varchar(127),
-	concept text
+	title varchar(127) not null unique CONSTRAINT title_not_empty CHECK (length(title) > 0),
+	concept text not null unique CONSTRAINT concept_not_empty CHECK (length(concept) > 0)
 );
 
 CREATE TABLE urls (
@@ -20,7 +20,7 @@ CREATE TABLE urls (
 
 CREATE TABLE tags (
 	id serial primary key,
-	tag varchar(32) unique not null CONSTRAINT emptytag CHECK (length(tag) > 0)
+	tag varchar(32) not null unique CONSTRAINT emptytag CHECK (length(tag) > 0)
 );
 
 CREATE TABLE concepts_urls (
@@ -51,15 +51,28 @@ COMMIT;
 ------------------ TRIGGERS:
 ----------------------------
 
--- strip all line breaks, tabs, and spaces around concept before storing
+-- strip all line breaks, tabs, and spaces around title and concept before storing
 CREATE OR REPLACE FUNCTION clean_concept() RETURNS TRIGGER AS $$
 BEGIN
+	NEW.title = btrim(regexp_replace(NEW.title, '\s+', ' ', 'g'));
 	NEW.concept = btrim(regexp_replace(NEW.concept, '\s+', ' ', 'g'));
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS clean_concept ON lat.concepts CASCADE;
-CREATE TRIGGER clean_concept BEFORE INSERT OR UPDATE OF concept ON lat.concepts FOR EACH ROW EXECUTE PROCEDURE clean_concept();
+CREATE TRIGGER clean_concept BEFORE INSERT OR UPDATE ON lat.concepts FOR EACH ROW EXECUTE PROCEDURE clean_concept();
+
+
+-- strip all line breaks, tabs, and spaces around url before storing (& validating)
+CREATE OR REPLACE FUNCTION clean_url() RETURNS TRIGGER AS $$
+BEGIN
+	NEW.url = regexp_replace(NEW.url, '\s+', '', 'g');
+	NEW.notes = btrim(regexp_replace(NEW.notes, '\s+', ' ', 'g'));
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS clean_url ON lat.urls CASCADE;
+CREATE TRIGGER clean_url BEFORE INSERT OR UPDATE ON lat.urls FOR EACH ROW EXECUTE PROCEDURE clean_url();
 
 
 -- lowercase and strip all line breaks, tabs, and spaces around tag before storing
@@ -71,6 +84,17 @@ END;
 $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS clean_tag ON lat.tags CASCADE;
 CREATE TRIGGER clean_tag BEFORE INSERT OR UPDATE OF tag ON lat.tags FOR EACH ROW EXECUTE PROCEDURE clean_tag();
+
+
+-- strip all line breaks, tabs, and spaces around thought before storing
+CREATE OR REPLACE FUNCTION clean_pairing() RETURNS TRIGGER AS $$
+BEGIN
+	NEW.thought = btrim(regexp_replace(NEW.thought, '\s+', ' ', 'g'));
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS clean_pairing ON lat.pairings CASCADE;
+CREATE TRIGGER clean_pairing BEFORE INSERT OR UPDATE ON lat.pairings FOR EACH ROW EXECUTE PROCEDURE clean_pairing();
 
 ----------------------------
 ----------------- FUNCTIONS:
@@ -97,6 +121,29 @@ END;
 $$ LANGUAGE plpgsql;
 
 ----------------------------------------
+--------------- VIEWS FOR JSON RESPONSES:
+----------------------------------------
+
+DROP VIEW IF EXISTS concept_view CASCADE;
+CREATE VIEW concept_view AS
+	SELECT id, created_at, title, concept, (SELECT json_agg(uq) AS urls FROM
+		(SELECT u.* FROM lat.urls u, lat.concepts_urls cu
+			WHERE u.id=cu.url_id AND cu.concept_id=lat.concepts.id) uq),
+	(SELECT json_agg(tq) AS tags FROM
+		(SELECT t.* FROM lat.tags t, lat.concepts_tags ct
+			WHERE t.id=ct.tag_id AND ct.concept_id=concepts.id) tq)
+	FROM lat.concepts;
+
+DROP VIEW IF EXISTS pairing_view CASCADE;
+CREATE VIEW pairing_view AS
+	SELECT id, created_at, thoughts,
+		(SELECT row_to_json(c1) AS concept1 FROM
+			(SELECT * FROM lat.concept_view WHERE id=lat.pairings.concept1_id) c1),
+		(SELECT row_to_json(c2) AS concept2 FROM
+			(SELECT * FROM lat.concept_view WHERE id=lat.pairings.concept2_id) c2)
+	FROM lat.pairings;
+
+----------------------------------------
 ------------------------- API FUNCTIONS:
 ----------------------------------------
 
@@ -104,7 +151,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_concept(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := row_to_json(r) FROM (SELECT * FROM lat.concepts WHERE id = $1) r;
+	js := row_to_json(r) FROM (SELECT * FROM lat.concept_view WHERE id=$1) r;
 	IF js IS NULL THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(
@@ -120,7 +167,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_concepts(integer[], OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := json_agg(r) FROM (SELECT * FROM lat.concepts WHERE id = ANY($1)) r;
+	js := json_agg(r) FROM (SELECT * FROM lat.concept_view WHERE id=ANY($1) ORDER BY id) r;
 	IF js IS NULL THEN js := '[]'; END IF; -- If none found, js is empty array
 END;
 $$ LANGUAGE plpgsql;
@@ -335,7 +382,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_pairing(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := row_to_json(r) FROM (SELECT * FROM lat.pairings WHERE id=$1) r;
+	js := row_to_json(r) FROM (SELECT * FROM lat.pairing_view WHERE id=$1) r;
 	IF js IS NULL THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(

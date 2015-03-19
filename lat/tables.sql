@@ -8,8 +8,8 @@ SET search_path = lat;
 CREATE TABLE concepts (
 	id serial primary key,
 	created_at date not null default CURRENT_DATE,
-	title varchar(127),
-	concept text
+	title varchar(127) not null unique CONSTRAINT title_not_empty CHECK (length(title) > 0),
+	concept text not null unique CONSTRAINT concept_not_empty CHECK (length(concept) > 0)
 );
 
 CREATE TABLE urls (
@@ -20,7 +20,7 @@ CREATE TABLE urls (
 
 CREATE TABLE tags (
 	id serial primary key,
-	tag varchar(32) unique not null CONSTRAINT emptytag CHECK (length(tag) > 0)
+	tag varchar(32) not null unique CONSTRAINT emptytag CHECK (length(tag) > 0)
 );
 
 CREATE TABLE concepts_urls (
