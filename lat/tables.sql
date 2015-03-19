@@ -7,9 +7,9 @@ SET search_path = lat;
 
 CREATE TABLE concepts (
 	id serial primary key,
+	created_at date not null default CURRENT_DATE,
 	title varchar(127),
-	concept text,
-	created_at date not null default CURRENT_DATE
+	concept text
 );
 
 CREATE TABLE urls (
@@ -31,7 +31,7 @@ CREATE TABLE concepts_urls (
 
 CREATE TABLE concepts_tags (
 	concept_id integer not null references concepts(id) on delete cascade,
-	tag_id integer not null references tags(id) on delete cascade
+	tag_id integer not null references tags(id) on delete cascade,
 	primary key (concept_id, tag_id)
 );
 
