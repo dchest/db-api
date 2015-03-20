@@ -9,7 +9,7 @@ module B50D
 			@db = DbAPI.new(server)
 		end
 
-		def concept(id)
+		def get_concept(id)
 			@db.js('lat.get_concept($1)', [id])
 		end
 
@@ -53,7 +53,7 @@ module B50D
 			@db.js('lat.get_pairing($1)', [id])
 		end
 
-		def create_pairing()
+		def create_pairing
 			@db.js('lat.create_pairing()')
 		end
 
