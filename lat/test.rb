@@ -38,20 +38,20 @@ class LatTest < Minitest::Test
 		assert_equal 'River running', @j[:concept]
 		assert_equal nil, @j[:urls]
 		assert_equal nil, @j[:tags]
-		qry("lat.create_concept('something', $1)", ["  \t \r \n hi \n\t \r  "]);
+		qry("lat.create_concept('something', $1)", ["  \t \r \n hi \n\t \r  "])
 		assert_equal 'hi', @j[:concept]
-		qry("lat.create_concept($1, 'something')", ["  \t \r \n hi \n\t \r  "]);
+		qry("lat.create_concept($1, 'something')", ["  \t \r \n hi \n\t \r  "])
 		assert_equal 'hi', @j[:title]
 	end
 
 	def test_create_concept_err
-		qry("lat.create_concept(NULL, 'something')");
+		qry("lat.create_concept(NULL, 'something')")
 		assert @j[:title].include? 'not-null'
-		qry("lat.create_concept('something', NULL)");
+		qry("lat.create_concept('something', NULL)")
 		assert @j[:title].include? 'not-null'
-		qry("lat.create_concept('', 'something')");
+		qry("lat.create_concept('', 'something')")
 		assert @j[:title].include? 'title_not_empty'
-		qry("lat.create_concept('something', '')");
+		qry("lat.create_concept('something', '')")
 		assert @j[:title].include? 'concept_not_empty'
 		qry("lat.create_concept('new roses', 'roses are red')")
 		assert @j[:title].include? 'unique constraint'
