@@ -134,6 +134,15 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- PARAMS: none
+CREATE OR REPLACE FUNCTION tags(OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	js := json_agg(r) FROM (SELECT * FROM lat.tags ORDER BY RANDOM()) r;
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- PARAMS: text of tag
 -- Returns array of concepts or empty array if none found.
 CREATE OR REPLACE FUNCTION concepts_tagged(text, OUT mime text, OUT js json) AS $$

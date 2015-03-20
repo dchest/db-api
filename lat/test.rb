@@ -141,6 +141,15 @@ class LatTest < Minitest::Test
 		assert_equal 'Not Found', @j[:title]
 	end
 
+	def test_tags
+		qry("lat.tags()")
+		assert_instance_of Array, @j
+		assert_equal 3, @j.size
+		assert @j.include?({id: 1, tag: 'flower'})
+		assert @j.include?({id: 2, tag: 'color'})
+		assert @j.include?({id: 3, tag: 'flavor'})
+	end
+
 	def test_concepts_tagged
 		qry("lat.concepts_tagged('flower')")
 		assert_instance_of Array, @j

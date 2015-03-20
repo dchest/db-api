@@ -45,6 +45,10 @@ module B50D
 			@db.js('lat.delete_url($1)', [id])
 		end
 
+		def tags
+			@db.js('lat.tags()')
+		end
+
 		def concepts_tagged(tag)
 			@db.js('lat.concepts_tagged($1)', [tag])
 		end

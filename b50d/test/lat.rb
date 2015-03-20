@@ -128,6 +128,15 @@ class LatTest < Minitest::Test
 		assert_equal 'Not Found', @l.error
 	end
 
+	def test_tags
+		x = @l.tags
+		assert_instance_of Array, x
+		assert_equal 3, x.size
+		assert x.include?({id: 1, tag: 'flower'})
+		assert x.include?({id: 2, tag: 'color'})
+		assert x.include?({id: 3, tag: 'flavor'})
+	end
+
 	def test_concepts_tagged
 		x = @l.concepts_tagged('flower')
 		assert_instance_of Array, x
