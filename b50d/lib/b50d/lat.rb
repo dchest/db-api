@@ -13,7 +13,7 @@ module B50D
 			@db.js('lat.get_concept($1)', [id])
 		end
 
-		def add_concept(title, concept)
+		def create_concept(title, concept)
 			@db.js('lat.create_concept($1, $2)', [title, concept])
 		end
 
