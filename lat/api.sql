@@ -118,7 +118,7 @@ CREATE OR REPLACE FUNCTION update_url(integer, text, text, OUT mime text, OUT js
 DECLARE
 m4_ERRVARS
 BEGIN
-	UPDATE urls SET url=$2, notes=$3 WHERE id=$1;
+	UPDATE lat.urls SET url=$2, notes=$3 WHERE id=$1;
 	SELECT x.mime, x.js INTO mime, js FROM lat.get_url($1) x;
 m4_ERRCATCH
 END;

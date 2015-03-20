@@ -107,15 +107,15 @@ DECLARE
 	id2 integer;
 BEGIN
 	SELECT c1.id, c2.id INTO id1, id2
-		FROM concepts c1 CROSS JOIN concepts c2
-		LEFT JOIN pairings p ON (
+		FROM lat.concepts c1 CROSS JOIN lat.concepts c2
+		LEFT JOIN lat.pairings p ON (
 			(c1.id=p.concept1_id AND c2.id=p.concept2_id) OR
 			(c1.id=p.concept2_id AND c2.id=p.concept1_id)
 		) WHERE c1.id != c2.id AND p.id IS NULL ORDER BY RANDOM();
 	IF id1 IS NULL THEN
 		RAISE EXCEPTION 'no unpaired concepts';
 	END IF;
-	RETURN QUERY INSERT INTO pairings (concept1_id, concept2_id)
+	RETURN QUERY INSERT INTO lat.pairings (concept1_id, concept2_id)
 		VALUES (id1, id2) RETURNING *;
 END;
 $$ LANGUAGE plpgsql;
@@ -248,7 +248,6 @@ CREATE OR REPLACE FUNCTION tag_concept(integer, text, OUT mime text, OUT js json
 DECLARE
 	cid integer;
 	tid integer;
-	ct lat.concepts_tags;
 
 	err_code text;
 	err_msg text;
@@ -269,7 +268,7 @@ BEGIN
 	IF tid IS NULL THEN
 		INSERT INTO lat.tags (tag) VALUES ($2) RETURNING id INTO tid;
 	END IF;
-	SELECT * INTO ct FROM lat.concepts_tags WHERE concept_id=$1 AND tag_id=tid;
+	SELECT concept_id INTO cid FROM lat.concepts_tags WHERE concept_id=$1 AND tag_id=tid;
 	IF NOT FOUND THEN
 		INSERT INTO lat.concepts_tags(concept_id, tag_id) VALUES ($1, tid);
 	END IF;
@@ -357,7 +356,7 @@ DECLARE
 	err_context text;
 
 BEGIN
-	UPDATE urls SET url=$2, notes=$3 WHERE id=$1;
+	UPDATE lat.urls SET url=$2, notes=$3 WHERE id=$1;
 	SELECT x.mime, x.js INTO mime, js FROM lat.get_url($1) x;
 
 EXCEPTION
