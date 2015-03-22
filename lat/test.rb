@@ -3,6 +3,14 @@ require '../test_tools.rb'
 class LatTest < Minitest::Test
 	include JDB
 
+	def test_get_concepts
+		qry("lat.get_concepts()")
+		r = [{id:1, created_at:'2015-03-19', title:'roses', concept:'roses are red'},
+			{id:2, created_at:'2015-03-19', title:'violats', concept:'violets are blue'},
+			{id:3, created_at:'2015-03-19', title:'sugar', concept:'sugar is sweet'}]
+		assert_equal r, @j
+	end
+
 	def test_get_concept
 		qry("lat.get_concept(1)")
 		r = {id:1, created_at:'2015-03-19', title:'roses', concept:'roses are red',

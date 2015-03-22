@@ -9,6 +9,10 @@ module B50D
 			@db = DbAPI.new(server)
 		end
 
+		def get_concepts
+			@db.js('lat.get_concepts()')
+		end
+
 		def get_concept(id)
 			@db.js('lat.get_concept($1)', [id])
 		end

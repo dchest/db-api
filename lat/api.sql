@@ -2,6 +2,15 @@
 ------------------------- API FUNCTIONS:
 ----------------------------------------
 
+-- PARAMS: none
+CREATE OR REPLACE FUNCTION get_concepts(OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	js := json_agg(r) FROM (SELECT * FROM lat.concepts ORDER BY id) r;
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- PARAMS: concept.id
 CREATE OR REPLACE FUNCTION get_concept(integer, OUT mime text, OUT js json) AS $$
 BEGIN

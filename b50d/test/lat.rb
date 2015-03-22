@@ -11,6 +11,14 @@ class LatTest < Minitest::Test
 		@l = B50D::Lat.new('test')
 	end
 
+	def test_get_concepts
+		x = @l.get_concepts
+		r = [{id:1, created_at:'2015-03-19', title:'roses', concept:'roses are red'},
+			{id:2, created_at:'2015-03-19', title:'violets', concept:'violets are blue'},
+			{id:3, created_at:'2015-03-19', title:'sugar', concept:'sugar is sweet'}]
+		assert_equal r, x
+	end
+
 	def test_get_concept
 		x = @l.get_concept(1)
 		r = {id:1, created_at:'2015-03-19', title:'roses', concept:'roses are red',
