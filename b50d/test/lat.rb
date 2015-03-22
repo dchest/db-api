@@ -147,6 +147,12 @@ class LatTest < Minitest::Test
 		assert_equal [], x
 	end
 
+	def test_get_pairings
+		x = @l.get_pairings
+		r = [{id:1, created_at:'2015-03-19', concept1:'roses', concept2:'violets'}]
+		assert_equal r, x
+	end
+
 	def test_get_pairing
 		x = @l.get_pairing(1)
 		r = {:id=>1, :created_at=>'2015-03-19', :thoughts=>'describing flowers',

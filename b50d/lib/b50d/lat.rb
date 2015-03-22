@@ -53,6 +53,10 @@ module B50D
 			@db.js('lat.concepts_tagged($1)', [tag])
 		end
 
+		def get_pairings
+			@db.js('lat.get_pairings()')
+		end
+
 		def get_pairing(id)
 			@db.js('lat.get_pairing($1)', [id])
 		end
