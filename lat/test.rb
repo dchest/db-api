@@ -160,6 +160,12 @@ class LatTest < Minitest::Test
 		assert_equal [], @j
 	end
 
+	def test_get_pairings
+		qry("lat.get_pairings()")
+		r = [{id:1, created_at:'2015-03-19', concept1:'roses', concept2:'violets'}]
+		assert_equal r, @j
+	end
+
 	def test_get_pairing
 		qry("lat.get_pairing(1)")
 		r = {:id=>1, :created_at=>'2015-03-19', :thoughts=>'describing flowers',

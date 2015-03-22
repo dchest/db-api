@@ -156,6 +156,18 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- PARAMS: none. all pairings.
+CREATE OR REPLACE FUNCTION get_pairings(OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	js := json_agg(r) FROM (SELECT p.id, p.created_at,
+		c1.title AS concept1, c2.title AS concept2
+		FROM lat.pairings p LEFT JOIN lat.concepts c1 ON p.concept1_id=c1.id
+		LEFT JOIN lat.concepts c2 ON p.concept2_id=c2.id ORDER BY p.id) r;
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- PARAMS: pairing.id
 CREATE OR REPLACE FUNCTION get_pairing(integer, OUT mime text, OUT js json) AS $$
 BEGIN
