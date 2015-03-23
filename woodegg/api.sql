@@ -135,7 +135,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_researcher(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := row_to_json(r) FROM (SELECT * FROM researcher_view WHERE id=$1) r;
+	js := row_to_json(r) FROM (SELECT * FROM woodegg.researcher_view WHERE id=$1) r;
 	IF js IS NULL THEN m4_NOTFOUND END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -146,7 +146,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_writer(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := row_to_json(r) FROM (SELECT * FROM writer_view WHERE id=$1) r;
+	js := row_to_json(r) FROM (SELECT * FROM woodegg.writer_view WHERE id=$1) r;
 	IF js IS NULL THEN m4_NOTFOUND END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -157,7 +157,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_editor(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := row_to_json(r) FROM (SELECT * FROM editor_view WHERE id=$1) r;
+	js := row_to_json(r) FROM (SELECT * FROM woodegg.editor_view WHERE id=$1) r;
 	IF js IS NULL THEN m4_NOTFOUND END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -170,17 +170,17 @@ DECLARE
 	rowcount integer;
 BEGIN
 	-- stop here if country code invalid (using books because least # of rows)
-	SELECT COUNT(*) INTO rowcount FROM books WHERE country=$1;
+	SELECT COUNT(*) INTO rowcount FROM woodegg.books WHERE country=$1;
 	IF rowcount = 0 THEN m4_NOTFOUND RETURN; END IF;
 	mime := 'application/json';
 	-- JSON here instead of VIEW because needs $1 for q.country join inside query
 	js := json_agg(cv) FROM (SELECT id, topic, (SELECT json_agg(st) AS subtopics FROM
 		(SELECT id, subtopic, (SELECT json_agg(qs) AS questions FROM
-			(SELECT q.id, q.question FROM questions q, template_questions tq
+			(SELECT q.id, q.question FROM woodegg.questions q, woodegg.template_questions tq
 				WHERE q.template_question_id=tq.id AND subtopic_id=sub.id
 				AND q.country=$1 ORDER BY q.id) qs)
-			FROM subtopics sub WHERE topics.id=topic_id ORDER BY id) st)
-		FROM topics ORDER BY id) cv;
+			FROM woodegg.subtopics sub WHERE woodegg.topics.id=topic_id ORDER BY id) st)
+		FROM woodegg.topics ORDER BY id) cv;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -190,7 +190,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_question(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := row_to_json(r) FROM (SELECT * FROM question_view WHERE id=$1) r;
+	js := row_to_json(r) FROM (SELECT * FROM woodegg.question_view WHERE id=$1) r;
 	IF js IS NULL THEN m4_NOTFOUND END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -201,7 +201,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_book(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := row_to_json(r) FROM (SELECT * FROM book_view WHERE id=$1) r;
+	js := row_to_json(r) FROM (SELECT * FROM woodegg.book_view WHERE id=$1) r;
 	IF js IS NULL THEN m4_NOTFOUND END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -211,7 +211,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_templates(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := json_agg(r) FROM (SELECT * FROM templates_view) r;
+	js := json_agg(r) FROM (SELECT * FROM woodegg.templates_view) r;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -221,7 +221,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_template(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := row_to_json(r) FROM (SELECT * FROM template_view WHERE id=$1) r;
+	js := row_to_json(r) FROM (SELECT * FROM woodegg.template_view WHERE id=$1) r;
 	IF js IS NULL THEN m4_NOTFOUND END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -232,7 +232,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_topic(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := row_to_json(r) FROM (SELECT * FROM templates_view WHERE id=$1) r;
+	js := row_to_json(r) FROM (SELECT * FROM woodegg.templates_view WHERE id=$1) r;
 	IF js IS NULL THEN m4_NOTFOUND END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -243,7 +243,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_uploads(text, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := json_agg(r) FROM (SELECT * FROM uploads_view WHERE country=$1) r;
+	js := json_agg(r) FROM (SELECT * FROM woodegg.uploads_view WHERE country=$1) r;
 	IF js IS NULL THEN m4_NOTFOUND END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -254,10 +254,8 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_upload(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := row_to_json(r) FROM (SELECT * FROM upload_view WHERE id=$1) r;
+	js := row_to_json(r) FROM (SELECT * FROM woodegg.upload_view WHERE id=$1) r;
 	IF js IS NULL THEN m4_NOTFOUND END IF;
 END;
 $$ LANGUAGE plpgsql;
-
-
 
