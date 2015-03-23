@@ -130,7 +130,7 @@ CREATE OR REPLACE FUNCTION new_comments(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := json_agg(r) FROM
-		(SELECT * FROM comments ORDER BY id DESC LIMIT 100) r;
+		(SELECT * FROM sivers.comments ORDER BY id DESC LIMIT 100) r;
 END;
 $$ LANGUAGE plpgsql;
 

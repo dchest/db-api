@@ -1,4 +1,4 @@
-CREATE FUNCTION comments_changed() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION comments_changed() RETURNS TRIGGER AS $$
 DECLARE
 	u text;
 BEGIN
@@ -11,5 +11,6 @@ BEGIN
 	RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS comments_changed ON comments;
 CREATE TRIGGER comments_changed AFTER INSERT OR UPDATE OR DELETE ON comments FOR EACH ROW EXECUTE PROCEDURE comments_changed();
 

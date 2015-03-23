@@ -19,7 +19,7 @@ CREATE INDEX compers ON comments(person_id);
 
 COMMIT;
 
-CREATE FUNCTION comments_changed() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION comments_changed() RETURNS TRIGGER AS $$
 DECLARE
 	u text;
 BEGIN
@@ -32,6 +32,7 @@ BEGIN
 	RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS comments_changed ON comments;
 CREATE TRIGGER comments_changed AFTER INSERT OR UPDATE OR DELETE ON comments FOR EACH ROW EXECUTE PROCEDURE comments_changed();
 
 ----------------------------------------
@@ -264,7 +265,7 @@ CREATE OR REPLACE FUNCTION new_comments(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
 	js := json_agg(r) FROM
-		(SELECT * FROM comments ORDER BY id DESC LIMIT 100) r;
+		(SELECT * FROM sivers.comments ORDER BY id DESC LIMIT 100) r;
 END;
 $$ LANGUAGE plpgsql;
 
