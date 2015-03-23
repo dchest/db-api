@@ -113,7 +113,7 @@ BEGIN
 	IF pid IS NULL THEN m4_NOTFOUND ELSE
 		IF pnp IS NULL THEN
 			UPDATE peeps.people SET
-			newpass = public.unique_for_table_field(8, 'peeps.people', 'newpass')
+			newpass = unique_for_table_field(8, 'peeps.people', 'newpass')
 			WHERE id = pid RETURNING newpass INTO pnp;
 		END IF;
 		-- PARAMS: emailer_id, person_id, profile, category, subject, body, reference_id

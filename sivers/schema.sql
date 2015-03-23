@@ -80,11 +80,11 @@ BEGIN
 	new_uri := regexp_replace(lower($1), '[^a-z0-9-]', '', 'g');
 	new_name := btrim(regexp_replace($2, '[\r\n\t]', ' ', 'g'));
 	new_email := btrim(lower($3));
-	new_html := replace(public.escape_html(public.strip_tags(btrim($4))),
+	new_html := replace(peeps.escape_html(peeps.strip_tags(btrim($4))),
 		':-)',
 		'<img src="/images/icon_smile.gif" width="15" height="15" alt="smile">');
 	SELECT id INTO new_person_id FROM peeps.person_create(new_name, new_email);
-	INSERT INTO comments (uri, name, email, html, person_id)
+	INSERT INTO sivers.comments (uri, name, email, html, person_id)
 		VALUES (new_uri, new_name, new_email, new_html, new_person_id)
 		RETURNING id INTO new_id;
 	mime := 'application/json';
@@ -118,8 +118,8 @@ DECLARE
 	err_context text;
 
 BEGIN
-	PERFORM public.jsonupdate('sivers.comments', $1, $2,
-		public.cols2update('sivers', 'comments', ARRAY['id','created_at']));
+	PERFORM peeps.jsonupdate('sivers.comments', $1, $2,
+		peeps.cols2update('sivers', 'comments', ARRAY['id','created_at']));
 	mime := 'application/json';
 	js := row_to_json(r) FROM
 		(SELECT * FROM sivers.comments WHERE id=$1) r;

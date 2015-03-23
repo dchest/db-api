@@ -12,7 +12,7 @@ CREATE TRIGGER clean_email BEFORE INSERT OR UPDATE OF email ON people FOR EACH R
 -- Strip all line breaks and spaces around name before storing
 CREATE OR REPLACE FUNCTION clean_name() RETURNS TRIGGER AS $$
 BEGIN
-	NEW.name = public.strip_tags(btrim(regexp_replace(NEW.name, '\s+', ' ', 'g')));
+	NEW.name = peeps.strip_tags(btrim(regexp_replace(NEW.name, '\s+', ' ', 'g')));
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -59,8 +59,8 @@ CREATE TRIGGER clean_url BEFORE INSERT OR UPDATE OF url ON urls FOR EACH ROW EXE
 CREATE OR REPLACE FUNCTION generated_person_fields() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.address = split_part(btrim(regexp_replace(NEW.name, '\s+', ' ', 'g')), ' ', 1);
-	NEW.lopass = public.random_string(4);
-	NEW.newpass = public.unique_for_table_field(8, 'peeps.people', 'newpass');
+	NEW.lopass = random_string(4);
+	NEW.newpass = unique_for_table_field(8, 'peeps.people', 'newpass');
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -138,8 +138,8 @@ CREATE TRIGGER one_main_url AFTER INSERT OR UPDATE OF main ON urls FOR EACH ROW 
 -- Generate random strings when creating new api_key
 CREATE OR REPLACE FUNCTION generated_api_keys() RETURNS TRIGGER AS $$
 BEGIN
-	NEW.akey = public.unique_for_table_field(8, 'peeps.api_keys', 'akey');
-	NEW.apass = public.random_string(8);
+	NEW.akey = unique_for_table_field(8, 'peeps.api_keys', 'akey');
+	NEW.apass = random_string(8);
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

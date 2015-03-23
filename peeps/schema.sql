@@ -223,11 +223,17 @@ CREATE VIEW stats_view AS
 		ORDER BY userstats.id DESC;
 
 ----------------------------
----------- public FUNCTIONS:
+----------- peeps FUNCTIONS:
+---- (many just generic use)
 ----------------------------
 
+-- pgcrypto for people.hashpass
+CREATE OR REPLACE FUNCTION crypt(text, text) RETURNS text AS '$libdir/pgcrypto', 'pg_crypt' LANGUAGE c IMMUTABLE STRICT;
+CREATE OR REPLACE FUNCTION gen_salt(text, integer) RETURNS text AS '$libdir/pgcrypto', 'pg_gen_salt_rounds' LANGUAGE c STRICT;
+
+
 -- used by other functions, below, for any random strings needed
-CREATE OR REPLACE FUNCTION public.random_string(length integer) RETURNS text AS $$
+CREATE OR REPLACE FUNCTION random_string(length integer) RETURNS text AS $$
 DECLARE
 	chars text[] := '{0,1,2,3,4,5,6,7,8,9,A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z}';
 	result text := '';
@@ -242,19 +248,19 @@ $$ LANGUAGE plpgsql;
 
 
 -- ensure unique unused value for any table.field.
-CREATE OR REPLACE FUNCTION public.unique_for_table_field(str_len integer, table_name text, field_name text) RETURNS text AS $$
+CREATE OR REPLACE FUNCTION unique_for_table_field(str_len integer, table_name text, field_name text) RETURNS text AS $$
 DECLARE
 	nu text;
 	rowcount integer;
 BEGIN
-	nu := public.random_string(str_len);
+	nu := random_string(str_len);
 	LOOP
 		EXECUTE 'SELECT 1 FROM ' || table_name || ' WHERE ' || field_name || ' = ' || quote_literal(nu);
 		GET DIAGNOSTICS rowcount = ROW_COUNT;
 		IF rowcount = 0 THEN
 			RETURN nu; 
 		END IF;
-		nu := public.random_string(str_len);
+		nu := random_string(str_len);
 	END LOOP;
 END;
 $$ LANGUAGE plpgsql;
@@ -262,7 +268,7 @@ $$ LANGUAGE plpgsql;
 
 -- For updating foreign keys, array of tables referencing this one.  USAGE: see merge function below.
 -- Returns in schema.table format like {'woodegg.researchers', 'musicthoughts.contributors'}
-CREATE OR REPLACE FUNCTION public.tables_referencing(my_schema text, my_table text, my_column text) RETURNS text[] AS $$
+CREATE OR REPLACE FUNCTION tables_referencing(my_schema text, my_table text, my_column text) RETURNS text[] AS $$
 DECLARE
 	tables text[] := ARRAY[]::text[];
 BEGIN
@@ -287,7 +293,7 @@ $$ LANGUAGE plpgsql;
 
 -- RETURNS: array of column names that ARE allowed to be updated
 -- PARAMS: schema name, table name, array of col names NOT allowed to be updated
-CREATE OR REPLACE FUNCTION public.cols2update(text, text, text[]) RETURNS text[] AS $$
+CREATE OR REPLACE FUNCTION cols2update(text, text, text[]) RETURNS text[] AS $$
 BEGIN
 	RETURN array(SELECT column_name::text FROM information_schema.columns
 		WHERE table_schema=$1 AND table_name=$2 AND column_name != ALL($3));
@@ -296,7 +302,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- PARAMS: table name, id, json, array of cols that ARE allowed to be updated
-CREATE OR REPLACE FUNCTION public.jsonupdate(text, integer, json, text[]) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION jsonupdate(text, integer, json, text[]) RETURNS VOID AS $$
 DECLARE
 	col record;
 BEGIN
@@ -311,7 +317,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- PARAMS: any text that needs to be stripped of HTML tags
-CREATE OR REPLACE FUNCTION public.strip_tags(text) RETURNS text AS $$
+CREATE OR REPLACE FUNCTION strip_tags(text) RETURNS text AS $$
 BEGIN
 	RETURN regexp_replace($1 , '</?[^>]+?>', '', 'g');
 END;
@@ -319,7 +325,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- PARAMS: any text that needs HTML escape
-CREATE OR REPLACE FUNCTION public.escape_html(text) RETURNS text AS $$
+CREATE OR REPLACE FUNCTION escape_html(text) RETURNS text AS $$
 DECLARE
 	nu text;
 BEGIN
@@ -331,14 +337,6 @@ BEGIN
 	RETURN nu;
 END;
 $$ LANGUAGE plpgsql;
-
-----------------------------
------------ peeps FUNCTIONS:
-----------------------------
-
--- pgcrypto for people.hashpass
-CREATE OR REPLACE FUNCTION crypt(text, text) RETURNS text AS '$libdir/pgcrypto', 'pg_crypt' LANGUAGE c IMMUTABLE STRICT;
-CREATE OR REPLACE FUNCTION gen_salt(text, integer) RETURNS text AS '$libdir/pgcrypto', 'pg_gen_salt_rounds' LANGUAGE c STRICT;
 
 
 -- Use this to add a new person to the database.  Ensures unique email without clash.
@@ -436,7 +434,7 @@ DECLARE
 	new_p peeps.people;
 BEGIN
 	-- update ids to point to new one
-	FOREACH a_table IN ARRAY tables_referencing('peeps', 'people', 'id') LOOP
+	FOREACH a_table IN ARRAY peeps.tables_referencing('peeps', 'people', 'id') LOOP
 		EXECUTE format ('UPDATE %s SET person_id=%s WHERE person_id=%s',
 			a_table, new_id, old_id);
 		GET DIAGNOSTICS rowcount = ROW_COUNT;
@@ -525,7 +523,7 @@ DECLARE
 	c_exp integer;
 BEGIN
 	c_id := md5(my_domain || md5(my_person_id::char)); -- also in get_person_from_cookie
-	c_tok := public.random_string(32);
+	c_tok := random_string(32);
 	c_exp := FLOOR(EXTRACT(epoch from (NOW() + interval '1 year')));
 	INSERT INTO peeps.logins(person_id, cookie_id, cookie_tok, cookie_exp, domain) VALUES (my_person_id, c_id, c_tok, c_exp, my_domain);
 	cookie := CONCAT(c_id, ':', c_tok);
@@ -754,7 +752,7 @@ CREATE TRIGGER clean_email BEFORE INSERT OR UPDATE OF email ON people FOR EACH R
 -- Strip all line breaks and spaces around name before storing
 CREATE OR REPLACE FUNCTION clean_name() RETURNS TRIGGER AS $$
 BEGIN
-	NEW.name = public.strip_tags(btrim(regexp_replace(NEW.name, '\s+', ' ', 'g')));
+	NEW.name = peeps.strip_tags(btrim(regexp_replace(NEW.name, '\s+', ' ', 'g')));
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -801,8 +799,8 @@ CREATE TRIGGER clean_url BEFORE INSERT OR UPDATE OF url ON urls FOR EACH ROW EXE
 CREATE OR REPLACE FUNCTION generated_person_fields() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.address = split_part(btrim(regexp_replace(NEW.name, '\s+', ' ', 'g')), ' ', 1);
-	NEW.lopass = public.random_string(4);
-	NEW.newpass = public.unique_for_table_field(8, 'peeps.people', 'newpass');
+	NEW.lopass = random_string(4);
+	NEW.newpass = unique_for_table_field(8, 'peeps.people', 'newpass');
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -880,8 +878,8 @@ CREATE TRIGGER one_main_url AFTER INSERT OR UPDATE OF main ON urls FOR EACH ROW 
 -- Generate random strings when creating new api_key
 CREATE OR REPLACE FUNCTION generated_api_keys() RETURNS TRIGGER AS $$
 BEGIN
-	NEW.akey = public.unique_for_table_field(8, 'peeps.api_keys', 'akey');
-	NEW.apass = public.random_string(8);
+	NEW.akey = unique_for_table_field(8, 'peeps.api_keys', 'akey');
+	NEW.apass = random_string(8);
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -1078,8 +1076,8 @@ BEGIN
 		'status', 404);
 
 	ELSE
-		PERFORM public.jsonupdate('peeps.emails', eid, $3,
-			public.cols2update('peeps', 'emails', ARRAY['id', 'created_at']));
+		PERFORM jsonupdate('peeps.emails', eid, $3,
+			cols2update('peeps', 'emails', ARRAY['id', 'created_at']));
 		mime := 'application/json';
 		js := row_to_json(r) FROM
 			(SELECT * FROM peeps.email_view WHERE id = eid) r;
@@ -1444,8 +1442,8 @@ DECLARE
 	err_context text;
 
 BEGIN
-	PERFORM public.jsonupdate('peeps.people', $1, $2,
-		public.cols2update('peeps', 'people', ARRAY['id', 'created_at']));
+	PERFORM jsonupdate('peeps.people', $1, $2,
+		cols2update('peeps', 'people', ARRAY['id', 'created_at']));
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM peeps.person_view WHERE id = $1) r;
 	IF js IS NULL THEN
@@ -1737,8 +1735,8 @@ DECLARE
 	err_context text;
 
 BEGIN
-	PERFORM public.jsonupdate('peeps.userstats', $1, $2,
-		public.cols2update('peeps', 'userstats', ARRAY['id', 'created_at']));
+	PERFORM jsonupdate('peeps.userstats', $1, $2,
+		cols2update('peeps', 'userstats', ARRAY['id', 'created_at']));
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM peeps.stats_view WHERE id=$1) r;
 	IF js IS NULL THEN
@@ -1839,8 +1837,8 @@ DECLARE
 	err_context text;
 
 BEGIN
-	PERFORM public.jsonupdate('peeps.urls', $1, $2,
-		public.cols2update('peeps', 'urls', ARRAY['id']));
+	PERFORM jsonupdate('peeps.urls', $1, $2,
+		cols2update('peeps', 'urls', ARRAY['id']));
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM peeps.urls WHERE id = $1) r;
 	IF js IS NULL THEN
@@ -1944,8 +1942,8 @@ DECLARE
 	err_context text;
 
 BEGIN
-	PERFORM public.jsonupdate('peeps.formletters', $1, $2,
-		public.cols2update('peeps', 'formletters', ARRAY['id', 'created_at']));
+	PERFORM jsonupdate('peeps.formletters', $1, $2,
+		cols2update('peeps', 'formletters', ARRAY['id', 'created_at']));
 	mime := 'application/json';
 	js := row_to_json(r) FROM
 		(SELECT * FROM peeps.formletter_view WHERE id = $1) r;

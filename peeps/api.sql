@@ -127,8 +127,8 @@ BEGIN
 	IF eid IS NULL THEN
 m4_NOTFOUND
 	ELSE
-		PERFORM public.jsonupdate('peeps.emails', eid, $3,
-			public.cols2update('peeps', 'emails', ARRAY['id', 'created_at']));
+		PERFORM jsonupdate('peeps.emails', eid, $3,
+			cols2update('peeps', 'emails', ARRAY['id', 'created_at']));
 		mime := 'application/json';
 		js := row_to_json(r) FROM
 			(SELECT * FROM peeps.email_view WHERE id = eid) r;
@@ -365,8 +365,8 @@ CREATE OR REPLACE FUNCTION update_person(integer, json, OUT mime text, OUT js js
 DECLARE
 m4_ERRVARS
 BEGIN
-	PERFORM public.jsonupdate('peeps.people', $1, $2,
-		public.cols2update('peeps', 'people', ARRAY['id', 'created_at']));
+	PERFORM jsonupdate('peeps.people', $1, $2,
+		cols2update('peeps', 'people', ARRAY['id', 'created_at']));
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM peeps.person_view WHERE id = $1) r;
 	IF js IS NULL THEN
@@ -521,8 +521,8 @@ CREATE OR REPLACE FUNCTION update_stat(integer, json, OUT mime text, OUT js json
 DECLARE
 m4_ERRVARS
 BEGIN
-	PERFORM public.jsonupdate('peeps.userstats', $1, $2,
-		public.cols2update('peeps', 'userstats', ARRAY['id', 'created_at']));
+	PERFORM jsonupdate('peeps.userstats', $1, $2,
+		cols2update('peeps', 'userstats', ARRAY['id', 'created_at']));
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM peeps.stats_view WHERE id=$1) r;
 	IF js IS NULL THEN
@@ -582,8 +582,8 @@ CREATE OR REPLACE FUNCTION update_url(integer, json, OUT mime text, OUT js json)
 DECLARE
 m4_ERRVARS
 BEGIN
-	PERFORM public.jsonupdate('peeps.urls', $1, $2,
-		public.cols2update('peeps', 'urls', ARRAY['id']));
+	PERFORM jsonupdate('peeps.urls', $1, $2,
+		cols2update('peeps', 'urls', ARRAY['id']));
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM peeps.urls WHERE id = $1) r;
 	IF js IS NULL THEN
@@ -641,8 +641,8 @@ CREATE OR REPLACE FUNCTION update_formletter(integer, json, OUT mime text, OUT j
 DECLARE
 m4_ERRVARS
 BEGIN
-	PERFORM public.jsonupdate('peeps.formletters', $1, $2,
-		public.cols2update('peeps', 'formletters', ARRAY['id', 'created_at']));
+	PERFORM jsonupdate('peeps.formletters', $1, $2,
+		cols2update('peeps', 'formletters', ARRAY['id', 'created_at']));
 	mime := 'application/json';
 	js := row_to_json(r) FROM
 		(SELECT * FROM peeps.formletter_view WHERE id = $1) r;
