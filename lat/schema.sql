@@ -60,7 +60,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS clean_concept ON lat.concepts CASCADE;
-CREATE TRIGGER clean_concept BEFORE INSERT OR UPDATE ON lat.concepts FOR EACH ROW EXECUTE PROCEDURE clean_concept();
+CREATE TRIGGER clean_concept BEFORE INSERT OR UPDATE ON lat.concepts
+	FOR EACH ROW EXECUTE PROCEDURE lat.clean_concept();
 
 
 -- strip all line breaks, tabs, and spaces around url before storing (& validating)
@@ -72,7 +73,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS clean_url ON lat.urls CASCADE;
-CREATE TRIGGER clean_url BEFORE INSERT OR UPDATE ON lat.urls FOR EACH ROW EXECUTE PROCEDURE clean_url();
+CREATE TRIGGER clean_url BEFORE INSERT OR UPDATE ON lat.urls
+	FOR EACH ROW EXECUTE PROCEDURE lat.clean_url();
 
 
 -- lowercase and strip all line breaks, tabs, and spaces around tag before storing
@@ -83,7 +85,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS clean_tag ON lat.tags CASCADE;
-CREATE TRIGGER clean_tag BEFORE INSERT OR UPDATE OF tag ON lat.tags FOR EACH ROW EXECUTE PROCEDURE clean_tag();
+CREATE TRIGGER clean_tag BEFORE INSERT OR UPDATE OF tag ON lat.tags
+	FOR EACH ROW EXECUTE PROCEDURE lat.clean_tag();
 
 
 -- strip all line breaks, tabs, and spaces around thought before storing
@@ -94,7 +97,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS clean_pairing ON lat.pairings CASCADE;
-CREATE TRIGGER clean_pairing BEFORE INSERT OR UPDATE OF thoughts ON lat.pairings FOR EACH ROW EXECUTE PROCEDURE clean_pairing();
+CREATE TRIGGER clean_pairing BEFORE INSERT OR UPDATE OF thoughts ON lat.pairings
+	FOR EACH ROW EXECUTE PROCEDURE lat.clean_pairing();
 
 ----------------------------
 ----------------- FUNCTIONS:
