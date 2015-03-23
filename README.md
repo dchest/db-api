@@ -55,19 +55,6 @@ When **real people** using it, a **50web** route called **ModAuth** checks for t
 
 If POST /login works, it sets the 3 needed cookies (person_id, api_key, api_pass).  Those are included in all calls, and sent to A50C To init client library.
 
-
-# HTTP ports:
-
-* 10000 = Peep
-* 10001 = Peep test
-* 10010 = MusicThoughtsPublic
-* 10011 = MusicThoughtsPublic test
-* 10020 = SiversCommentsAdmin
-* 10021 = SiversCommentsAdmin test
-* 10030 = WoodEgg
-* 10031 = WoodEgg test
-
-
 # TODO:
 
 * Can a view be generated from an already-selected record, stored in a variable?  If so, the approach of one function looking up just the ids, then passing id to the view to re-select it could be replaced with that approach.  And after doing an update of a status like opened/closed, could do RETURNING * to return its values instead of selecting again.
