@@ -476,5 +476,17 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'application/problem+json', @res[0]['mime']
 	end
 
+	def test_import_email
+		# KEYS: profile category message_id their_email their_name subject headers body
+		# KEYS2: references (array) attachments (array)     
+		nu = {profile: 'derek@sivers', category: 'derek@sivers', message_id: 'abcdefghijk@yep',
+			their_email: 'Charlie@BUCKET.ORG', their_name: 'Charles Buckets', subject: 'yip',
+			headers: 'To: Derek Sivers <derek@sivers.org>', body: 'hi Derek'}
+		qry("import_email($1, $2, $3)", [nu.to_json, '{}', '{}'])
+		assert_equal 11, @j[:id]
+		assert_equal 'charlie@bucket.org', @j[:their_email]
+		assert_equal 4, @j[:person][:id]
+		assert_equal 'derek@sivers', @j[:category]
+	end
 end
 

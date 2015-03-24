@@ -745,8 +745,19 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS clean_email ON people CASCADE;
-CREATE TRIGGER clean_email BEFORE INSERT OR UPDATE OF email ON people FOR EACH ROW EXECUTE PROCEDURE clean_email();
+DROP TRIGGER IF EXISTS clean_email ON peeps.people CASCADE;
+CREATE TRIGGER clean_email BEFORE INSERT OR UPDATE OF email ON peeps.people FOR EACH ROW EXECUTE PROCEDURE clean_email();
+
+
+CREATE OR REPLACE FUNCTION clean_their_email() RETURNS TRIGGER AS $$
+BEGIN
+	NEW.their_name = peeps.strip_tags(btrim(regexp_replace(NEW.their_name, '\s+', ' ', 'g')));
+	NEW.their_email = lower(regexp_replace(NEW.their_email, '\s', '', 'g'));
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS clean_their_email ON peeps.people CASCADE;
+CREATE TRIGGER clean_their_email BEFORE INSERT OR UPDATE OF their_name, their_email ON peeps.emails FOR EACH ROW EXECUTE PROCEDURE clean_their_email();
 
 
 -- Strip all line breaks and spaces around name before storing
@@ -756,8 +767,8 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS clean_name ON people CASCADE;
-CREATE TRIGGER clean_name BEFORE INSERT OR UPDATE OF name ON people FOR EACH ROW EXECUTE PROCEDURE clean_name();
+DROP TRIGGER IF EXISTS clean_name ON peeps.people CASCADE;
+CREATE TRIGGER clean_name BEFORE INSERT OR UPDATE OF name ON peeps.people FOR EACH ROW EXECUTE PROCEDURE clean_name();
 
 
 -- Statkey has no whitespace at all. Statvalue trimmed but keeps inner whitespace.
@@ -774,8 +785,8 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS clean_userstats ON userstats CASCADE;
-CREATE TRIGGER clean_userstats BEFORE INSERT OR UPDATE OF statkey, statvalue ON userstats FOR EACH ROW EXECUTE PROCEDURE clean_userstats();
+DROP TRIGGER IF EXISTS clean_userstats ON peeps.userstats CASCADE;
+CREATE TRIGGER clean_userstats BEFORE INSERT OR UPDATE OF statkey, statvalue ON peeps.userstats FOR EACH ROW EXECUTE PROCEDURE clean_userstats();
 
 
 -- urls.url remove all whitespace, then add http:// if not there
@@ -791,8 +802,8 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS clean_url ON urls CASCADE;
-CREATE TRIGGER clean_url BEFORE INSERT OR UPDATE OF url ON urls FOR EACH ROW EXECUTE PROCEDURE clean_url();
+DROP TRIGGER IF EXISTS clean_url ON peeps.urls CASCADE;
+CREATE TRIGGER clean_url BEFORE INSERT OR UPDATE OF url ON peeps.urls FOR EACH ROW EXECUTE PROCEDURE clean_url();
 
 
 -- Create "address" (first word of name) and random password upon insert of new person
@@ -804,8 +815,8 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS generate_person_fields ON people CASCADE;
-CREATE TRIGGER generate_person_fields BEFORE INSERT ON people FOR EACH ROW EXECUTE PROCEDURE generated_person_fields();
+DROP TRIGGER IF EXISTS generate_person_fields ON peeps.people CASCADE;
+CREATE TRIGGER generate_person_fields BEFORE INSERT ON peeps.people FOR EACH ROW EXECUTE PROCEDURE generated_person_fields();
 
 
 -- If something sets any of these fields to '', change it to NULL before saving
@@ -820,8 +831,8 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS null_person_fields ON people CASCADE;
-CREATE TRIGGER null_person_fields BEFORE INSERT OR UPDATE OF country, email ON people FOR EACH ROW EXECUTE PROCEDURE null_person_fields();
+DROP TRIGGER IF EXISTS null_person_fields ON peeps.people CASCADE;
+CREATE TRIGGER null_person_fields BEFORE INSERT OR UPDATE OF country, email ON peeps.people FOR EACH ROW EXECUTE PROCEDURE null_person_fields();
 
 
 -- No whitespace, all lowercase, for emails.profile and emails.category
@@ -836,8 +847,8 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS clean_emails_fields ON emails CASCADE;
-CREATE TRIGGER clean_emails_fields BEFORE INSERT OR UPDATE OF profile, category ON emails FOR EACH ROW EXECUTE PROCEDURE clean_emails_fields();
+DROP TRIGGER IF EXISTS clean_emails_fields ON peeps.emails CASCADE;
+CREATE TRIGGER clean_emails_fields BEFORE INSERT OR UPDATE OF profile, category ON peeps.emails FOR EACH ROW EXECUTE PROCEDURE clean_emails_fields();
 
 
 -- Update people.email_count when number of emails for this person_id changes
@@ -858,8 +869,8 @@ BEGIN
 	RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS update_email_count ON emails CASCADE;
-CREATE TRIGGER update_email_count AFTER INSERT OR DELETE OR UPDATE OF person_id ON emails FOR EACH ROW EXECUTE PROCEDURE update_email_count();
+DROP TRIGGER IF EXISTS update_email_count ON peeps.emails CASCADE;
+CREATE TRIGGER update_email_count AFTER INSERT OR DELETE OR UPDATE OF person_id ON peeps.emails FOR EACH ROW EXECUTE PROCEDURE update_email_count();
 
 
 -- Setting a URL to be the "main" one sets all other URLs for that person to be NOT main
@@ -871,8 +882,8 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS one_main_url ON urls CASCADE;
-CREATE TRIGGER one_main_url AFTER INSERT OR UPDATE OF main ON urls FOR EACH ROW EXECUTE PROCEDURE one_main_url();
+DROP TRIGGER IF EXISTS one_main_url ON peeps.urls CASCADE;
+CREATE TRIGGER one_main_url AFTER INSERT OR UPDATE OF main ON peeps.urls FOR EACH ROW EXECUTE PROCEDURE one_main_url();
 
 
 -- Generate random strings when creating new api_key
@@ -883,8 +894,8 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS generated_api_keys ON api_keys CASCADE;
-CREATE TRIGGER generated_api_keys BEFORE INSERT ON api_keys FOR EACH ROW EXECUTE PROCEDURE generated_api_keys();
+DROP TRIGGER IF EXISTS generated_api_keys ON peeps.api_keys CASCADE;
+CREATE TRIGGER generated_api_keys BEFORE INSERT ON peeps.api_keys FOR EACH ROW EXECUTE PROCEDURE generated_api_keys();
 
 
 -- generate message_id for outgoing emails
@@ -898,8 +909,8 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS make_message_id ON emails CASCADE;
-CREATE TRIGGER make_message_id BEFORE INSERT ON emails FOR EACH ROW EXECUTE PROCEDURE make_message_id();
+DROP TRIGGER IF EXISTS make_message_id ON peeps.emails CASCADE;
+CREATE TRIGGER make_message_id BEFORE INSERT ON peeps.emails FOR EACH ROW EXECUTE PROCEDURE make_message_id();
 
 ----------------------------------------
 ------------------------- API FUNCTIONS:
@@ -2243,5 +2254,65 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- POST /email
+-- PARAMS: json of values to insert, references (array), attachments (JSON array)
+-- KEYS: profile category message_id their_email their_name subject headers body
+CREATE OR REPLACE FUNCTION import_email(json, text[], json, OUT mime text, OUT js json) AS $$
+DECLARE
+	eid integer;
+	pid integer;
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	-- insert as-is (easier to update once in database)
+	INSERT INTO peeps.emails(profile, category, message_id, their_email, their_name,
+		subject, headers, body) SELECT profile, category, message_id, their_email,
+		their_name, subject, headers, body
+		FROM json_populate_record(null::peeps.emails, $1) RETURNING id INTO eid;
+	-- if references.message_id found, update person_id, reference_id, category
+	IF cardinality($2) > 0 THEN
+		UPDATE peeps.emails SET person_id=ref.person_id, reference_id=ref.id,
+			category = COALESCE(peeps.people.categorize_as, peeps.emails.profile)
+			FROM peeps.emails ref, peeps.people
+			WHERE peeps.emails.id=eid AND ref.person_id=peeps.people.id
+			AND ref.message_id = ANY($2)
+			RETURNING emails.person_id INTO pid;
+	END IF;
+	-- if their_email is found, update person_id, category
+	IF pid IS NULL THEN
+		UPDATE peeps.emails e SET person_id=p.id,
+			category=COALESCE(p.categorize_as, e.profile)
+			FROM peeps.people p WHERE e.id=eid
+			AND (p.email=e.their_email OR p.company=e.their_email)
+			RETURNING e.person_id INTO pid;
+	END IF;
+	-- if still not found, set category to fix-client (TODO: make this unnecessary)
+	IF pid IS NULL THEN
+		UPDATE peeps.emails SET category='fix-client' WHERE id=eid
+			RETURNING person_id INTO pid;
+	END IF;
+	-- insert attachments
+	mime := 'application/json';
+	js := row_to_json(r) FROM (SELECT * FROM peeps.email_view WHERE id=eid) r;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
 
 

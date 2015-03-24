@@ -877,3 +877,46 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- POST /email
+-- PARAMS: json of values to insert, references (array), attachments (JSON array)
+-- KEYS: profile category message_id their_email their_name subject headers body
+CREATE OR REPLACE FUNCTION import_email(json, text[], json, OUT mime text, OUT js json) AS $$
+DECLARE
+	eid integer;
+	pid integer;
+m4_ERRVARS
+BEGIN
+	-- insert as-is (easier to update once in database)
+	INSERT INTO peeps.emails(profile, category, message_id, their_email, their_name,
+		subject, headers, body) SELECT profile, category, message_id, their_email,
+		their_name, subject, headers, body
+		FROM json_populate_record(null::peeps.emails, $1) RETURNING id INTO eid;
+	-- if references.message_id found, update person_id, reference_id, category
+	IF cardinality($2) > 0 THEN
+		UPDATE peeps.emails SET person_id=ref.person_id, reference_id=ref.id,
+			category = COALESCE(peeps.people.categorize_as, peeps.emails.profile)
+			FROM peeps.emails ref, peeps.people
+			WHERE peeps.emails.id=eid AND ref.person_id=peeps.people.id
+			AND ref.message_id = ANY($2)
+			RETURNING emails.person_id INTO pid;
+	END IF;
+	-- if their_email is found, update person_id, category
+	IF pid IS NULL THEN
+		UPDATE peeps.emails e SET person_id=p.id,
+			category=COALESCE(p.categorize_as, e.profile)
+			FROM peeps.people p WHERE e.id=eid
+			AND (p.email=e.their_email OR p.company=e.their_email)
+			RETURNING e.person_id INTO pid;
+	END IF;
+	-- if still not found, set category to fix-client (TODO: make this unnecessary)
+	IF pid IS NULL THEN
+		UPDATE peeps.emails SET category='fix-client' WHERE id=eid
+			RETURNING person_id INTO pid;
+	END IF;
+	-- insert attachments
+	mime := 'application/json';
+	js := row_to_json(r) FROM (SELECT * FROM peeps.email_view WHERE id=eid) r;
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+
