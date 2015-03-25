@@ -501,6 +501,8 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 2, @j[:person][:id]
 		assert_equal 3, @j[:reference_id]
 		assert_equal 'derek@sivers', @j[:category]
+		qry("get_email(1, 3)")
+		assert_equal 11, @j[:answer_id]
 	end
 
 	def test_import_email_attachments

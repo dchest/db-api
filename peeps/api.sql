@@ -884,6 +884,7 @@ CREATE OR REPLACE FUNCTION import_email(json, OUT mime text, OUT js json) AS $$
 DECLARE
 	eid integer;
 	pid integer;
+	rid integer;
 m4_ERRVARS
 BEGIN
 	-- insert as-is (easier to update once in database)
@@ -900,8 +901,10 @@ BEGIN
 			WHERE peeps.emails.id=eid AND ref.person_id=peeps.people.id
 			AND ref.message_id IN
 				(SELECT * FROM json_array_elements_text($1 -> 'references'))
-			RETURNING emails.person_id INTO pid;
-		-- TODO: update that answer_id, too
+			RETURNING emails.person_id, ref.id INTO pid, rid;
+		IF rid IS NOT NULL THEN
+			UPDATE peeps.emails SET answer_id=eid WHERE id=rid;
+		END IF;
 	END IF;
 	-- if their_email is found, update person_id, category
 	IF pid IS NULL THEN
