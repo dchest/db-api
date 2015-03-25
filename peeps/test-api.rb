@@ -477,16 +477,44 @@ class TestPeepsAPI < Minitest::Test
 	end
 
 	def test_import_email
-		# KEYS: profile category message_id their_email their_name subject headers body
-		# KEYS2: references (array) attachments (array)     
 		nu = {profile: 'derek@sivers', category: 'derek@sivers', message_id: 'abcdefghijk@yep',
 			their_email: 'Charlie@BUCKET.ORG', their_name: 'Charles Buckets', subject: 'yip',
-			headers: 'To: Derek Sivers <derek@sivers.org>', body: 'hi Derek'}
-		qry("import_email($1, $2, $3)", [nu.to_json, '{}', '{}'])
+			headers: 'To: Derek Sivers <derek@sivers.org>', body: 'hi Derek',
+			references: [], attachments: []}
+		qry("import_email($1)", [nu.to_json])
 		assert_equal 11, @j[:id]
 		assert_equal 'charlie@bucket.org', @j[:their_email]
+		assert_equal 2, @j[:creator][:id]
 		assert_equal 4, @j[:person][:id]
 		assert_equal 'derek@sivers', @j[:category]
+		assert_nil @j[:reference_id]
+		assert_nil @j[:attachments]
 	end
+
+	def test_import_email_references
+		nu = {profile: 'derek@sivers', category: 'derek@sivers', message_id: 'abcdefghijk@yep',
+			their_email: 'wonka@gmail.com', their_name: 'W Wonka', subject: 're: you coming by?',
+			headers: 'To: Derek Sivers <derek@sivers.org>', body: 'kthxbai',
+			references: ['not@thisone', '20130719234701.2@sivers.org'], attachments: []}
+		qry("import_email($1)", [nu.to_json])
+		assert_equal 11, @j[:id]
+		assert_equal 2, @j[:person][:id]
+		assert_equal 3, @j[:reference_id]
+		assert_equal 'derek@sivers', @j[:category]
+	end
+
+	def test_import_email_attachments
+		atch = []
+		atch << {mime_type: 'image/gif', filename: 'cute.gif', bytes: 1234}
+		atch << {mime_type: 'audio/mp3', filename: 'fun.mp3', bytes: 123456}
+		nu = {profile: 'derek@sivers', category: 'derek@sivers', message_id: 'abcdefghijk@yep',
+			their_email: 'Charlie@BUCKET.ORG', their_name: 'Charles Buckets', subject: 'yip',
+			headers: 'To: Derek Sivers <derek@sivers.org>', body: 'hi Derek',
+			references: [], attachments: atch}
+		qry("import_email($1)", [nu.to_json])
+		assert_equal 11, @j[:id]
+		assert_equal [{id:3,filename:'cute.gif'},{id:4,filename:'fun.mp3'}], @j[:attachments]
+	end
+
 end
 

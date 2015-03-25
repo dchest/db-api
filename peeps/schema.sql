@@ -2256,9 +2256,9 @@ $$ LANGUAGE plpgsql;
 
 
 -- POST /email
--- PARAMS: json of values to insert, references (array), attachments (JSON array)
+-- PARAMS: json of values to insert
 -- KEYS: profile category message_id their_email their_name subject headers body
-CREATE OR REPLACE FUNCTION import_email(json, text[], json, OUT mime text, OUT js json) AS $$
+CREATE OR REPLACE FUNCTION import_email(json, OUT mime text, OUT js json) AS $$
 DECLARE
 	eid integer;
 	pid integer;
@@ -2270,18 +2270,21 @@ DECLARE
 
 BEGIN
 	-- insert as-is (easier to update once in database)
-	INSERT INTO peeps.emails(profile, category, message_id, their_email, their_name,
-		subject, headers, body) SELECT profile, category, message_id, their_email,
-		their_name, subject, headers, body
+	-- created_by = 2  TODO: created_by=NULL for imports?
+	INSERT INTO peeps.emails(created_by, profile, category, message_id, their_email,
+		their_name, subject, headers, body) SELECT 2 AS created_by, profile, category,
+		message_id, their_email, their_name, subject, headers, body
 		FROM json_populate_record(null::peeps.emails, $1) RETURNING id INTO eid;
 	-- if references.message_id found, update person_id, reference_id, category
-	IF cardinality($2) > 0 THEN
+	IF json_array_length($1 -> 'references') > 0 THEN
 		UPDATE peeps.emails SET person_id=ref.person_id, reference_id=ref.id,
 			category = COALESCE(peeps.people.categorize_as, peeps.emails.profile)
 			FROM peeps.emails ref, peeps.people
 			WHERE peeps.emails.id=eid AND ref.person_id=peeps.people.id
-			AND ref.message_id = ANY($2)
+			AND ref.message_id IN
+				(SELECT * FROM json_array_elements_text($1 -> 'references'))
 			RETURNING emails.person_id INTO pid;
+		-- TODO: update that answer_id, too
 	END IF;
 	-- if their_email is found, update person_id, category
 	IF pid IS NULL THEN
@@ -2297,6 +2300,11 @@ BEGIN
 			RETURNING person_id INTO pid;
 	END IF;
 	-- insert attachments
+	IF json_array_length($1 -> 'attachments') > 0 THEN
+		INSERT INTO email_attachments(email_id, mime_type, filename, bytes)
+			SELECT eid AS email_id, mime_type, filename, bytes FROM
+			json_populate_recordset(null::peeps.email_attachments, $1 -> 'attachments');
+	END IF;
 	mime := 'application/json';
 	js := row_to_json(r) FROM (SELECT * FROM peeps.email_view WHERE id=eid) r;
 
