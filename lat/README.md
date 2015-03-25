@@ -1,5 +1,5 @@
 # TODO:
 
-* views with sub info
-* tests
+* query for tagless concepts
+* shell script to add concept
 
