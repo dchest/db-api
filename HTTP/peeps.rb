@@ -2,7 +2,7 @@ require 'pg'
 require 'sinatra/base'
 
 class Peep < Sinatra::Base
-	@db = PG::Connection.new(dbname: 'd50b', user: 'd50b')
+	@db = PG::Connection.new(host: '127.0.0.1', port: 6543, dbname: 'd50b', user: 'd50b')
 	class << self
 		attr_accessor :db
 	end

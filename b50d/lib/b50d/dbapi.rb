@@ -6,7 +6,7 @@ class DbAPI
 
 	def initialize(server='live')
 		dbname = (server == 'test') ? 'd50b_test' : 'd50b'
-		@db =  PG::Connection.new(dbname: dbname, user: 'd50b')
+		@db =  PG::Connection.new(host: '127.0.0.1', port: 6543, dbname: dbname, user: 'd50b')
 	end
 
 	def js(func, params=[])
