@@ -1,8 +1,8 @@
 Gem::Specification.new do |s|
   s.platform	= Gem::Platform::RUBY
   s.name        = 'b50d'
-  s.version     = '1.1.3'
-  s.date        = '2015-03-22'
+  s.version     = '1.2.0'
+  s.date        = '2015-03-25'
   s.author      = 'Derek Sivers'
   s.email       = 'derek@sivers.org'
   s.license     = 'CC BY-NC'
@@ -11,5 +11,4 @@ Gem::Specification.new do |s|
   s.description = 'Ruby classes for my web apps to use, to access the PostgreSQL APIs.'
   s.files       =  Dir['lib/b50d/*'] + ['b50d.gemspec']
 end
-
 

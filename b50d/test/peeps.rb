@@ -431,4 +431,47 @@ class TestPeep < Minitest::Test
 		assert_equal xpct, @p.stats_with_key_value('listype', 'some')
 		assert_equal [], @p.stats_with_key_value('listype', 'x')
 	end
+
+	def test_import_email
+		nu = {profile: 'derek@sivers', category: 'derek@sivers', message_id: 'abcdefghijk@yep',
+			their_email: 'Charlie@BUCKET.ORG', their_name: 'Charles Buckets', subject: 'yip',
+			headers: 'To: Derek Sivers <derek@sivers.org>', body: 'hi Derek',
+			references: [], attachments: []}
+		x = @p.import_email(nu)
+		assert_equal 11, x[:id]
+		assert_equal 'charlie@bucket.org', x[:their_email]
+		assert_equal 2, x[:creator][:id]
+		assert_equal 4, x[:person][:id]
+		assert_equal 'derek@sivers', x[:category]
+		assert_nil x[:reference_id]
+		assert_nil x[:attachments]
+	end
+
+	def test_import_email_references
+		nu = {profile: 'derek@sivers', category: 'derek@sivers', message_id: 'abcdefghijk@yep',
+			their_email: 'wonka@gmail.com', their_name: 'W Wonka', subject: 're: you coming by?',
+			headers: 'To: Derek Sivers <derek@sivers.org>', body: 'kthxbai',
+			references: ['not@thisone', '20130719234701.2@sivers.org'], attachments: []}
+		x = @p.import_email(nu)
+		assert_equal 11, x[:id]
+		assert_equal 2, x[:person][:id]
+		assert_equal 3, x[:reference_id]
+		assert_equal 'derek@sivers', x[:category]
+		x = @p.open_email(3)
+		assert_equal 11, x[:answer_id]
+	end
+
+	def test_import_email_attachments
+		atch = []
+		atch << {mime_type: 'image/gif', filename: 'cute.gif', bytes: 1234}
+		atch << {mime_type: 'audio/mp3', filename: 'fun.mp3', bytes: 123456}
+		nu = {profile: 'derek@sivers', category: 'derek@sivers', message_id: 'abcdefghijk@yep',
+			their_email: 'Charlie@BUCKET.ORG', their_name: 'Charles Buckets', subject: 'yip',
+			headers: 'To: Derek Sivers <derek@sivers.org>', body: 'hi Derek',
+			references: [], attachments: atch}
+		x = @p.import_email(nu)
+		assert_equal 11, x[:id]
+		assert_equal [{id:3,filename:'cute.gif'},{id:4,filename:'fun.mp3'}], x[:attachments]
+	end
+
 end

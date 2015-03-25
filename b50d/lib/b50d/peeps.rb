@@ -245,5 +245,8 @@ module B50D
 			@db.js('peeps.get_stats($1, $2)', [statkey, statvalue])
 		end
 
+		def import_email(hsh)
+			@db.js('peeps.import_email($1)', [hsh.to_json])
+		end
 	end
 end
