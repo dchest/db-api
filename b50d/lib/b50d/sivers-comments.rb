@@ -37,6 +37,10 @@ module B50D
 		def spam_comment(id)
 			@db.js('sivers.spam_comment($1)', [id])
 		end
+
+		def add_comment(uri, name, email, html)
+			@db.js('sivers.add_comment($1, $2, $3, $4)', [uri, name, email, html])
+		end
 	end
 end
 

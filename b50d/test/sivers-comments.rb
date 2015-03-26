@@ -62,4 +62,22 @@ class TestSiversComments < Minitest::Test
 		refute @sc.get_comment(5)
 		refute @sc.get_comment(4)
 	end
+
+	def test_add_comment
+		uri = 'dog'
+		name = 'Burt'
+		email = 'this@that.yep'
+		html = 'This is my comment'
+		c = @sc.add_comment(uri, name, email, html)
+		assert_equal 6, c[:id]
+		assert_equal 9, c[:person_id]
+		assert_equal uri, c[:uri]
+		assert_equal email, c[:email]
+		assert_equal html, c[:html]
+		refute @sc.add_comment('', name, email, html)
+		refute @sc.add_comment(uri, '', email, html)
+		refute @sc.add_comment(uri, name, 'bad@aol', html)
+		refute @sc.add_comment(uri, name, email, '')
+	end
 end
+
