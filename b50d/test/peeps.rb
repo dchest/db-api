@@ -192,6 +192,20 @@ class TestPeep < Minitest::Test
 		assert_equal 'you coming by?', y[:subject]
 	end
 
+	def test_get_person_lopass
+		refute @p.get_person_lopass(2, 'abcd')
+		x = @p.get_person_lopass(2, 'R5Gf')
+		assert_equal 2, x[:id]
+		assert_equal 'Wonka Chocolate Inc', x[:company]
+	end
+
+	def test_get_person_newpass
+		refute @p.get_person_newpass(2, 'abcdefgh')
+		x = @p.get_person_newpass(2, 'NvaGAkHK')
+		assert_equal 2, x[:id]
+		assert_equal 'Wonka Chocolate Inc', x[:company]
+	end
+
 	def test_emails_for_person
 		y = @p.emails_for_person(2)
 		assert_instance_of Array, y

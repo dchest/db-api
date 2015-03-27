@@ -359,6 +359,38 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- GET /people/:id/:lopass
+-- PARAMS: person_id, lopass
+CREATE OR REPLACE FUNCTION get_person_lopass(integer, text, OUT mime text, OUT js json) AS $$
+DECLARE
+	pid integer;
+BEGIN
+	SELECT id INTO pid FROM peeps.people WHERE id=$1 AND lopass=$2;
+	IF pid IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		SELECT x.mime, x.js INTO mime, js FROM peeps.get_person($1) x;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /people/:id/:newpass
+-- PARAMS: person_id, newpass
+CREATE OR REPLACE FUNCTION get_person_newpass(integer, text, OUT mime text, OUT js json) AS $$
+DECLARE
+	pid integer;
+BEGIN
+	SELECT id INTO pid FROM peeps.people WHERE id=$1 AND newpass=$2;
+	IF pid IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		SELECT x.mime, x.js INTO mime, js FROM peeps.get_person($1) x;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- PUT /people/:id
 -- PARAMS: person_id, JSON of new values
 CREATE OR REPLACE FUNCTION update_person(integer, json, OUT mime text, OUT js json) AS $$
@@ -367,11 +399,7 @@ m4_ERRVARS
 BEGIN
 	PERFORM jsonupdate('peeps.people', $1, $2,
 		cols2update('peeps', 'people', ARRAY['id', 'created_at']));
-	mime := 'application/json';
-	js := row_to_json(r) FROM (SELECT * FROM peeps.person_view WHERE id = $1) r;
-	IF js IS NULL THEN
-m4_NOTFOUND
-	END IF;
+	SELECT x.mime, x.js INTO mime, js FROM peeps.get_person($1) x;
 m4_ERRCATCH
 END;
 $$ LANGUAGE plpgsql;

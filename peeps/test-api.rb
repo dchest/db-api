@@ -218,6 +218,26 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'clicked', @j[:stats][1][:value]
 	end
 
+	def test_get_person_lopass
+		qry("get_person_lopass(2, 'bad1')")
+		assert_equal 'Not Found', @j[:title]
+		qry("get_person_lopass(2, 'R5Gf')")
+		assert_equal 'http://www.wonka.com/', @j[:urls][0][:url]
+		assert_equal 'you coming by?', @j[:emails][0][:subject]
+		assert_equal 'musicthoughts', @j[:stats][1][:name]
+		assert_equal 'clicked', @j[:stats][1][:value]
+	end
+
+	def test_get_person_newpass
+		qry("get_person_newpass(2, 'Another1')")
+		assert_equal 'Not Found', @j[:title]
+		qry("get_person_newpass(2, 'NvaGAkHK')")
+		assert_equal 'http://www.wonka.com/', @j[:urls][0][:url]
+		assert_equal 'you coming by?', @j[:emails][0][:subject]
+		assert_equal 'musicthoughts', @j[:stats][1][:name]
+		assert_equal 'clicked', @j[:stats][1][:value]
+	end
+
 	def test_update_person
 		qry("update_person(8, $1)", ['{"address":"Ms. Ono", "city": "NY", "ig":"nore"}'])
 		assert_equal 'Ms. Ono', @j[:address]

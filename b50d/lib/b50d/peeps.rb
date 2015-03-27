@@ -100,6 +100,14 @@ module B50D
 			@db.js('peeps.get_person($1)', [id])
 		end
 
+		def get_person_lopass(id, lopass)
+			@db.js('peeps.get_person_lopass($1, $2)', [id, lopass])
+		end
+
+		def get_person_newpass(id, newpass)
+			@db.js('peeps.get_person_newpass($1, $2)', [id, newpass])
+		end
+
 		def emails_for_person(id)
 			@db.js('peeps.get_person_emails($1)', [id])
 		end
