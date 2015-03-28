@@ -1,8 +1,8 @@
-require 'pg'
+require_relative 'pgp.rb'
 require 'sinatra/base'
 
 class Peep < Sinatra::Base
-	@db = PG::Connection.new(host: '127.0.0.1', port: 6543, dbname: 'd50b', user: 'd50b')
+	@db = PGP.get
 	class << self
 		attr_accessor :db
 	end
