@@ -256,5 +256,9 @@ module B50D
 		def import_email(hsh)
 			@db.js('peeps.import_email($1)', [hsh.to_json])
 		end
+
+		def list_update(name, email, listype)
+			@db.js('peeps.list_update($1, $2, $3)', [name, email, listype])
+		end
 	end
 end

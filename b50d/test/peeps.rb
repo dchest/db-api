@@ -488,4 +488,24 @@ class TestPeep < Minitest::Test
 		assert_equal [{id:3,filename:'cute.gif'},{id:4,filename:'fun.mp3'}], x[:attachments]
 	end
 
+	def test_list_updates
+		x = @p.list_update('Willy Wonka', 'willy@wonka.com', 'none')
+		assert_equal({list: 'none'}, x)
+		x = @p.get_person(2)
+		assert_equal 'none', x[:listype]
+		assert_equal 'none', x[:stats][2][:value]
+	end
+
+	def test_list_update_create
+		@p.list_update('New Person', 'new@pers.on', 'all?')
+		x = @p.get_person(9)
+		assert_equal 'new@pers.on', x[:email]
+		assert_equal 'all', x[:listype]
+		assert_equal 'all', x[:stats][0][:value]
+	end
+
+	def test_list_update_err
+		refute @p.list_update('New Person', 'new@pers.on', 'more-than-4-chars')
+		assert @p.error.include? 'value too long'
+	end
 end
