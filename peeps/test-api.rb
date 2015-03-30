@@ -538,5 +538,24 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal [{id:3,filename:'cute.gif'},{id:4,filename:'fun.mp3'}], @j[:attachments]
 	end
 
+	def test_list_updates
+		qry("list_update($1, $2, $3)", ['Willy Wonka', 'willy@wonka.com', 'none'])
+		qry("get_person(2)")
+		assert_equal 'none', @j[:listype]
+		assert_equal 'none', @j[:stats][2][:value]
+	end
+
+	def test_list_update_create
+		qry("list_update($1, $2, $3)", ['New Person', 'new@pers.on', 'all?'])
+		qry("get_person(9)")
+		assert_equal 'new@pers.on', @j[:email]
+		assert_equal 'all', @j[:listype]
+		assert_equal 'all', @j[:stats][0][:value]
+	end
+
+	def test_list_update_err
+		qry("list_update($1, $2, $3)", ['New Person', 'new@pers.on', 'more-than-4-chars'])
+		assert @j[:title].include? 'value too long'
+	end
 end
 

@@ -959,3 +959,25 @@ m4_ERRCATCH
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- Update mailing list settings for this person (whether new or existing)
+-- POST /list
+-- PARAMS name, email, listype ($3 should be: 'all', 'some', 'none', or 'dead')
+CREATE OR REPLACE FUNCTION list_update(text, text, text, OUT mime text, OUT js json) AS $$
+DECLARE
+	pid integer;
+	clean3 text;
+m4_ERRVARS
+BEGIN
+	clean3 := regexp_replace($3, '[^a-z]', '', 'g');
+	SELECT id INTO pid FROM peeps.person_create($1, $2);
+	INSERT INTO peeps.userstats(person_id, statkey, statvalue)
+		VALUES (pid, 'listype', clean3);
+	UPDATE peeps.people SET listype=clean3 WHERE id=pid;
+	mime := 'application/json';
+	js := json_build_object('list', clean3);
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+
+
