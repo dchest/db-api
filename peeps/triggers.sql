@@ -16,7 +16,7 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS clean_their_email ON peeps.people CASCADE;
+DROP TRIGGER IF EXISTS clean_their_email ON peeps.emails CASCADE;
 CREATE TRIGGER clean_their_email BEFORE INSERT OR UPDATE OF their_name, their_email ON peeps.emails FOR EACH ROW EXECUTE PROCEDURE clean_their_email();
 
 

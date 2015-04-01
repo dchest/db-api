@@ -392,5 +392,20 @@ class TestPeeps < Minitest::Test
 		assert_equal "This is me.\nSoon to be.", res[0]['notes']
 	end
 
+	def test_id_from_email_pass
+		res = DB.exec_params("SELECT pid FROM peeps.pid_from_email_pass($1, $2)", ['derek@sivers.org', 'derek'])
+		assert_equal '1', res[0]['pid']
+		res = DB.exec_params("SELECT pid FROM peeps.pid_from_email_pass($1, $2)", [' Derek@Sivers.org  ', 'derek'])
+		assert_equal '1', res[0]['pid']
+		res = DB.exec_params("SELECT pid FROM peeps.pid_from_email_pass($1, $2)", ['derek@sivers.org', 'deRek'])
+		assert_nil res[0]['pid']
+		res = DB.exec_params("SELECT pid FROM peeps.pid_from_email_pass($1, $2)", ['derek@sivers.org', ''])
+		assert_nil res[0]['pid']
+		res = DB.exec_params("SELECT pid FROM peeps.pid_from_email_pass($1, $2)", ['', 'derek'])
+		assert_nil res[0]['pid']
+		res = DB.exec("SELECT pid FROM peeps.pid_from_email_pass(NULL, NULL)")
+		assert_nil res[0]['pid']
+	end
+
 end
 

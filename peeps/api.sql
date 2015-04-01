@@ -396,24 +396,49 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_person_password(text, text, OUT mime text, OUT js json) AS $$
 DECLARE
 	pid integer;
-	clean_email text;
 BEGIN
-	IF $1 IS NULL OR $2 IS NULL THEN
-m4_NOTFOUND
-	ELSE
-		clean_email := lower(regexp_replace($1, '\s', '', 'g'));
-		IF clean_email !~ '\A\S+@\S+\.\S+\Z' OR LENGTH($2) < 4 THEN
-m4_NOTFOUND
-		ELSE
-			SELECT id INTO pid FROM peeps.people
-				WHERE email=clean_email AND hashpass=peeps.crypt($2, hashpass);
-		END IF;
-	END IF;
+	SELECT p.pid INTO pid FROM peeps.pid_from_email_pass($1, $2) p;
 	IF pid IS NULL THEN
 m4_NOTFOUND
 	ELSE
 		SELECT x.mime, x.js INTO mime, js FROM peeps.get_person(pid) x;
 	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /person/{cookie}
+-- PARAMS: cookie string
+CREATE OR REPLACE FUNCTION get_person_cookie(text, OUT mime text, OUT js json) AS $$
+DECLARE
+	pid integer;
+BEGIN
+	SELECT p.id INTO pid FROM peeps.get_person_from_cookie($1) p;
+	IF pid IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		SELECT x.mime, x.js INTO mime, js FROM peeps.get_person(pid) x;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- POST /login
+-- PARAMS: email, password, domain
+CREATE OR REPLACE FUNCTION cookie_from_login(text, text, text, OUT mime text, OUT js json) AS $$
+DECLARE
+	pid integer;
+	cook text;
+BEGIN
+	SELECT p.pid INTO pid FROM peeps.pid_from_email_pass($1, $2) p;
+	IF pid IS NOT NULL THEN
+		SELECT cookie INTO cook FROM peeps.login_person_domain(pid, $3);
+	END IF;
+	IF cook IS NULL THEN m4_NOTFOUND ELSE
+		mime := 'application/json';
+		js := json_build_object('cookie', cook);
+	END IF;
+EXCEPTION WHEN OTHERS THEN m4_NOTFOUND
 END;
 $$ LANGUAGE plpgsql;
 

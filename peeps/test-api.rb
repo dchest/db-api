@@ -253,6 +253,31 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'Not Found', @j[:title]
 	end
 
+	def test_get_person_cookie
+		qry("get_person_cookie($1)", ['2a9c0226c871c711a5e944bec5f6df5d:18e8b4f0a05db21eed590e96eb27be9c'])
+		assert_equal 'Derek Sivers', @j[:name]
+		qry("get_person_cookie($1)", ['c776d5b6249a9fb45eec8d2af2fd7954:18e8b4f0a05db21eed590e96eb27be9f'])
+		assert_equal 'Not Found', @j[:title]
+		qry("get_person_cookie($1)", ['95fcacd3d2c6e3e006906cc4f4cdf908:18e8b4f0a05db21eed590e96eb27be9c'])
+		assert_equal 'Not Found', @j[:title]
+	end
+
+	def test_cookie_from_login
+		qry("cookie_from_login($1, $2, $3)", ['derek@sivers.org', 'derek', 'sivers.org'])
+		assert_match /\A[a-f0-9]{32}:[a-zA-Z0-9]{32}\Z/, @j[:cookie]
+		qry("cookie_from_login($1, $2, $3)", [' Derek@Sivers.org  ', 'derek', 'muckwork.com'])
+		assert_match /\A[a-f0-9]{32}:[a-zA-Z0-9]{32}\Z/, @j[:cookie]
+		qry("cookie_from_login($1, $2, $3)", ['derek@sivers.org', 'deRek', 'sivers.org'])
+		assert_equal 'Not Found', @j[:title]
+		qry("cookie_from_login($1, $2, $3)", ['', 'derek', 'muckwork.com'])
+		assert_equal 'Not Found', @j[:title]
+		qry("cookie_from_login(NULL, NULL, NULL)")
+		assert_equal 'Not Found', @j[:title]
+		qry("cookie_from_login($1, $2, $3)", ['veruca@salt.com', 'veruca', 'muckwork.com'])
+		qry("get_person_cookie($1)", [@j[:cookie]])
+		assert_equal 'Veruca Salt', @j[:name]
+	end
+
 	def test_set_password
 		nupass = 'þíŋø¥|ǫ©'
 		qry("set_password($1, $2)", [1, nupass])

@@ -738,6 +738,22 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- PARAMS: email, password
+CREATE OR REPLACE FUNCTION pid_from_email_pass(text, text, OUT pid integer) AS $$
+DECLARE
+	clean_email text;
+BEGIN
+	IF $1 IS NOT NULL AND $2 IS NOT NULL THEN
+		clean_email := lower(regexp_replace($1, '\s', '', 'g'));
+		IF clean_email ~ '\A\S+@\S+\.\S+\Z' AND LENGTH($2) > 3 THEN
+			SELECT id INTO pid FROM peeps.people
+				WHERE email=clean_email AND hashpass=peeps.crypt($2, hashpass);
+		END IF;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Strip spaces and lowercase email address before validating & storing
 CREATE OR REPLACE FUNCTION clean_email() RETURNS TRIGGER AS $$
 BEGIN
@@ -756,7 +772,7 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS clean_their_email ON peeps.people CASCADE;
+DROP TRIGGER IF EXISTS clean_their_email ON peeps.emails CASCADE;
 CREATE TRIGGER clean_their_email BEFORE INSERT OR UPDATE OF their_name, their_email ON peeps.emails FOR EACH ROW EXECUTE PROCEDURE clean_their_email();
 
 
@@ -1491,31 +1507,8 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION get_person_password(text, text, OUT mime text, OUT js json) AS $$
 DECLARE
 	pid integer;
-	clean_email text;
 BEGIN
-	IF $1 IS NULL OR $2 IS NULL THEN
-
-	mime := 'application/problem+json';
-	js := json_build_object(
-		'type', 'about:blank',
-		'title', 'Not Found',
-		'status', 404);
-
-	ELSE
-		clean_email := lower(regexp_replace($1, '\s', '', 'g'));
-		IF clean_email !~ '\A\S+@\S+\.\S+\Z' OR LENGTH($2) < 4 THEN
-
-	mime := 'application/problem+json';
-	js := json_build_object(
-		'type', 'about:blank',
-		'title', 'Not Found',
-		'status', 404);
-
-		ELSE
-			SELECT id INTO pid FROM peeps.people
-				WHERE email=clean_email AND hashpass=peeps.crypt($2, hashpass);
-		END IF;
-	END IF;
+	SELECT p.pid INTO pid FROM peeps.pid_from_email_pass($1, $2) p;
 	IF pid IS NULL THEN
 
 	mime := 'application/problem+json';
@@ -1527,6 +1520,60 @@ BEGIN
 	ELSE
 		SELECT x.mime, x.js INTO mime, js FROM peeps.get_person(pid) x;
 	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /person/{cookie}
+-- PARAMS: cookie string
+CREATE OR REPLACE FUNCTION get_person_cookie(text, OUT mime text, OUT js json) AS $$
+DECLARE
+	pid integer;
+BEGIN
+	SELECT p.id INTO pid FROM peeps.get_person_from_cookie($1) p;
+	IF pid IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	ELSE
+		SELECT x.mime, x.js INTO mime, js FROM peeps.get_person(pid) x;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- POST /login
+-- PARAMS: email, password, domain
+CREATE OR REPLACE FUNCTION cookie_from_login(text, text, text, OUT mime text, OUT js json) AS $$
+DECLARE
+	pid integer;
+	cook text;
+BEGIN
+	SELECT p.pid INTO pid FROM peeps.pid_from_email_pass($1, $2) p;
+	IF pid IS NOT NULL THEN
+		SELECT cookie INTO cook FROM peeps.login_person_domain(pid, $3);
+	END IF;
+	IF cook IS NULL THEN 
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+ ELSE
+		mime := 'application/json';
+		js := json_build_object('cookie', cook);
+	END IF;
+EXCEPTION WHEN OTHERS THEN 
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
 END;
 $$ LANGUAGE plpgsql;
 
