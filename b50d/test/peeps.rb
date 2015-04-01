@@ -206,6 +206,31 @@ class TestPeep < Minitest::Test
 		assert_equal 'Wonka Chocolate Inc', x[:company]
 	end
 
+	def test_get_person_password
+		x = @p.get_person_password('derek@sivers.org', 'derek')
+		assert_equal 'Derek Sivers', x[:name]
+		x = @p.get_person_password(' Derek@Sivers.org  ', 'derek')
+		assert_equal 'Derek Sivers', x[:name]
+		refute @p.get_person_password('derek@sivers.org', 'deRek')
+		refute @p.get_person_password('derek@sivers.org', '')
+		refute @p.get_person_password('', 'derek')
+		refute @p.get_person_password(nil, nil)
+	end
+
+	def test_set_password
+		nupass = 'þíŋø¥|ǫ©'
+		x = @p.set_password(1, nupass)
+		assert_equal 'Derek Sivers', x[:name]
+		x = @p.get_person_password('derek@sivers.org', nupass)
+		assert_equal 'Derek Sivers', x[:name]
+		refute @p.set_password(1, 'x')
+		assert_equal 'short_password', @p.error
+		refute @p.set_password(1, nil)
+		assert_equal 'short_password', @p.error
+		refute @p.set_password(9999, 'anOKpass')
+		assert_equal 'Not Found', @p.error
+	end
+
 	def test_emails_for_person
 		y = @p.emails_for_person(2)
 		assert_instance_of Array, y

@@ -108,8 +108,16 @@ module B50D
 			@db.js('peeps.get_person_newpass($1, $2)', [id, newpass])
 		end
 
+		def get_person_password(email, password)
+			@db.js('peeps.get_person_password($1, $2)', [email, password])
+		end
+
 		def emails_for_person(id)
 			@db.js('peeps.get_person_emails($1)', [id])
+		end
+
+		def set_password(id, password)
+			@db.js('peeps.set_password($1, $2)', [id, password])
 		end
 
 		def update_person(id, params)
