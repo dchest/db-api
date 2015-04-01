@@ -217,6 +217,26 @@ class TestPeep < Minitest::Test
 		refute @p.get_person_password(nil, nil)
 	end
 
+	def test_get_person_cookie
+		x = @p.get_person_cookie('2a9c0226c871c711a5e944bec5f6df5d:18e8b4f0a05db21eed590e96eb27be9c')
+		assert_equal 'Derek Sivers', x[:name]
+		refute @p.get_person_cookie('c776d5b6249a9fb45eec8d2af2fd7954:18e8b4f0a05db21eed590e96eb27be9f')
+		refute @p.get_person_cookie('95fcacd3d2c6e3e006906cc4f4cdf908:18e8b4f0a05db21eed590e96eb27be9c')
+	end
+
+	def test_cookie_from_login
+		x = @p.cookie_from_login('derek@sivers.org', 'derek', 'sivers.org')
+		assert_match /\A[a-f0-9]{32}:[a-zA-Z0-9]{32}\Z/, x[:cookie]
+		x = @p.cookie_from_login(' Derek@Sivers.org  ', 'derek', 'muckwork.com')
+		assert_match /\A[a-f0-9]{32}:[a-zA-Z0-9]{32}\Z/, x[:cookie]
+		refute @p.cookie_from_login('derek@sivers.org', 'deRek', 'sivers.org')
+		refute @p.cookie_from_login('', 'derek', 'muckwork.com')
+		refute @p.cookie_from_login(nil, nil, nil)
+		x = @p.cookie_from_login('veruca@salt.com', 'veruca', 'muckwork.com')
+		x = @p.get_person_cookie(x[:cookie])
+		assert_equal 'Veruca Salt', x[:name]
+	end
+
 	def test_set_password
 		nupass = 'þíŋø¥|ǫ©'
 		x = @p.set_password(1, nupass)

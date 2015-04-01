@@ -112,6 +112,14 @@ module B50D
 			@db.js('peeps.get_person_password($1, $2)', [email, password])
 		end
 
+		def get_person_cookie(cookie)
+			@db.js('peeps.get_person_cookie($1)', [cookie])
+		end
+
+		def cookie_from_login(email, password, domain)
+			@db.js('peeps.cookie_from_login($1, $2, $3)', [email, password, domain])
+		end
+
 		def emails_for_person(id)
 			@db.js('peeps.get_person_emails($1)', [id])
 		end
