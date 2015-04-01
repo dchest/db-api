@@ -26,9 +26,9 @@ CREATE TABLE people (
 	email varchar(127) UNIQUE CONSTRAINT valid_email CHECK (email ~ '\A\S+@\S+\.\S+\Z'),
 	name varchar(127) NOT NULL CONSTRAINT no_name CHECK (LENGTH(name) > 0),
 	address varchar(64), --  not mailing address, but "how do I address you?".  Usually firstname.
-	hashpass varchar(72), -- user-chosen password, blowfish crypted using set_password function below.
+	hashpass varchar(72), -- user-chosen password, blowfish crypted using set_hashpass function below.
 	lopass char(4), -- random used with id for low-security unsubscribe links to deter id spoofing
-	newpass char(8) UNIQUE, -- random for "forgot my password" emails, erased when set_password
+	newpass char(8) UNIQUE, -- random for "forgot my password" emails, erased when set_hashpass
 	company varchar(127),
 	city varchar(32),
 	state varchar(16),
@@ -360,9 +360,9 @@ $$ LANGUAGE plpgsql;
 
 
 -- Use this for user choosing their own password.
--- USAGE: SELECT set_password(123, 'Th€IR nü FunK¥(!) pá$$werđ');
+-- USAGE: SELECT set_hashpass(123, 'Th€IR nü FunK¥(!) pá$$werđ');
 -- Returns false if that peeps.people.id doesn't exist, otherwise true.
-CREATE OR REPLACE FUNCTION set_password(person_id integer, password text) RETURNS boolean AS $$
+CREATE OR REPLACE FUNCTION set_hashpass(person_id integer, password text) RETURNS boolean AS $$
 BEGIN
 	IF password IS NULL OR length(btrim(password)) < 4 THEN
 		RAISE 'short_password';
@@ -395,7 +395,7 @@ BEGIN
 		RAISE 'exists';
 	END IF;
 	SELECT id INTO pid FROM peeps.person_create($1, $2);
-	PERFORM peeps.set_password(pid, $3);
+	PERFORM peeps.set_hashpass(pid, $3);
 	RETURN QUERY SELECT * FROM peeps.people WHERE id = pid;
 END;
 $$ LANGUAGE plpgsql;
@@ -1482,6 +1482,81 @@ BEGIN
 	ELSE
 		SELECT x.mime, x.js INTO mime, js FROM peeps.get_person($1) x;
 	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /people?email=&password=
+-- PARAMS: email, password
+CREATE OR REPLACE FUNCTION get_person_password(text, text, OUT mime text, OUT js json) AS $$
+DECLARE
+	pid integer;
+	clean_email text;
+BEGIN
+	IF $1 IS NULL OR $2 IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	ELSE
+		clean_email := lower(regexp_replace($1, '\s', '', 'g'));
+		IF clean_email !~ '\A\S+@\S+\.\S+\Z' OR LENGTH($2) < 4 THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+		ELSE
+			SELECT id INTO pid FROM peeps.people
+				WHERE email=clean_email AND hashpass=peeps.crypt($2, hashpass);
+		END IF;
+	END IF;
+	IF pid IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	ELSE
+		SELECT x.mime, x.js INTO mime, js FROM peeps.get_person(pid) x;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- PUT /people/:id/password
+-- PARAMS: person_id, password
+CREATE OR REPLACE FUNCTION set_password(integer, text, OUT mime text, OUT js json) AS $$
+DECLARE
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	PERFORM peeps.set_hashpass($1, $2);
+	SELECT x.mime, x.js INTO mime, js FROM peeps.get_person($1) x;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
 END;
 $$ LANGUAGE plpgsql;
 

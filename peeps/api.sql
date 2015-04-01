@@ -391,6 +391,46 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- GET /people?email=&password=
+-- PARAMS: email, password
+CREATE OR REPLACE FUNCTION get_person_password(text, text, OUT mime text, OUT js json) AS $$
+DECLARE
+	pid integer;
+	clean_email text;
+BEGIN
+	IF $1 IS NULL OR $2 IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		clean_email := lower(regexp_replace($1, '\s', '', 'g'));
+		IF clean_email !~ '\A\S+@\S+\.\S+\Z' OR LENGTH($2) < 4 THEN
+m4_NOTFOUND
+		ELSE
+			SELECT id INTO pid FROM peeps.people
+				WHERE email=clean_email AND hashpass=peeps.crypt($2, hashpass);
+		END IF;
+	END IF;
+	IF pid IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		SELECT x.mime, x.js INTO mime, js FROM peeps.get_person(pid) x;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- PUT /people/:id/password
+-- PARAMS: person_id, password
+CREATE OR REPLACE FUNCTION set_password(integer, text, OUT mime text, OUT js json) AS $$
+DECLARE
+m4_ERRVARS
+BEGIN
+	PERFORM peeps.set_hashpass($1, $2);
+	SELECT x.mime, x.js INTO mime, js FROM peeps.get_person($1) x;
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- PUT /people/:id
 -- PARAMS: person_id, JSON of new values
 CREATE OR REPLACE FUNCTION update_person(integer, json, OUT mime text, OUT js json) AS $$

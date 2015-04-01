@@ -26,9 +26,9 @@ CREATE TABLE people (
 	email varchar(127) UNIQUE CONSTRAINT valid_email CHECK (email ~ '\A\S+@\S+\.\S+\Z'),
 	name varchar(127) NOT NULL CONSTRAINT no_name CHECK (LENGTH(name) > 0),
 	address varchar(64), --  not mailing address, but "how do I address you?".  Usually firstname.
-	hashpass varchar(72), -- user-chosen password, blowfish crypted using set_password function below.
+	hashpass varchar(72), -- user-chosen password, blowfish crypted using set_hashpass function below.
 	lopass char(4), -- random used with id for low-security unsubscribe links to deter id spoofing
-	newpass char(8) UNIQUE, -- random for "forgot my password" emails, erased when set_password
+	newpass char(8) UNIQUE, -- random for "forgot my password" emails, erased when set_hashpass
 	company varchar(127),
 	city varchar(32),
 	state varchar(16),

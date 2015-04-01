@@ -238,6 +238,35 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'clicked', @j[:stats][1][:value]
 	end
 
+	def test_get_person_password
+		qry("get_person_password($1, $2)", ['derek@sivers.org', 'derek'])
+		assert_equal 'Derek Sivers', @j[:name]
+		qry("get_person_password($1, $2)", [' Derek@Sivers.org  ', 'derek'])
+		assert_equal 'Derek Sivers', @j[:name]
+		qry("get_person_password($1, $2)", ['derek@sivers.org', 'deRek'])
+		assert_equal 'Not Found', @j[:title]
+		qry("get_person_password($1, $2)", ['derek@sivers.org', ''])
+		assert_equal 'Not Found', @j[:title]
+		qry("get_person_password($1, $2)", ['', 'derek'])
+		assert_equal 'Not Found', @j[:title]
+		qry("get_person_password(NULL, NULL)")
+		assert_equal 'Not Found', @j[:title]
+	end
+
+	def test_set_password
+		nupass = 'þíŋø¥|ǫ©'
+		qry("set_password($1, $2)", [1, nupass])
+		assert_equal 'Derek Sivers', @j[:name]
+		qry("get_person_password($1, $2)", ['derek@sivers.org', nupass])
+		assert_equal 'Derek Sivers', @j[:name]
+		qry("set_password($1, $2)", [1, 'x'])
+		assert_equal 'short_password', @j[:title]
+		qry("set_password(1, NULL)")
+		assert_equal 'short_password', @j[:title]
+		qry("set_password(9999, 'anOKpass')")
+		assert_equal 'Not Found', @j[:title]
+	end
+
 	def test_update_person
 		qry("update_person(8, $1)", ['{"address":"Ms. Ono", "city": "NY", "ig":"nore"}'])
 		assert_equal 'Ms. Ono', @j[:address]

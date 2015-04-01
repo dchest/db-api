@@ -448,7 +448,7 @@ BEGIN
 		'title', 'Not Found',
 		'status', 404);
  ELSE
-		PERFORM peeps.set_password(pid, $2);
+		PERFORM peeps.set_hashpass(pid, $2);
 		mime := 'application/json';
 		-- this is just acknowledgement that it's done:
 		js := row_to_json(r) FROM (SELECT id, name, email, address

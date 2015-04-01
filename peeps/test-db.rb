@@ -321,17 +321,17 @@ class TestPeeps < Minitest::Test
 	end
 
 	# because of hashing crypting stuff, use this to set someone's password
-	def test_set_password
+	def test_set_hashpass
 		res = DB.exec("SELECT hashpass FROM people WHERE id=1")
 		old_hashpass = res[0]['hashpass']
 		assert old_hashpass.size > 20
-		DB.exec_params("SELECT set_password($1, $2)", [1, 'bl00p€r'])
+		DB.exec_params("SELECT set_hashpass($1, $2)", [1, 'bl00p€r'])
 		res = DB.exec("SELECT hashpass FROM people WHERE id=1")
 		refute_equal old_hashpass, res[0]['hashpass']
 		assert res[0]['hashpass'].size > 20
 		# password must be > 3 characters
 		err = assert_raises PG::RaiseException do
-			DB.exec_params("SELECT set_password($1, $2)", [1, 'x¥z'])
+			DB.exec_params("SELECT set_hashpass($1, $2)", [1, 'x¥z'])
 		end
 		assert err.message.include? 'short_password'
 	end
@@ -367,7 +367,7 @@ class TestPeeps < Minitest::Test
 		res = DB.exec_params("SELECT * FROM person_email_pass($1, $2)", ['derek@sivers.org', 'derek'])
 		assert_equal 'Derek Sivers', res[0]['name']
 		nu_pass = 'bl00p€r'
-		DB.exec_params("SELECT set_password($1, $2)", [2, nu_pass])
+		DB.exec_params("SELECT set_hashpass($1, $2)", [2, nu_pass])
 		res = DB.exec_params("SELECT * FROM person_email_pass($1, $2)", ['willy@wonka.com', nu_pass])
 		assert_equal 'Willy Wonka', res[0]['name']
 		err = assert_raises PG::RaiseException do

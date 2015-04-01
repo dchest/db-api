@@ -136,9 +136,9 @@ $$ LANGUAGE plpgsql;
 
 
 -- Use this for user choosing their own password.
--- USAGE: SELECT set_password(123, 'Th€IR nü FunK¥(!) pá$$werđ');
+-- USAGE: SELECT set_hashpass(123, 'Th€IR nü FunK¥(!) pá$$werđ');
 -- Returns false if that peeps.people.id doesn't exist, otherwise true.
-CREATE OR REPLACE FUNCTION set_password(person_id integer, password text) RETURNS boolean AS $$
+CREATE OR REPLACE FUNCTION set_hashpass(person_id integer, password text) RETURNS boolean AS $$
 BEGIN
 	IF password IS NULL OR length(btrim(password)) < 4 THEN
 		RAISE 'short_password';
@@ -171,7 +171,7 @@ BEGIN
 		RAISE 'exists';
 	END IF;
 	SELECT id INTO pid FROM peeps.person_create($1, $2);
-	PERFORM peeps.set_password(pid, $3);
+	PERFORM peeps.set_hashpass(pid, $3);
 	RETURN QUERY SELECT * FROM peeps.people WHERE id = pid;
 END;
 $$ LANGUAGE plpgsql;
