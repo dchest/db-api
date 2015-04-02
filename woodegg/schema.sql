@@ -756,3 +756,42 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- ADMIN ONLY:
+CREATE OR REPLACE FUNCTION proofs(OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	js := json_agg(r) FROM (SELECT u.id, u.person_id, u.statvalue AS value,
+		u.created_at, p.email, p.name
+		FROM peeps.userstats u LEFT JOIN peeps.people p ON u.person_id=p.id
+		WHERE statkey LIKE 'proof%' ORDER BY u.id) r;
+	IF js IS NULL THEN
+		js := '[]';
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- ADMIN ONLY:
+-- PARAMS: userstats.id
+CREATE OR REPLACE FUNCTION proof_to_customer(integer, OUT mime text, OUT js json) AS $$
+DECLARE
+	pid integer;
+	cid integer;
+BEGIN
+	UPDATE peeps.userstats SET statkey=REPLACE(statkey, 'proof', 'bought')
+		WHERE id=$1 RETURNING person_id INTO pid;
+	SELECT id INTO cid FROM woodegg.customers WHERE person_id=pid;
+	IF cid IS NULL THEN
+		INSERT INTO woodegg.customers(person_id) VALUES (pid) RETURNING id INTO cid;
+	END IF;
+	-- PARAMS: emailer_id, person_id, profile, category, subject, body, reference_id
+	PERFORM peeps.outgoing_email(1, pid, 'we@woodegg', 'we@woodegg',
+		'your Wood Egg book (thank you!)',
+		(SELECT body FROM peeps.formletters WHERE id=2), NULL);
+	mime := 'application/json';
+	js := json_build_object('person_id', pid, 'customer_id', cid);
+END;
+$$ LANGUAGE plpgsql;
+
+
+
