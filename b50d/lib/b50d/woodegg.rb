@@ -83,5 +83,14 @@ module B50D
 			@db.js('woodegg.get_uploads($1)', [cc])
 		end
 
+		# ADMIN ONLY:
+		def proofs
+			@db.js('woodegg.proofs')
+		end
+
+		def proof_to_customer(id)
+			@db.js('woodegg.proof_to_customer($1)', [id])
+		end
 	end
 end
+
