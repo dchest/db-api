@@ -4,7 +4,7 @@ require 'b50d/woodegg'
 we = B50D::WoodEgg.new
 
 proofs = we.proofs
-if proofs.size > 0
+while proofs.size > 0 do
 	puts proofs[0]
 	id = proofs[0][:id]
 	print "Type ok to approve: "
@@ -12,7 +12,6 @@ if proofs.size > 0
 		puts we.proof_to_customer(id)
 	end
 	proofs = we.proofs
-else
-	puts 'done!'
 end
+puts 'done!'
 
