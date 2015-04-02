@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.platform	= Gem::Platform::RUBY
   s.name        = 'b50d'
-  s.version     = '1.8.1'
+  s.version     = '1.9.1'
   s.date        = '2015-04-02'
   s.author      = 'Derek Sivers'
   s.email       = 'derek@sivers.org'
@@ -9,6 +9,7 @@ Gem::Specification.new do |s|
   s.homepage    = 'https://github.com/50pop/db-api'
   s.summary     = 'PostgreSQL API clients for db-api'
   s.description = 'Ruby classes for my web apps to use, to access the PostgreSQL APIs.'
-  s.files       =  Dir['lib/b50d/*'] + ['b50d.gemspec']
+  s.files       =  Dir['lib/b50d/*'] + Dir['bin/*'] + ['b50d.gemspec','b50d-config.rb.sample']
+  s.executables = ['impeema']
 end
 

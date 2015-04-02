@@ -1,0 +1,40 @@
+# copy to /usr/lib/ruby/site_ruby/b50d-config.rb
+API_KEY = ''
+API_PASS = ''
+HONEYPOT = ''
+AKISMET = ''
+PROFILES = {'derek@sivers' => {
+	pop3: {
+		address: '',
+		port: 995,
+		user_name: '',
+		password: '',
+		enable_ssl: true
+	},
+	smtp: {
+		address: '',
+		port: 587,
+		domain: '',
+		user_name: '',
+		password: '',
+		authentication: 'plain',
+		enable_starttls_auto: true
+	}},
+'we@woodegg' => {
+	pop3: {
+		address: '',
+		port: 995,
+		user_name: '',
+		password: '',
+		enable_ssl: true
+	},
+	smtp: {
+		address: '',
+		port: 587,
+		domain: '',
+		user_name: '',
+		password: '',
+		authentication: 'plain',
+		enable_starttls_auto: true
+	}}
+}
