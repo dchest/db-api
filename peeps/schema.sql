@@ -826,8 +826,8 @@ CREATE TRIGGER clean_url BEFORE INSERT OR UPDATE OF url ON peeps.urls FOR EACH R
 CREATE OR REPLACE FUNCTION generated_person_fields() RETURNS TRIGGER AS $$
 BEGIN
 	NEW.address = split_part(btrim(regexp_replace(NEW.name, '\s+', ' ', 'g')), ' ', 1);
-	NEW.lopass = random_string(4);
-	NEW.newpass = unique_for_table_field(8, 'peeps.people', 'newpass');
+	NEW.lopass = peeps.random_string(4);
+	NEW.newpass = peeps.unique_for_table_field(8, 'peeps.people', 'newpass');
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -905,8 +905,8 @@ CREATE TRIGGER one_main_url AFTER INSERT OR UPDATE OF main ON peeps.urls FOR EAC
 -- Generate random strings when creating new api_key
 CREATE OR REPLACE FUNCTION generated_api_keys() RETURNS TRIGGER AS $$
 BEGIN
-	NEW.akey = unique_for_table_field(8, 'peeps.api_keys', 'akey');
-	NEW.apass = random_string(8);
+	NEW.akey = peeps.unique_for_table_field(8, 'peeps.api_keys', 'akey');
+	NEW.apass = peeps.random_string(8);
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -1439,6 +1439,29 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- POST /people/:id/newpass
+-- PARAMS: person_id
+CREATE OR REPLACE FUNCTION make_newpass(integer, OUT mime text, OUT js json) AS $$
+BEGIN
+	UPDATE peeps.people
+		SET newpass=peeps.unique_for_table_field(8, 'peeps.people', 'newpass')
+		WHERE id=$1;
+	IF FOUND THEN
+		mime := 'application/json';
+		js := json_build_object('id', $1);
+	ELSE
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- GET /people/:id
 -- PARAMS: person_id
 CREATE OR REPLACE FUNCTION get_person(integer, OUT mime text, OUT js json) AS $$
@@ -1454,6 +1477,40 @@ BEGIN
 		'status', 404);
 
 	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /people/:email
+-- PARAMS: email
+CREATE OR REPLACE FUNCTION get_person_email(text, OUT mime text, OUT js json) AS $$
+DECLARE
+	clean_email text;
+BEGIN
+	IF $1 IS NULL THEN 
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+ END IF;
+	clean_email := lower(regexp_replace($1, '\s', '', 'g'));
+	IF clean_email !~ '\A\S+@\S+\.\S+\Z' THEN 
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+ END IF;
+	mime := 'application/json';
+	js := row_to_json(r) FROM (SELECT * FROM peeps.person_view WHERE email = clean_email) r;
+	IF js IS NULL THEN 
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+ END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -1547,33 +1604,51 @@ $$ LANGUAGE plpgsql;
 
 
 -- POST /login
+-- PARAMS: person.id, domain
+CREATE OR REPLACE FUNCTION cookie_from_id(integer, text, OUT mime text, OUT js json) AS $$
+DECLARE
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	mime := 'application/json';
+	js := row_to_json(r) FROM (SELECT cookie FROM peeps.login_person_domain($1, $2)) r;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- POST /login
 -- PARAMS: email, password, domain
 CREATE OR REPLACE FUNCTION cookie_from_login(text, text, text, OUT mime text, OUT js json) AS $$
 DECLARE
 	pid integer;
-	cook text;
 BEGIN
 	SELECT p.pid INTO pid FROM peeps.pid_from_email_pass($1, $2) p;
-	IF pid IS NOT NULL THEN
-		SELECT cookie INTO cook FROM peeps.login_person_domain(pid, $3);
-	END IF;
-	IF cook IS NULL THEN 
+	IF pid IS NULL THEN 
 	mime := 'application/problem+json';
 	js := json_build_object(
 		'type', 'about:blank',
 		'title', 'Not Found',
 		'status', 404);
  ELSE
-		mime := 'application/json';
-		js := json_build_object('cookie', cook);
+		SELECT x.mime, x.js INTO mime, js FROM peeps.cookie_from_id(pid, $3) x;
 	END IF;
-EXCEPTION WHEN OTHERS THEN 
-	mime := 'application/problem+json';
-	js := json_build_object(
-		'type', 'about:blank',
-		'title', 'Not Found',
-		'status', 404);
-
 END;
 $$ LANGUAGE plpgsql;
 

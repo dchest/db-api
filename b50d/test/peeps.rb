@@ -224,6 +224,16 @@ class TestPeep < Minitest::Test
 		refute @p.get_person_cookie('95fcacd3d2c6e3e006906cc4f4cdf908:18e8b4f0a05db21eed590e96eb27be9c')
 	end
 
+	def test_cookie_from_id
+		x = @p.cookie_from_id(3, 'woodegg.com')
+		assert_match /\A[a-f0-9]{32}:[a-zA-Z0-9]{32}\Z/, x[:cookie]
+		x = @p.get_person_cookie(x[:cookie])
+		assert_equal 'Veruca Salt', x[:name]
+		refute @p.cookie_from_id(99, 'woodegg.com')
+		refute @p.cookie_from_id(nil, 'woodegg.com')
+		refute @p.cookie_from_id(4, nil)
+	end
+
 	def test_cookie_from_login
 		x = @p.cookie_from_login('derek@sivers.org', 'derek', 'sivers.org')
 		assert_match /\A[a-f0-9]{32}:[a-zA-Z0-9]{32}\Z/, x[:cookie]

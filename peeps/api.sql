@@ -346,6 +346,23 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- POST /people/:id/newpass
+-- PARAMS: person_id
+CREATE OR REPLACE FUNCTION make_newpass(integer, OUT mime text, OUT js json) AS $$
+BEGIN
+	UPDATE peeps.people
+		SET newpass=peeps.unique_for_table_field(8, 'peeps.people', 'newpass')
+		WHERE id=$1;
+	IF FOUND THEN
+		mime := 'application/json';
+		js := json_build_object('id', $1);
+	ELSE
+m4_NOTFOUND
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- GET /people/:id
 -- PARAMS: person_id
 CREATE OR REPLACE FUNCTION get_person(integer, OUT mime text, OUT js json) AS $$
@@ -355,6 +372,22 @@ BEGIN
 	IF js IS NULL THEN
 m4_NOTFOUND
 	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- GET /people/:email
+-- PARAMS: email
+CREATE OR REPLACE FUNCTION get_person_email(text, OUT mime text, OUT js json) AS $$
+DECLARE
+	clean_email text;
+BEGIN
+	IF $1 IS NULL THEN m4_NOTFOUND END IF;
+	clean_email := lower(regexp_replace($1, '\s', '', 'g'));
+	IF clean_email !~ '\A\S+@\S+\.\S+\Z' THEN m4_NOTFOUND END IF;
+	mime := 'application/json';
+	js := row_to_json(r) FROM (SELECT * FROM peeps.person_view WHERE email = clean_email) r;
+	IF js IS NULL THEN m4_NOTFOUND END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -424,21 +457,28 @@ $$ LANGUAGE plpgsql;
 
 
 -- POST /login
+-- PARAMS: person.id, domain
+CREATE OR REPLACE FUNCTION cookie_from_id(integer, text, OUT mime text, OUT js json) AS $$
+DECLARE
+m4_ERRVARS
+BEGIN
+	mime := 'application/json';
+	js := row_to_json(r) FROM (SELECT cookie FROM peeps.login_person_domain($1, $2)) r;
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- POST /login
 -- PARAMS: email, password, domain
 CREATE OR REPLACE FUNCTION cookie_from_login(text, text, text, OUT mime text, OUT js json) AS $$
 DECLARE
 	pid integer;
-	cook text;
 BEGIN
 	SELECT p.pid INTO pid FROM peeps.pid_from_email_pass($1, $2) p;
-	IF pid IS NOT NULL THEN
-		SELECT cookie INTO cook FROM peeps.login_person_domain(pid, $3);
+	IF pid IS NULL THEN m4_NOTFOUND ELSE
+		SELECT x.mime, x.js INTO mime, js FROM peeps.cookie_from_id(pid, $3) x;
 	END IF;
-	IF cook IS NULL THEN m4_NOTFOUND ELSE
-		mime := 'application/json';
-		js := json_build_object('cookie', cook);
-	END IF;
-EXCEPTION WHEN OTHERS THEN m4_NOTFOUND
 END;
 $$ LANGUAGE plpgsql;
 

@@ -96,8 +96,16 @@ module B50D
 			@db.js('peeps.create_person($1, $2)', [name, email])
 		end
 
+		def make_newpass(id)
+			@db.js('peeps.make_newpass($1)', [id])
+		end
+
 		def get_person(id)
 			@db.js('peeps.get_person($1)', [id])
+		end
+
+		def get_person_email(email)
+			@db.js('peeps.get_person_email($1)', [email])
 		end
 
 		def get_person_lopass(id, lopass)
@@ -114,6 +122,10 @@ module B50D
 
 		def get_person_cookie(cookie)
 			@db.js('peeps.get_person_cookie($1)', [cookie])
+		end
+
+		def cookie_from_id(id, domain)
+			@db.js('peeps.cookie_from_id($1, $2)', [id, domain])
 		end
 
 		def cookie_from_login(email, password, domain)

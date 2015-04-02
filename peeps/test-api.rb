@@ -218,6 +218,17 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'clicked', @j[:stats][1][:value]
 	end
 
+	def test_make_newpass
+		qry("make_newpass(1)")
+		assert_equal({id: 1}, @j)
+		qry("make_newpass(8)")
+		assert_equal({id: 8}, @j)
+		qry("make_newpass(99)")
+		assert_equal 'Not Found', @j[:title]
+		qry("make_newpass(NULL)")
+		assert_equal 'Not Found', @j[:title]
+	end
+
 	def test_get_person_lopass
 		qry("get_person_lopass(2, 'bad1')")
 		assert_equal 'Not Found', @j[:title]
@@ -260,6 +271,19 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'Not Found', @j[:title]
 		qry("get_person_cookie($1)", ['95fcacd3d2c6e3e006906cc4f4cdf908:18e8b4f0a05db21eed590e96eb27be9c'])
 		assert_equal 'Not Found', @j[:title]
+	end
+
+	def test_cookie_from_id
+		qry("cookie_from_id($1, $2)", [3, 'woodegg.com'])
+		assert_match /\A[a-f0-9]{32}:[a-zA-Z0-9]{32}\Z/, @j[:cookie]
+		qry("get_person_cookie($1)", [@j[:cookie]])
+		assert_equal 'Veruca Salt', @j[:name]
+		qry("cookie_from_id(99, 'woodegg.com')")
+		assert @j[:title].include? 'foreign key constraint'
+		qry("cookie_from_id(NULL, 'woodegg.com')")
+		assert @j[:title].include? 'not-null constraint'
+		qry("cookie_from_id(4, NULL)")
+		assert @j[:title].include? 'not-null constraint'
 	end
 
 	def test_cookie_from_login
