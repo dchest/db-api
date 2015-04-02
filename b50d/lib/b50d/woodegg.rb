@@ -85,7 +85,7 @@ module B50D
 
 		# ADMIN ONLY:
 		def proofs
-			@db.js('woodegg.proofs')
+			@db.js('woodegg.proofs()')
 		end
 
 		def proof_to_customer(id)
