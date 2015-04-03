@@ -35,6 +35,12 @@ class TestWoodEgg < Minitest::Test
 		res = DB.exec("SELECT * FROM peeps.userstats WHERE person_id=9")
 		assert_equal 'proof-we14asia', res[0]['statkey']
 		assert_equal 'some proof', res[0]['statvalue']
+		qry("woodegg.register($1, $2, $3, $4)",
+			['Derek Sivers Jr.', 'derek@sivers.org', 'IgNOreThisPass', 'some proof'])
+		assert_equal 1, @j[:id]
+		assert_equal 'Derek Sivers', @j[:name]
+		res = DB.exec("SELECT * FROM peeps.userstats WHERE person_id=1 ORDER BY id DESC LIMIT 1")
+		assert_equal 'proof-we14asia', res[0]['statkey']
 	end
 
 	def test_forgot

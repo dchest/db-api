@@ -345,11 +345,13 @@ class TestPeeps < Minitest::Test
 		res = DB.exec_params("SELECT * FROM person_email_pass($1, $2)",
 			['bob@dobali.na', 'mYPass!'])
 		assert_equal '9', res[0]['id']
-		err = assert_raises PG::RaiseException do
-			DB.exec_params("SELECT * FROM person_create_pass($1, $2, $3)",
+		# if person exists, password doesn't change:
+		res = DB.exec_params("SELECT * FROM person_create_pass($1, $2, $3)",
 			['Derek', 'derek@sivers.org', 'attack!'])
-		end
-		assert err.message.include? 'exists'
+		assert_equal '1', res[0]['id']
+		res = DB.exec_params("SELECT * FROM person_email_pass($1, $2)",
+			['derek@sivers.org', 'derek'])
+		assert_equal '1', res[0]['id']
 		err = assert_raises PG::RaiseException do
 			DB.exec_params("SELECT * FROM person_create_pass($1, $2, $3)",
 			['Derek', '', 'attack!'])
