@@ -5,6 +5,21 @@ require 'mail'
 module MyMail
 	class << self
 
+		# hash with id, profile, their_email, subject, body, message_id, referencing
+		def send(email, smtp_hash)
+			Mail::Configuration.instance.delivery_method(:smtp, smtp_hash)
+			m = Mail.new
+			m.charset = 'UTF-8'
+			m.from = 'Derek Sivers <derek@sivers.org>'  # TODO: in profile config?
+			m.sender = smtp_hash[:user_name]
+			m.to = email[:their_email]
+			m.subject = email[:subject]
+			m.body = email[:body]
+			m.message_id = '<%s>' % e[:message_id]
+			m.in_reply_to = e[:referencing] if e[:referencing]
+			m.deliver!
+		end
+
 		# IN:
 		# profile string : 'derek@sivers' or 'we@woodegg'
 		# hash with address, port, user_name, password, enable_ssl

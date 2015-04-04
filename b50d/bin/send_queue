@@ -1,0 +1,12 @@
+#!/usr/bin/env ruby
+require 'b50d/my_mail'
+require 'b50d-config.rb'
+
+p = B50D::Peeps.new(API_KEY, API_PASS)
+
+p.queued_emails.each do |e|
+	if MyMail::send(e, PROFILES[e[:profile]][:smtp])
+		p.email_is_sent(e[:id])
+	end
+end
+
