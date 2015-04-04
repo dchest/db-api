@@ -15,8 +15,8 @@ module MyMail
 			m.to = email[:their_email]
 			m.subject = email[:subject]
 			m.body = email[:body]
-			m.message_id = '<%s>' % e[:message_id]
-			m.in_reply_to = e[:referencing] if e[:referencing]
+			m.message_id = '<%s>' % email[:message_id]
+			m.in_reply_to = email[:referencing] if email[:referencing]
 			m.deliver!
 		end
 
