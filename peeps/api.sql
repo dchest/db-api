@@ -1089,8 +1089,8 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION queued_emails(OUT mime text, OUT js json) AS $$
 BEGIN
 	mime := 'application/json';
-	js := json_agg(r) FROM (SELECT e.id, e.their_email, e.subject, e.body,
-		e.message_id, r.message_id AS referencing
+	js := json_agg(r) FROM (SELECT e.id, e.profile, e.their_email,
+		e.subject, e.body, e.message_id, r.message_id AS referencing
 		FROM peeps.emails e LEFT JOIN peeps.emails r ON e.reference_id=r.id
 		WHERE e.outgoing IS NULL ORDER BY e.id) r;
 	IF js IS NULL THEN js := '[]'; END IF;
