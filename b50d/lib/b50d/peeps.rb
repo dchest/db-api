@@ -288,5 +288,13 @@ module B50D
 		def list_update(name, email, listype)
 			@db.js('peeps.list_update($1, $2, $3)', [name, email, listype])
 		end
+
+		def queued_emails
+			@db.js('peeps.queued_emails()')
+		end
+
+		def email_is_sent(id)
+			@db.js('peeps.email_is_sent($1)', [id])
+		end
 	end
 end

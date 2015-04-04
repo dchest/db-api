@@ -2597,4 +2597,55 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+CREATE OR REPLACE FUNCTION queued_emails(OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	js := json_agg(r) FROM (SELECT e.id, e.their_email, e.subject, e.body,
+		e.message_id, r.message_id AS referencing
+		FROM peeps.emails e LEFT JOIN peeps.emails r ON e.reference_id=r.id
+		WHERE e.outgoing IS NULL ORDER BY e.id) r;
+	IF js IS NULL THEN js := '[]'; END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- PARAMS: emails.id
+CREATE OR REPLACE FUNCTION email_is_sent(integer, OUT mime text, OUT js json) AS $$
+DECLARE
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	mime := 'application/json';
+	UPDATE peeps.emails SET outgoing=TRUE WHERE id=$1;
+	IF FOUND THEN
+		js := json_build_object('sent', $1);
+	ELSE
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	END IF;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
 

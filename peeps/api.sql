@@ -1086,3 +1086,31 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+CREATE OR REPLACE FUNCTION queued_emails(OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	js := json_agg(r) FROM (SELECT e.id, e.their_email, e.subject, e.body,
+		e.message_id, r.message_id AS referencing
+		FROM peeps.emails e LEFT JOIN peeps.emails r ON e.reference_id=r.id
+		WHERE e.outgoing IS NULL ORDER BY e.id) r;
+	IF js IS NULL THEN js := '[]'; END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- PARAMS: emails.id
+CREATE OR REPLACE FUNCTION email_is_sent(integer, OUT mime text, OUT js json) AS $$
+DECLARE
+m4_ERRVARS
+BEGIN
+	mime := 'application/json';
+	UPDATE peeps.emails SET outgoing=TRUE WHERE id=$1;
+	IF FOUND THEN
+		js := json_build_object('sent', $1);
+	ELSE
+m4_NOTFOUND
+	END IF;
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+

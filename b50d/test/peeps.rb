@@ -563,4 +563,21 @@ class TestPeep < Minitest::Test
 		refute @p.list_update('New Person', 'new@pers.on', 'more-than-4-chars')
 		assert @p.error.include? 'value too long'
 	end
+
+	def test_queued_emails
+		x = @p.queued_emails
+		assert_instance_of Array, x
+		assert_equal 1, x.size
+		assert_equal 4, x[0][:id]
+		assert_equal 're: translations almost done', x[0][:subject]
+		assert_equal 'CABk7SeW6+FaqxOUwHNdiaR2AdxQBTY1275uC0hdkA0kLPpKPVg@mail.li.cn', x[0][:referencing]
+	end
+
+	def test_email_is_sent
+		x = @p.email_is_sent(4)
+		assert_equal({sent: 4}, x)
+		x = @p.queued_emails
+		assert_equal [], x
+		refute @p.email_is_sent(99)
+	end
 end

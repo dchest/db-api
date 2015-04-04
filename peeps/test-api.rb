@@ -635,5 +635,23 @@ class TestPeepsAPI < Minitest::Test
 		qry("list_update($1, $2, $3)", ['New Person', 'new@pers.on', 'more-than-4-chars'])
 		assert @j[:title].include? 'value too long'
 	end
+
+	def test_queued_emails
+		qry("queued_emails()")
+		assert_instance_of Array, @j
+		assert_equal 1, @j.size
+		assert_equal 4, @j[0][:id]
+		assert_equal 're: translations almost done', @j[0][:subject]
+		assert_equal 'CABk7SeW6+FaqxOUwHNdiaR2AdxQBTY1275uC0hdkA0kLPpKPVg@mail.li.cn', @j[0][:referencing]
+	end
+
+	def test_email_is_sent
+		qry("email_is_sent(4)")
+		assert_equal({sent: 4}, @j)
+		qry("queued_emails()")
+		assert_equal([], @j)
+		qry("email_is_sent(99)")
+		assert_equal 'Not Found', @j[:title]
+	end
 end
 
