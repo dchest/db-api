@@ -15,7 +15,8 @@ class LatTest < Minitest::Test
 		x = @l.get_concepts
 		r = [{id:1, created_at:'2015-03-19', title:'roses', concept:'roses are red'},
 			{id:2, created_at:'2015-03-19', title:'violets', concept:'violets are blue'},
-			{id:3, created_at:'2015-03-19', title:'sugar', concept:'sugar is sweet'}]
+			{id:3, created_at:'2015-03-19', title:'sugar', concept:'sugar is sweet'},
+			{id:4, created_at:'2015-04-06', title:'tagless', concept:'has no tags'}]
 		assert_equal r, x
 	end
 
@@ -35,7 +36,7 @@ class LatTest < Minitest::Test
 
 	def test_create_concept
 		x = @l.create_concept(' river ', ' River running ')
-		assert_equal 4, x[:id]
+		assert_equal 5, x[:id]
 		assert_equal 'river', x[:title]
 		assert_equal 'River running', x[:concept]
 		assert_equal nil, x[:urls]
@@ -187,6 +188,9 @@ class LatTest < Minitest::Test
 		pair3 = [x[:concept1][:id], x[:concept2][:id]].sort
 		refute_equal [1,2], pair3
 		refute_equal pair2, pair3
+		assert @l.create_pairing
+		assert @l.create_pairing
+		assert @l.create_pairing
 		refute @l.create_pairing
 		assert @l.error.include? 'no unpaired concepts'
 	end
