@@ -12,6 +12,7 @@ PROFILES = {'derek@sivers' => {
 		enable_ssl: true
 	},
 	smtp: {
+		from: 'Derek Sivers <derek@sivers.org>',
 		address: '',
 		port: 587,
 		domain: '',
@@ -29,6 +30,7 @@ PROFILES = {'derek@sivers' => {
 		enable_ssl: true
 	},
 	smtp: {
+		from: 'Wood Egg <we@woodegg.com>',
 		address: '',
 		port: 587,
 		domain: '',

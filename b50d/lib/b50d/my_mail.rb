@@ -7,16 +7,19 @@ module MyMail
 
 		# hash with id, profile, their_email, subject, body, message_id, referencing
 		def send(email, smtp_hash)
+			from = smtp_hash.delete(:from)
 			Mail::Configuration.instance.delivery_method(:smtp, smtp_hash)
 			m = Mail.new
 			m.charset = 'UTF-8'
-			m.from = 'Derek Sivers <derek@sivers.org>'  # TODO: in profile config?
 			m.sender = smtp_hash[:user_name]
+			m.from = from
 			m.to = email[:their_email]
 			m.subject = email[:subject]
 			m.body = email[:body]
 			m.message_id = '<%s>' % email[:message_id]
-			m.in_reply_to = email[:referencing] if email[:referencing]
+			if email[:referencing]
+				m.in_reply_to = '<%s>' % email[:referencing]
+			end
 			m.deliver!
 		end
 
