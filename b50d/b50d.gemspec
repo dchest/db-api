@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.platform	= Gem::Platform::RUBY
   s.name        = 'b50d'
-  s.version     = '2.1.0'
+  s.version     = '2.2.0'
   s.date        = '2015-04-06'
   s.author      = 'Derek Sivers'
   s.email       = 'derek@sivers.org'
@@ -10,6 +10,6 @@ Gem::Specification.new do |s|
   s.summary     = 'PostgreSQL API clients for db-api'
   s.description = 'Ruby classes for my web apps to use, to access the PostgreSQL APIs.'
   s.files       =  Dir['lib/b50d/*'] + Dir['bin/*'] + ['b50d.gemspec','b50d-config.rb.sample']
-  s.executables = ['impeema', 'send_queue', 'woodegg-proofs']
+  s.executables = ['impeema', 'send_queue', 'woodegg-proofs', 'lat']
 end
 

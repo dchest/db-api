@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+puts "ADD LAT CONCEPT"
+print "Title: "
+title = gets.strip
+puts "Concept: (empty line when done)"
+concept = ''
+while (line = gets) && (line.strip != '')
+	concept << line
+end
+
+require 'pg'
+require 'json'
+db = PG::Connection.new(host: 'localhost', port: 5433, dbname: 'd50b', user: 'd50b')
+res = db.exec_params("SELECT js FROM create_concept($1, $2)", [title, concept])
+puts JSON.parse(res[0]['js'])
+
