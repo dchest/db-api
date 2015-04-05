@@ -22,6 +22,7 @@ ALTER TABLE concepts DISABLE TRIGGER ALL;
 INSERT INTO concepts (id, created_at, title, concept) VALUES (1, '2015-03-19', 'roses', 'roses are red');
 INSERT INTO concepts (id, created_at, title, concept) VALUES (2, '2015-03-19', 'violets', 'violets are blue');
 INSERT INTO concepts (id, created_at, title, concept) VALUES (3, '2015-03-19', 'sugar', 'sugar is sweet');
+INSERT INTO concepts (id, created_at, title, concept) VALUES (4, '2015-04-06', 'tagless', 'has no tags');
 
 
 ALTER TABLE concepts ENABLE TRIGGER ALL;
@@ -30,7 +31,7 @@ ALTER TABLE concepts ENABLE TRIGGER ALL;
 -- Name: concepts_id_seq; Type: SEQUENCE SET; Schema: lat; Owner: d50b
 --
 
-SELECT pg_catalog.setval('concepts_id_seq', 3, true);
+SELECT pg_catalog.setval('concepts_id_seq', 4, true);
 
 
 --

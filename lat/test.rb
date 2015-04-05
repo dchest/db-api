@@ -41,7 +41,7 @@ class LatTest < Minitest::Test
 
 	def test_create_concept
 		qry("lat.create_concept(' river ', ' River running ')")
-		assert_equal 4, @j[:id]
+		assert_equal 5, @j[:id]
 		assert_equal 'river', @j[:title]
 		assert_equal 'River running', @j[:concept]
 		assert_equal nil, @j[:urls]
@@ -200,6 +200,9 @@ class LatTest < Minitest::Test
 		pair3 = [@j[:concept1][:id], @j[:concept2][:id]].sort
 		refute_equal [1,2], pair3
 		refute_equal pair2, pair3
+		qry("lat.create_pairing()")
+		qry("lat.create_pairing()")
+		qry("lat.create_pairing()")
 		qry("lat.create_pairing()")
 		assert @j[:title].include? 'no unpaired concepts'
 	end
