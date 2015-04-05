@@ -168,6 +168,17 @@ class LatTest < Minitest::Test
 		assert_equal [], @j
 	end
 
+	def test_untagged_concepts
+		qry("lat.untagged_concepts()")
+		assert_instance_of Array, @j
+		assert_equal 1, @j.size
+		assert_equal 4, @j[0][:id]
+		assert_equal 'tagless', @j[0][:title]
+		qry("lat.tag_concept(4, 'flavor')")
+		qry("lat.untagged_concepts()")
+		assert_equal [], @j
+	end
+
 	def test_get_pairings
 		qry("lat.get_pairings()")
 		r = [{id:1, created_at:'2015-03-19', concept1:'roses', concept2:'violets'}]

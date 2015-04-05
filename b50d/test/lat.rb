@@ -156,6 +156,17 @@ class LatTest < Minitest::Test
 		assert_equal [], x
 	end
 
+	def test_untagged_concepts
+		x = @l.untagged_concepts
+		assert_instance_of Array, x
+		assert_equal 1, x.size
+		assert_equal 4, x[0][:id]
+		assert_equal 'tagless', x[0][:title]
+		@l.tag_concept(4, 'flavor')
+		x = @l.untagged_concepts
+		assert_equal [], x
+	end
+
 	def test_get_pairings
 		x = @l.get_pairings
 		r = [{id:1, created_at:'2015-03-19', concept1:'roses', concept2:'violets'}]

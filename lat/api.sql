@@ -155,12 +155,22 @@ $$ LANGUAGE plpgsql;
 -- PARAMS: text of tag
 -- Returns array of concepts or empty array if none found.
 CREATE OR REPLACE FUNCTION concepts_tagged(text, OUT mime text, OUT js json) AS $$
-DECLARE
-	ids integer[];
 BEGIN
-	SELECT array(SELECT concept_id FROM lat.concepts_tags, lat.tags
-		WHERE lat.tags.tag=$1 AND lat.tags.id=lat.concepts_tags.tag_id) INTO ids;
-	SELECT x.mime, x.js INTO mime, js FROM lat.get_concepts(ids) x;
+	SELECT x.mime, x.js INTO mime, js FROM lat.get_concepts(ARRAY(
+		SELECT concept_id FROM lat.concepts_tags, lat.tags
+		WHERE lat.tags.tag=$1 AND lat.tags.id=lat.concepts_tags.tag_id)) x;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- PARAMS: none
+-- Returns array of concepts or empty array if none found.
+CREATE OR REPLACE FUNCTION untagged_concepts(OUT mime text, OUT js json) AS $$
+BEGIN
+	SELECT x.mime, x.js INTO mime, js FROM lat.get_concepts(ARRAY(
+		SELECT lat.concepts.id FROM lat.concepts
+		LEFT JOIN lat.concepts_tags ON lat.concepts.id=lat.concepts_tags.concept_id
+		WHERE lat.concepts_tags.tag_id IS NULL)) x;
 END;
 $$ LANGUAGE plpgsql;
 
