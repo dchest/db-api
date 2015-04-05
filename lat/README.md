@@ -1,4 +1,4 @@
 # TODO:
 
-* shell script to add concept
+* web interface for untagged concepts
 
