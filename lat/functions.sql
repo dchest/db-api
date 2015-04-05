@@ -3,7 +3,7 @@
 ----------------------------
 
 -- create pairing of two concepts that haven't been paired before
-CREATE FUNCTION new_pairing() RETURNS SETOF pairings AS $$
+CREATE OR REPLACE FUNCTION new_pairing() RETURNS SETOF pairings AS $$
 DECLARE
 	id1 integer;
 	id2 integer;
