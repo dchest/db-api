@@ -28,7 +28,8 @@ twits.each do |t|
 		else
 			puts " FOLLOW TROUBLE"
 		end
-	rescue(e)
-		puts e
+	rescue => e
+		print e.class
+		puts e.message
 	end
 end

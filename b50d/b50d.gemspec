@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.platform	= Gem::Platform::RUBY
   s.name        = 'b50d'
-  s.version     = '2.3.1'
+  s.version     = '2.3.2'
   s.date        = '2015-04-09'
   s.author      = 'Derek Sivers'
   s.email       = 'derek@sivers.org'
