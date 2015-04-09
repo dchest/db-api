@@ -16,14 +16,19 @@ client = Twitter::REST::Client.new do |config|
 end
 
 twits.each do |t|
-	u = client.follow(t[:twitter])
-	if u.instance_of?(Array) && u[0].instance_of?(Twitter::User)
-		if p.add_stat(t[:person_id], 'twitter', '%d = %s' % [u[0].id, t[:twitter]])
-			puts "DONE: #{t}"
+	print t
+	begin
+		u = client.follow(t[:twitter])
+		if u.instance_of?(Array) && u[0].instance_of?(Twitter::User)
+			if p.add_stat(t[:person_id], 'twitter', '%d = %s' % [u[0].id, t[:twitter]])
+				puts " DONE"
+			else
+				puts " STAT TROUBLE"
+			end
 		else
-			puts "STAT TROUBLE WITH #{t}"
+			puts " FOLLOW TROUBLE"
 		end
-	else
-		puts "FOLLOW TROUBLE WITH #{t}"
+	rescue(e)
+		puts e
 	end
 end
