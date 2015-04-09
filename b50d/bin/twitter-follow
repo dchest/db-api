@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+require 'b50d-config.rb'
+require 'b50d/peeps'
+
+p = B50D::Peeps.new(API_KEY, API_PASS)
+
+twits = p.twitter_unfollowed
+exit if twits.size == 0
+
+require 'twitter'
+client = Twitter::REST::Client.new do |config|
+	config.consumer_key = TWITTER_CONSUMER_KEY
+	config.consumer_secret = TWITTER_CONSUMER_SECRET
+	config.access_token = TWITTER_ACCESS_TOKEN
+	config.access_token_secret = TWITTER_ACCESS_SECRET
+end
+
+twits.each do |t|
+	u = client.follow(t[:twitter])
+	if u.instance_of?(Array) && u[0].instance_of?(Twitter::User)
+		if p.add_stat(t[:person_id], 'twitter', '%d = %s' % [u[0].id, t[:twitter]])
+			puts "DONE: #{t}"
+		else
+			puts "STAT TROUBLE WITH #{t}"
+		end
+	else
+		puts "FOLLOW TROUBLE WITH #{t}"
+	end
+end

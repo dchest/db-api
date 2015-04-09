@@ -580,4 +580,13 @@ class TestPeep < Minitest::Test
 		assert_equal [], x
 		refute @p.email_is_sent(99)
 	end
+
+	def test_twitter_unfollowed
+		x = @p.twitter_unfollowed
+		assert_equal([{person_id: 2, twitter: 'wonka'}], x)
+		@p.add_stat(2, 'twitter', '12325 = wonka')
+		x = @p.twitter_unfollowed
+		assert_equal [], x
+	end
+
 end

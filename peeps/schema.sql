@@ -2649,3 +2649,17 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- Array of {person_id: 1234, twitter: 'username'}
+CREATE OR REPLACE FUNCTION twitter_unfollowed(OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	js := json_agg(r) FROM (SELECT person_id,
+		regexp_replace(regexp_replace(url, 'https?://twitter.com/', ''), '/$', '')
+		AS twitter FROM urls WHERE url LIKE '%twitter.com%'
+		AND person_id NOT IN
+			(SELECT DISTINCT person_id FROM userstats WHERE statkey='twitter')) r;
+	IF js IS NULL THEN js := '[]'; END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+

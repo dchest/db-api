@@ -653,5 +653,14 @@ class TestPeepsAPI < Minitest::Test
 		qry("email_is_sent(99)")
 		assert_equal 'Not Found', @j[:title]
 	end
+
+	def test_twitter_unfollowed
+		qry("twitter_unfollowed()")
+		assert_equal([{person_id: 2, twitter: 'wonka'}], @j)
+		qry("add_stat(2, 'twitter', '12325 = wonka')")
+		qry("twitter_unfollowed()")
+		assert_equal [], @j
+	end
+
 end
 

@@ -519,11 +519,11 @@ SELECT pg_catalog.setval('people_id_seq', 8, true);
 
 ALTER TABLE urls DISABLE TRIGGER ALL;
 
-INSERT INTO urls (id, person_id, url, main) VALUES (1, 1, 'http://twitter.com/sivers', false);
+INSERT INTO urls (id, person_id, url, main) VALUES (1, 1, 'https://twitter.com/sivers', false);
 INSERT INTO urls (id, person_id, url, main) VALUES (2, 1, 'http://sivers.org/', true);
 INSERT INTO urls (id, person_id, url, main) VALUES (3, 2, 'http://www.wonka.com/', true);
 INSERT INTO urls (id, person_id, url, main) VALUES (4, 2, 'http://cdbaby.com/cd/wonka', NULL);
-INSERT INTO urls (id, person_id, url, main) VALUES (5, 2, 'https://twitter.com/#!/wonka', NULL);
+INSERT INTO urls (id, person_id, url, main) VALUES (5, 2, 'https://twitter.com/wonka', NULL);
 INSERT INTO urls (id, person_id, url, main) VALUES (6, 3, 'http://salt.com/', NULL);
 INSERT INTO urls (id, person_id, url, main) VALUES (7, 3, 'http://facebook.com/salt', NULL);
 INSERT INTO urls (id, person_id, url, main) VALUES (8, 5, 'http://oompa.loompa', NULL);
