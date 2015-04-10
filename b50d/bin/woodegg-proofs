@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+exit unless 'sivers.org' == %x{hostname}.strip
 require 'b50d/woodegg'
 
 we = B50D::WoodEgg.new

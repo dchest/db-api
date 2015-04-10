@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+exit unless 'sivers.org' == %x{hostname}.strip
 require 'b50d/my_mail'
 require 'b50d-config.rb'
 

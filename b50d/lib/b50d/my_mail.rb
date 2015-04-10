@@ -33,7 +33,10 @@ module MyMail
 			mail = Mail.find(what2find)
 			while mail != [] do
 				puts mail.message_id + "\t" + mail.from[0]
-				db_api.import_email(parse(mail, profile))
+				if false == db_api.import_email(parse(mail, profile))
+					puts db_api.error
+					puts db_api.message
+				end
 				mail = Mail.find(what2find)
 			end
 		end
