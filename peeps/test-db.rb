@@ -409,5 +409,14 @@ class TestPeeps < Minitest::Test
 		assert_nil res[0]['pid']
 	end
 
+	def test_null_categorize_as
+		res = DB.exec("INSERT INTO people(name, email, categorize_as) VALUES ('Test1', 'test@test.is', ' ') RETURNING id")
+		new_id = res[0]['id'].to_i
+		res = DB.exec("SELECT categorize_as FROM people WHERE id=#{new_id}")
+		assert_equal nil, res[0]['categorize_as']
+		DB.exec("UPDATE people SET categorize_as='' WHERE id=2")
+		res = DB.exec("SELECT id FROM people WHERE id=2 AND categorize_as IS NULL")
+		assert_equal '2', res[0]['id']
+	end
 end
 
