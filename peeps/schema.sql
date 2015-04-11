@@ -2664,6 +2664,18 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- GET /emails/sent
+-- PARAMS: howmany
+CREATE OR REPLACE FUNCTION sent_emails(integer, OUT mime text, OUT js json) AS $$
+BEGIN
+	mime := 'application/json';
+	js := json_agg(r) FROM (SELECT * FROM peeps.emails_view WHERE id IN
+		(SELECT id FROM peeps.emails WHERE outgoing IS TRUE ORDER BY id DESC LIMIT $1)
+		ORDER BY id DESC) r;
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- Array of {person_id: 1234, twitter: 'username'}
 CREATE OR REPLACE FUNCTION twitter_unfollowed(OUT mime text, OUT js json) AS $$
 BEGIN

@@ -581,6 +581,18 @@ class TestPeep < Minitest::Test
 		refute @p.email_is_sent(99)
 	end
 
+	def test_sent_emails
+		x = @p.sent_emails(20)
+		assert_instance_of Array, x
+		assert_equal 1, x.size  # only 1 outgoing in fixtures
+		h = {id: 3, 
+			subject: 're: you coming by?',
+			created_at: '2013-07-20T03:47:01',
+			their_name: 'Will Wonka',
+			their_email: 'willy@wonka.com'}
+		assert_equal(h, x[0])
+	end
+
 	def test_twitter_unfollowed
 		x = @p.twitter_unfollowed
 		assert_equal([{person_id: 2, twitter: 'wonka'}], x)

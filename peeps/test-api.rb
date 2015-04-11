@@ -654,6 +654,18 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'Not Found', @j[:title]
 	end
 
+	def test_sent_emails
+		qry("sent_emails(20)")
+		assert_instance_of Array, @j
+		assert_equal 1, @j.size  # only 1 outgoing in fixtures
+		h = {id: 3, 
+			subject: 're: you coming by?',
+			created_at: '2013-07-20T03:47:01',
+			their_name: 'Will Wonka',
+			their_email: 'willy@wonka.com'}
+		assert_equal(h, @j[0])
+	end
+
 	def test_twitter_unfollowed
 		qry("twitter_unfollowed()")
 		assert_equal([{person_id: 2, twitter: 'wonka'}], @j)
