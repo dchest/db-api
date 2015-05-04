@@ -674,5 +674,17 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal [], @j
 	end
 
+	def test_dead_email
+		qry("dead_email(1)")
+		assert_equal({ok: 1}, @j)
+		qry("get_person(1)")
+		assert_equal "DEAD EMAIL: derek@sivers.org\nThis is me.", @j[:notes]
+		qry("dead_email(99)")
+		assert_equal 'Not Found', @j[:title]
+		qry("dead_email(4)")
+		assert_equal({ok: 4}, @j)
+		qry("get_person(4)")
+		assert_equal "DEAD EMAIL: charlie@bucket.org\n", @j[:notes]
+	end
 end
 

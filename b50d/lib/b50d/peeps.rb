@@ -304,6 +304,10 @@ module B50D
 		def twitter_unfollowed
 			@db.js('peeps.twitter_unfollowed()')
 		end
+
+		def dead_email(id)
+			@db.js('peeps.dead_email($1)', [id])
+		end
 	end
 end
 

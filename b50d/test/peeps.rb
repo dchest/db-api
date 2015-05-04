@@ -601,4 +601,16 @@ class TestPeep < Minitest::Test
 		assert_equal [], x
 	end
 
+	def test_dead_email
+		x = @p.dead_email(1)
+		assert_equal({ok: 1}, x)
+		x = @p.get_person(1)
+		assert_equal "DEAD EMAIL: derek@sivers.org\nThis is me.", x[:notes]
+		refute @p.dead_email(99)
+		x = @p.dead_email(4)
+		assert_equal({ok: 4}, x)
+		x = @p.get_person(4)
+		assert_equal "DEAD EMAIL: charlie@bucket.org\n", x[:notes]
+	end
 end
+

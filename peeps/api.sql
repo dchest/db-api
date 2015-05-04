@@ -1140,3 +1140,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- Mark this a dead email - by ID
+CREATE OR REPLACE FUNCTION dead_email(integer, OUT mime text, OUT js json) AS $$
+BEGIN
+	UPDATE peeps.people SET email=NULL, listype=NULL,
+		notes=CONCAT('DEAD EMAIL: ', email, E'\n', notes)
+		WHERE id = $1 AND email IS NOT NULL;
+	IF FOUND THEN
+		mime := 'application/json';
+		js := json_build_object('ok', $1);
+	ELSE m4_NOTFOUND END IF;
+END;
+$$ LANGUAGE plpgsql;
+
