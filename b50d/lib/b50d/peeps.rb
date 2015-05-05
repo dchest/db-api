@@ -148,6 +148,10 @@ module B50D
 			@db.js('peeps.delete_person($1)', [id])
 		end
 
+		def annihilate_person(id)
+			@db.js('peeps.annihilate_person($1)', [id])
+		end
+
 		def add_url(person_id, url)
 			@db.js('peeps.add_url($1, $2)', [person_id, url])
 		end

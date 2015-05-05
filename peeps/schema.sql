@@ -1770,6 +1770,52 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- DELETE /people/:id/annihilate
+-- PARAMS: person_id
+CREATE OR REPLACE FUNCTION annihilate_person(integer, OUT mime text, OUT js json) AS $$
+DECLARE
+	a_table text;
+
+	err_code text;
+	err_msg text;
+	err_detail text;
+	err_context text;
+
+BEGIN
+	mime := 'application/json';
+	js := row_to_json(r) FROM (SELECT * FROM peeps.person_view WHERE id = $1) r;
+	IF js IS NULL THEN
+
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'about:blank',
+		'title', 'Not Found',
+		'status', 404);
+
+	ELSE
+		FOREACH a_table IN ARRAY peeps.tables_referencing('peeps', 'people', 'id') LOOP
+			EXECUTE format ('DELETE FROM %s WHERE person_id=%s', a_table, $1);
+		END LOOP;
+		DELETE FROM peeps.people WHERE id = $1;
+	END IF;
+
+EXCEPTION
+	WHEN OTHERS THEN GET STACKED DIAGNOSTICS
+		err_code = RETURNED_SQLSTATE,
+		err_msg = MESSAGE_TEXT,
+		err_detail = PG_EXCEPTION_DETAIL,
+		err_context = PG_EXCEPTION_CONTEXT;
+	mime := 'application/problem+json';
+	js := json_build_object(
+		'type', 'http://www.postgresql.org/docs/9.4/static/errcodes-appendix.html#' || err_code,
+		'title', err_msg,
+		'detail', err_detail || err_context);
+
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- POST /people/:id/urls
 -- PARAMS: person_id, url
 CREATE OR REPLACE FUNCTION add_url(integer, text, OUT mime text, OUT js json) AS $$

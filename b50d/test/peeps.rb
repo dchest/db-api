@@ -285,6 +285,18 @@ class TestPeep < Minitest::Test
 		refute @p.get_person(x[:id])
 	end
 
+	def test_annihilate_person
+		refute @p.annihilate_person(99)
+		x = @p.annihilate_person(2)
+		assert_equal 'Willy Wonka', x[:name]
+		refute @p.get_person(2)
+		refute @p.open_email(1)
+		refute @p.get_url(3)
+		# can't delete an emailer
+		refute @p.annihilate_person(1)
+		assert @p.error.include? 'foreign key constraint "emails_created_by_fkey"'
+	end
+
 	def test_add_url
 		person_id = 4
 		url = 'http://something.cc'

@@ -338,6 +338,24 @@ class TestPeepsAPI < Minitest::Test
 		assert_equal 'Oompa Loompa', @j[:name]
 	end
 
+	def test_annihilate_person
+		qry("annihilate_person(99)")
+		assert_equal 'Not Found', @j[:title]
+		qry("annihilate_person(2)")
+		assert_equal 'Willy Wonka', @j[:name]
+		qry("get_person(2)")
+		assert_equal 'Not Found', @j[:title]
+		qry("get_email(1, 1)")
+		assert_equal 'Not Found', @j[:title]
+		qry("get_email(1, 3)")
+		assert_equal 'Not Found', @j[:title]
+		qry("get_url(3)")
+		assert_equal 'Not Found', @j[:title]
+		# can't delete an emailer
+		qry("annihilate_person(1)")
+		assert @j[:title].include? 'foreign key constraint "emails_created_by_fkey"'
+	end
+
 	def test_add_url
 		qry("add_url(5, 'bank.com')")
 		assert_equal 'http://bank.com', @j[:urls][1][:url]

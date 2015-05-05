@@ -527,6 +527,29 @@ m4_ERRCATCH
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- DELETE /people/:id/annihilate
+-- PARAMS: person_id
+CREATE OR REPLACE FUNCTION annihilate_person(integer, OUT mime text, OUT js json) AS $$
+DECLARE
+	a_table text;
+m4_ERRVARS
+BEGIN
+	mime := 'application/json';
+	js := row_to_json(r) FROM (SELECT * FROM peeps.person_view WHERE id = $1) r;
+	IF js IS NULL THEN
+m4_NOTFOUND
+	ELSE
+		FOREACH a_table IN ARRAY peeps.tables_referencing('peeps', 'people', 'id') LOOP
+			EXECUTE format ('DELETE FROM %s WHERE person_id=%s', a_table, $1);
+		END LOOP;
+		DELETE FROM peeps.people WHERE id = $1;
+	END IF;
+m4_ERRCATCH
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- POST /people/:id/urls
 -- PARAMS: person_id, url
 CREATE OR REPLACE FUNCTION add_url(integer, text, OUT mime text, OUT js json) AS $$
