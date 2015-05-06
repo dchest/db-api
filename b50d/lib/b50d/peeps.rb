@@ -312,6 +312,10 @@ module B50D
 		def dead_email(id)
 			@db.js('peeps.dead_email($1)', [id])
 		end
+
+		def tables_with_person(id)
+			@db.js('peeps.tables_with_person($1)', [id])
+		end
 	end
 end
 

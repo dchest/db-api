@@ -532,7 +532,7 @@ $$ LANGUAGE plpgsql;
 -- PARAMS: person_id
 CREATE OR REPLACE FUNCTION annihilate_person(integer, OUT mime text, OUT js json) AS $$
 DECLARE
-	a_table text;
+	res RECORD;
 m4_ERRVARS
 BEGIN
 	mime := 'application/json';
@@ -540,8 +540,9 @@ BEGIN
 	IF js IS NULL THEN
 m4_NOTFOUND
 	ELSE
-		FOREACH a_table IN ARRAY peeps.tables_referencing('peeps', 'people', 'id') LOOP
-			EXECUTE format ('DELETE FROM %s WHERE person_id=%s', a_table, $1);
+		FOR res IN SELECT * FROM peeps.tables_referencing('peeps', 'people', 'id') LOOP
+			EXECUTE format ('DELETE FROM %s WHERE %I=%s',
+				res.tablename, res.colname, $1);
 		END LOOP;
 		DELETE FROM peeps.people WHERE id = $1;
 	END IF;
@@ -1165,6 +1166,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Mark this a dead email - by ID
+-- PARAMS: person_id
 CREATE OR REPLACE FUNCTION dead_email(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	UPDATE peeps.people SET email=NULL, listype=NULL,
@@ -1176,4 +1178,27 @@ BEGIN
 	ELSE m4_NOTFOUND END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+
+-- ARRAY of schema.tablenames where with this person_id
+-- PARAMS: person_id
+CREATE OR REPLACE FUNCTION tables_with_person(integer, OUT mime text, OUT js json) AS $$
+DECLARE
+	res RECORD;
+	tablez text[] := ARRAY[]::text[];
+	rowcount integer;
+BEGIN
+	FOR res IN SELECT * FROM peeps.tables_referencing('peeps', 'people', 'id') LOOP
+		EXECUTE format ('SELECT 1 FROM %s WHERE %I=%s',
+			res.tablename, res.colname, $1);
+		GET DIAGNOSTICS rowcount = ROW_COUNT;
+		IF rowcount > 0 THEN
+			tablez := tablez || res.tablename;
+		END IF;
+	END LOOP;
+	mime := 'application/json';
+	js := array_to_json(tablez);
+END;
+$$ LANGUAGE plpgsql;
+
 

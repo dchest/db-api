@@ -624,5 +624,10 @@ class TestPeep < Minitest::Test
 		x = @p.get_person(4)
 		assert_equal "DEAD EMAIL: charlie@bucket.org\n", x[:notes]
 	end
+
+	def test_tables_with_person
+		x = @p.tables_with_person(1)
+		assert_equal ['peeps.emailers','peeps.userstats','peeps.urls','peeps.logins','peeps.api_keys'].sort, x.sort
+	end
 end
 

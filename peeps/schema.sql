@@ -266,27 +266,22 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- For updating foreign keys, array of tables referencing this one.  USAGE: see merge function below.
--- Returns in schema.table format like {'woodegg.researchers', 'musicthoughts.contributors'}
-CREATE OR REPLACE FUNCTION tables_referencing(my_schema text, my_table text, my_column text) RETURNS text[] AS $$
-DECLARE
-	tables text[] := ARRAY[]::text[];
+-- For updating foreign keys, tables referencing this column
+-- tablename in schema.table format like 'woodegg.researchers' colname: 'person_id'
+-- PARAMS: schema, table, column
+CREATE OR REPLACE FUNCTION tables_referencing(text, text, text)
+	RETURNS TABLE(tablename text, colname name) AS $$
 BEGIN
-	SELECT ARRAY(
-		SELECT CONCAT(R.TABLE_SCHEMA, '.', R.TABLE_NAME)
-			FROM INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE U
-				INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS FK
-					ON U.CONSTRAINT_CATALOG = FK.UNIQUE_CONSTRAINT_CATALOG
-					AND U.CONSTRAINT_SCHEMA = FK.UNIQUE_CONSTRAINT_SCHEMA
-					AND U.CONSTRAINT_NAME = FK.UNIQUE_CONSTRAINT_NAME
-				INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE R
-					ON R.CONSTRAINT_CATALOG = FK.CONSTRAINT_CATALOG
-					AND R.CONSTRAINT_SCHEMA = FK.CONSTRAINT_SCHEMA
-					AND R.CONSTRAINT_NAME = FK.CONSTRAINT_NAME
-			WHERE U.COLUMN_NAME = my_column
-				AND U.TABLE_SCHEMA = my_schema
-				AND U.TABLE_NAME = my_table) INTO tables;
-	RETURN tables;
+	RETURN QUERY SELECT CONCAT(n.nspname, '.', k.relname), a.attname
+		FROM pg_constraint c
+		LEFT JOIN pg_class k ON c.conrelid = k.oid
+		LEFT JOIN pg_attribute a ON c.conrelid = a.attrelid
+		LEFT JOIN pg_namespace n ON k.relnamespace = n.oid
+		WHERE c.confrelid = (SELECT oid FROM pg_class WHERE relname = $2 
+			AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = $1))
+		AND ARRAY[a.attnum] <@ c.conkey
+		AND c.confkey @> (SELECT array_agg(attnum) FROM pg_attribute
+			WHERE attname = $3 AND attrelid = c.confrelid);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -428,19 +423,19 @@ $$ LANGUAGE plpgsql;
 -- (Return value is probably unneeded, but here it is anyway, just in case.)
 CREATE OR REPLACE FUNCTION person_merge_from_to(old_id integer, new_id integer) RETURNS text[] AS $$
 DECLARE
+	res RECORD;
 	done_tables text[] := ARRAY[]::text[];
-	a_table text;
 	rowcount integer;
 	old_p peeps.people;
 	new_p peeps.people;
 BEGIN
 	-- update ids to point to new one
-	FOREACH a_table IN ARRAY peeps.tables_referencing('peeps', 'people', 'id') LOOP
-		EXECUTE format ('UPDATE %s SET person_id=%s WHERE person_id=%s',
-			a_table, new_id, old_id);
+	FOR res IN SELECT * FROM peeps.tables_referencing('peeps', 'people', 'id') LOOP
+		EXECUTE format ('UPDATE %s SET %I=%s WHERE %I=%s',
+			res.tablename, res.colname, new_id, res.colname, old_id);
 		GET DIAGNOSTICS rowcount = ROW_COUNT;
 		IF rowcount > 0 THEN
-			done_tables := done_tables || a_table;
+			done_tables := done_tables || res.tablename;
 		END IF;
 	END LOOP;
 	-- copy better(longer) data from old to new
@@ -1775,7 +1770,7 @@ $$ LANGUAGE plpgsql;
 -- PARAMS: person_id
 CREATE OR REPLACE FUNCTION annihilate_person(integer, OUT mime text, OUT js json) AS $$
 DECLARE
-	a_table text;
+	res RECORD;
 
 	err_code text;
 	err_msg text;
@@ -1794,8 +1789,9 @@ BEGIN
 		'status', 404);
 
 	ELSE
-		FOREACH a_table IN ARRAY peeps.tables_referencing('peeps', 'people', 'id') LOOP
-			EXECUTE format ('DELETE FROM %s WHERE person_id=%s', a_table, $1);
+		FOR res IN SELECT * FROM peeps.tables_referencing('peeps', 'people', 'id') LOOP
+			EXECUTE format ('DELETE FROM %s WHERE %I=%s',
+				res.tablename, res.colname, $1);
 		END LOOP;
 		DELETE FROM peeps.people WHERE id = $1;
 	END IF;
@@ -2737,6 +2733,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Mark this a dead email - by ID
+-- PARAMS: person_id
 CREATE OR REPLACE FUNCTION dead_email(integer, OUT mime text, OUT js json) AS $$
 BEGIN
 	UPDATE peeps.people SET email=NULL, listype=NULL,
@@ -2754,5 +2751,28 @@ BEGIN
  END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+
+-- ARRAY of schema.tablenames where with this person_id
+-- PARAMS: person_id
+CREATE OR REPLACE FUNCTION tables_with_person(integer, OUT mime text, OUT js json) AS $$
+DECLARE
+	res RECORD;
+	tablez text[] := ARRAY[]::text[];
+	rowcount integer;
+BEGIN
+	FOR res IN SELECT * FROM peeps.tables_referencing('peeps', 'people', 'id') LOOP
+		EXECUTE format ('SELECT 1 FROM %s WHERE %I=%s',
+			res.tablename, res.colname, $1);
+		GET DIAGNOSTICS rowcount = ROW_COUNT;
+		IF rowcount > 0 THEN
+			tablez := tablez || res.tablename;
+		END IF;
+	END LOOP;
+	mime := 'application/json';
+	js := array_to_json(tablez);
+END;
+$$ LANGUAGE plpgsql;
+
 
 

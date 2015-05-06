@@ -704,5 +704,10 @@ class TestPeepsAPI < Minitest::Test
 		qry("get_person(4)")
 		assert_equal "DEAD EMAIL: charlie@bucket.org\n", @j[:notes]
 	end
+
+	def test_tables_with_person
+		qry("tables_with_person(1)")
+		assert_equal ['peeps.emailers','peeps.userstats','peeps.urls','peeps.logins','peeps.api_keys'].sort, @j.sort
+	end
 end
 
